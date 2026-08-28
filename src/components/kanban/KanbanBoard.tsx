@@ -8,7 +8,11 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskStatus, TaskPriority } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import {
   Plus,
   MessageSquare,
@@ -22,8 +26,9 @@ import {
   ArrowRight,
   Send,
   Trash2,
+  UserCheck,
 } from "lucide-react";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 interface KanbanBoardProps {
   currentUser: any;
@@ -99,6 +104,22 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
 
   useEffect(() => {
     fetchTasks();
+
+    // Supabase Realtime channel for live Kanban sync
+    const channel = supabase
+      .channel("tasks_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks" },
+        () => {
+          fetchTasks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [departmentFilter, assigneeFilter, myTasksOnly]);
 
   const handleCreateTask = async () => {
@@ -135,6 +156,14 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
+        if (newStatus === "DONE") {
+          confetti({
+            particleCount: 75,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ["#11606E", "#60C8D4", "#0A3A40"],
+          });
+        }
         fetchTasks();
         if (selectedTask && selectedTask.id === taskId) {
           setSelectedTask((prev: any) => ({ ...prev, status: newStatus }));
@@ -167,68 +196,71 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
     }
   };
 
-  const columns: { id: TaskStatus; title: string; color: string; badgeVariant: any }[] = [
-    { id: "TODO", title: "To Do", color: "border-t-teal-900/40", badgeVariant: "default" },
-    { id: "IN_PROGRESS", title: "In Progress", color: "border-t-teal-500", badgeVariant: "accent" },
-    { id: "REVIEW", title: "Review", color: "border-t-amber-500", badgeVariant: "warning" },
-    { id: "DONE", title: "Done", color: "border-t-emerald-500", badgeVariant: "success" },
+  const columns: {
+    id: TaskStatus;
+    title: string;
+    accentColor: string;
+    borderTop: string;
+  }[] = [
+    { id: "TODO", title: "To Do", accentColor: "text-ink-soft", borderTop: "border-t-teal-900/40" },
+    { id: "IN_PROGRESS", title: "In Progress", accentColor: "text-teal-900", borderTop: "border-t-teal-500" },
+    { id: "REVIEW", title: "In Review", accentColor: "text-amber-700", borderTop: "border-t-amber-500" },
+    { id: "DONE", title: "Completed", accentColor: "text-emerald-700", borderTop: "border-t-emerald-500" },
   ];
 
   return (
-    <div className="space-y-6 animate-vague-in">
-      {/* Controls & Filter Bar */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setMyTasksOnly(!myTasksOnly)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold font-body border transition-all duration-200 ${
-                myTasksOnly
-                  ? "bg-teal-900 text-white border-teal-900 shadow-sm"
-                  : "bg-surface-alt text-ink-soft border-line hover:text-ink hover:bg-surface"
-              }`}
-            >
-              ★ My Assigned Tasks
-            </button>
-
-            <Select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-48 text-xs py-2"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              value={assigneeFilter}
-              onChange={(e) => setAssigneeFilter(e.target.value)}
-              disabled={myTasksOnly}
-              className="w-48 text-xs py-2"
-            >
-              <option value="all">All Assignees</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <Button
-            size="sm"
-            variant="primary"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => setIsNewTaskOpen(true)}
+    <div className="space-y-6">
+      {/* Filter and Trigger Controls */}
+      <div className="p-4 bg-surface/90 backdrop-blur-md rounded-2xl border border-line shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setMyTasksOnly(!myTasksOnly)}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold font-body border transition-all duration-200 ${
+              myTasksOnly
+                ? "bg-ast-primary text-white border-ast-primary shadow-sm"
+                : "bg-surface-alt text-ink-soft border-line hover:text-ink hover:bg-surface"
+            }`}
           >
-            Create Task
-          </Button>
+            ★ My Assigned Tasks
+          </button>
+
+          <Select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="w-48 text-xs py-2"
+          >
+            <option value="all">All Technical Tracks</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            disabled={myTasksOnly}
+            className="w-48 text-xs py-2"
+          >
+            <option value="all">All Members</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({m.departmentName || m.role})
+              </option>
+            ))}
+          </Select>
         </div>
-      </Card>
+
+        <Button
+          size="sm"
+          variant="primary"
+          leftIcon={<Plus className="w-4 h-4" />}
+          onClick={() => setIsNewTaskOpen(true)}
+        >
+          Create Sprint Task
+        </Button>
+      </div>
 
       {/* 4-Column Kanban Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
@@ -237,78 +269,89 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           return (
             <div
               key={col.id}
-              className={`bg-surface-alt/70 border border-line rounded-2xl p-3.5 space-y-3 min-h-[500px] border-t-4 ${col.color}`}
+              className={`bg-surface-alt/80 backdrop-blur-sm border border-line rounded-2xl p-4 space-y-3.5 min-h-[520px] border-t-4 ${col.borderTop}`}
             >
-              {/* Column Header */}
+              {/* Header */}
               <div className="flex items-center justify-between px-1">
                 <span className="font-display font-bold text-xs uppercase tracking-wider text-ink">
                   {col.title}
                 </span>
-                <span className="font-body text-xs font-bold text-ink-soft bg-surface px-2 py-0.5 rounded-full border border-line">
+                <span className="font-mono text-xs font-bold text-ink-soft bg-surface px-2 py-0.5 rounded-full border border-line">
                   {colTasks.length}
                 </span>
               </div>
 
-              {/* Tasks List */}
+              {/* Tasks List with Framer Motion Stagger */}
               <div className="space-y-3">
-                {colTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => setSelectedTask(task)}
-                    className="p-4 bg-surface border border-line rounded-xl shadow-sm hover:shadow-md hover:border-teal-400/60 transition-all duration-200 cursor-pointer space-y-2.5 group"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <PriorityBadge priority={task.priority} />
-                      {task.department && (
-                        <span className="text-[10px] font-bold text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 truncate max-w-[120px]">
-                          {task.department.name}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="font-body font-bold text-xs text-ink group-hover:text-teal-900 transition-colors line-clamp-2">
-                      {task.title}
-                    </h4>
-
-                    {task.description && (
-                      <p className="text-[11px] text-ink-soft font-body line-clamp-2 leading-relaxed">
-                        {task.description}
-                      </p>
-                    )}
-
-                    <div className="pt-2 border-t border-line/60 flex items-center justify-between text-xs">
-                      {task.assignee ? (
-                        <div className="flex items-center gap-1.5" title={task.assignee.name}>
-                          <Avatar name={task.assignee.name} src={task.assignee.avatarUrl} size="xs" />
-                          <span className="text-[11px] font-semibold text-ink truncate max-w-[90px]">
-                            {task.assignee.name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-ink-faint italic font-body">
-                          Unassigned
-                        </span>
-                      )}
-
-                      <div className="flex items-center gap-2 text-ink-faint text-[10px]">
-                        {task.comments?.length > 0 && (
-                          <span className="flex items-center gap-0.5">
-                            <MessageSquare className="w-3 h-3" /> {task.comments.length}
-                          </span>
-                        )}
-                        {task.dueDate && (
-                          <span className="flex items-center gap-0.5">
-                            <Calendar className="w-3 h-3" /> {formatDate(task.dueDate)}
+                <AnimatePresence mode="popLayout">
+                  {colTasks.map((task) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.25 }}
+                      key={task.id}
+                      onClick={() => setSelectedTask(task)}
+                      className="p-4 bg-surface border border-line rounded-xl shadow-sm hover:shadow-md hover:border-ast-light/70 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer space-y-3 group"
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <PriorityBadge priority={task.priority} />
+                        {task.department && (
+                          <span className="text-[10px] font-mono font-bold text-ast-primary bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 truncate max-w-[120px]">
+                            {task.department.name}
                           </span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                ))}
+
+                      <h4 className="font-body font-bold text-xs text-ink group-hover:text-ast-primary transition-colors line-clamp-2">
+                        {task.title}
+                      </h4>
+
+                      {task.description && (
+                        <p className="text-[11px] text-ink-soft font-body line-clamp-2 leading-relaxed">
+                          {task.description}
+                        </p>
+                      )}
+
+                      <div className="pt-2 border-t border-line/60 flex items-center justify-between text-xs">
+                        {task.assignee ? (
+                          <div className="flex items-center gap-1.5" title={task.assignee.name}>
+                            <Avatar
+                              name={task.assignee.name}
+                              src={task.assignee.avatarUrl}
+                              size="xs"
+                            />
+                            <span className="text-[11px] font-semibold text-ink truncate max-w-[90px]">
+                              {task.assignee.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-ink-faint italic font-body">
+                            Unassigned
+                          </span>
+                        )}
+
+                        <div className="flex items-center gap-2 text-ink-faint text-[10px] font-mono">
+                          {task.comments?.length > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <MessageSquare className="w-3 h-3" /> {task.comments.length}
+                            </span>
+                          )}
+                          {task.dueDate && (
+                            <span className="flex items-center gap-0.5">
+                              <Calendar className="w-3 h-3" /> {formatDate(task.dueDate)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
 
                 {colTasks.length === 0 && (
-                  <div className="p-6 text-center text-ink-faint border border-dashed border-line rounded-xl text-xs font-body">
-                    No tickets in {col.title.toLowerCase()}
+                  <div className="p-8 text-center text-ink-faint border border-dashed border-line/80 rounded-xl text-xs font-body">
+                    No active tickets in {col.title.toLowerCase()}
                   </div>
                 )}
               </div>
@@ -321,20 +364,20 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
       <Modal
         isOpen={isNewTaskOpen}
         onClose={() => setIsNewTaskOpen(false)}
-        title="Create New Sprint Task"
-        description="Assign tickets to department members adhering to sprint priorities"
+        title="Create Sprint Ticket"
+        description="Allocate technical deliverables to club members"
       >
         <div className="space-y-4">
           <Input
-            label="Task Title *"
-            placeholder="e.g., Design Social Media Story Kit"
+            label="Ticket Title *"
+            placeholder="e.g. Design Component Library in Figma"
             value={newTaskForm.title}
             onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
           />
 
           <Textarea
-            label="Description & Acceptance Criteria"
-            placeholder="Outline specific requirements, brand guidelines, and deliverable format..."
+            label="Requirements & Acceptance Criteria"
+            placeholder="Specify technical scope, brand guidelines, and deliverable format..."
             value={newTaskForm.description}
             onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
           />
@@ -397,7 +440,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
         </div>
       </Modal>
 
-      {/* Task Detail & Comments Modal */}
+      {/* Task Detail Modal */}
       {selectedTask && (
         <Modal
           isOpen={!!selectedTask}
@@ -405,28 +448,28 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           title={selectedTask.title}
           maxWidth="xl"
         >
-          <div className="space-y-6">
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface-alt rounded-xl border border-line">
+          <div className="space-y-5">
+            {/* Meta status selector */}
+            <div className="p-3 bg-surface-alt rounded-xl border border-line flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold font-body text-ink-soft">Status:</span>
                 <select
                   value={selectedTask.status}
                   onChange={(e) => handleStatusChange(selectedTask.id, e.target.value as TaskStatus)}
-                  className="bg-surface border border-line rounded-lg px-2 py-1 text-xs font-bold font-body text-ink focus:outline-none focus:ring-1 focus:ring-teal-900"
+                  className="bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-bold font-body text-ink focus:outline-none focus:ring-1 focus:ring-ast-primary"
                 >
                   <option value="TODO">To Do</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="REVIEW">Review</option>
-                  <option value="DONE">Done ✓</option>
+                  <option value="DONE">Completed ✓</option>
                 </select>
               </div>
 
               <div className="flex items-center gap-2">
                 <PriorityBadge priority={selectedTask.priority} />
                 {selectedTask.dueDate && (
-                  <span className="text-xs text-ink-soft font-body">
-                    Due: <strong>{formatDate(selectedTask.dueDate)}</strong>
+                  <span className="text-xs text-ink-soft font-mono">
+                    Due: {formatDate(selectedTask.dueDate)}
                   </span>
                 )}
               </div>
@@ -434,24 +477,24 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
 
             {/* Description */}
             <div>
-              <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-body mb-1">
-                Description
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display mb-1">
+                Description & Deliverables
               </h5>
-              <p className="text-xs text-ink font-body leading-relaxed bg-surface p-3 rounded-xl border border-line">
+              <p className="text-xs text-ink font-body leading-relaxed bg-surface p-3.5 rounded-xl border border-line">
                 {selectedTask.description || "No description provided."}
               </p>
             </div>
 
-            {/* Assignee & Creator Info */}
+            {/* Assignee / Creator Details */}
             <div className="grid grid-cols-2 gap-4 text-xs font-body">
               <div className="p-3 bg-surface-alt rounded-xl border border-line">
-                <span className="text-[10px] uppercase font-bold text-ink-faint block">Assignee</span>
+                <span className="text-[10px] uppercase font-bold text-ink-faint font-display block">Assignee</span>
                 <p className="font-bold text-ink mt-0.5">
                   {selectedTask.assignee?.name || "Unassigned"}
                 </p>
               </div>
               <div className="p-3 bg-surface-alt rounded-xl border border-line">
-                <span className="text-[10px] uppercase font-bold text-ink-faint block">Created By</span>
+                <span className="text-[10px] uppercase font-bold text-ink-faint font-display block">Created By</span>
                 <p className="font-bold text-ink mt-0.5">
                   {selectedTask.createdBy?.name || "Executive Board"}
                 </p>
@@ -460,27 +503,26 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
 
             {/* Comments Thread */}
             <div className="space-y-3 pt-2">
-              <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-body flex items-center gap-1.5">
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5" /> Comments & Activity (
                 {selectedTask.comments?.length || 0})
               </h5>
 
-              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {selectedTask.comments?.map((c: any) => (
-                  <div key={c.id} className="p-3 bg-surface-alt/60 border border-line/60 rounded-xl space-y-1">
+                  <div key={c.id} className="p-3 bg-surface-alt/70 border border-line/60 rounded-xl space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-ink font-body">{c.user?.name}</span>
-                      <span className="text-[10px] text-ink-faint font-body">{formatDate(c.createdAt)}</span>
+                      <span className="text-[10px] text-ink-faint font-mono">{formatDate(c.createdAt)}</span>
                     </div>
                     <p className="text-xs text-ink-soft font-body leading-snug">{c.body}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Add Comment Input */}
               <div className="flex gap-2 pt-2">
                 <Input
-                  placeholder="Type a comment or update..."
+                  placeholder="Type an update or comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   className="text-xs py-2"

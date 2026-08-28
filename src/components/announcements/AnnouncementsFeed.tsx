@@ -8,6 +8,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Megaphone,
   Pin,
@@ -32,7 +35,6 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
 
   // New Announcement Modal
   const [isOpen, setIsOpen] = useState(false);
-  const [discordPreview, setDiscordPreview] = useState(false);
   const [form, setForm] = useState({
     title: "",
     body: "",
@@ -67,6 +69,22 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
 
   useEffect(() => {
     fetchAnnouncements();
+
+    // Supabase Realtime channel for live announcements
+    const channel = supabase
+      .channel("announcements_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        () => {
+          fetchAnnouncements();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [filter]);
 
   const handleCreate = async () => {
@@ -95,122 +113,132 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
   };
 
   return (
-    <div className="space-y-6 animate-vague-in">
-      {/* Action and Filter bar */}
-      <Card className="p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all ${
-                filter === "all"
-                  ? "bg-teal-900 text-white border-teal-900"
-                  : "bg-surface-alt text-ink-soft border-line hover:text-ink"
-              }`}
-            >
-              All Announcements
-            </button>
-            <button
-              onClick={() => setFilter("CLUB")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all ${
-                filter === "CLUB"
-                  ? "bg-teal-900 text-white border-teal-900"
-                  : "bg-surface-alt text-ink-soft border-line hover:text-ink"
-              }`}
-            >
-              Club-Wide Feed
-            </button>
+    <div className="space-y-6">
+      {/* Control bar */}
+      <div className="p-4 bg-surface/90 backdrop-blur-md rounded-2xl border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setFilter("all")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all ${
+              filter === "all"
+                ? "bg-ast-primary text-white border-ast-primary shadow-sm"
+                : "bg-surface-alt text-ink-soft border-line hover:text-ink"
+            }`}
+          >
+            All Broadcasts
+          </button>
+          <button
+            onClick={() => setFilter("CLUB")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold font-body border transition-all ${
+              filter === "CLUB"
+                ? "bg-ast-primary text-white border-ast-primary shadow-sm"
+                : "bg-surface-alt text-ink-soft border-line hover:text-ink"
+            }`}
+          >
+            Club-Wide Feed
+          </button>
 
-            <Select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="w-48 text-xs py-1.5"
-            >
-              <option value="all">Filter Department...</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} Division
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          {(currentUser?.role === "BOARD" || currentUser?.role === "HOD") && (
-            <Button
-              size="sm"
-              variant="primary"
-              leftIcon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsOpen(true)}
-            >
-              Publish Announcement
-            </Button>
-          )}
+          <Select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-48 text-xs py-1.5"
+          >
+            <option value="all">Filter Department...</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name} Division
+              </option>
+            ))}
+          </Select>
         </div>
-      </Card>
 
-      {/* Announcements List */}
+        {(currentUser?.role === "BOARD" || currentUser?.role === "HOD") && (
+          <Button
+            size="sm"
+            variant="primary"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setIsOpen(true)}
+          >
+            Publish Announcement
+          </Button>
+        )}
+      </div>
+
+      {/* Announcements Stream */}
       {loading ? (
         <div className="p-12 text-center text-ink-soft">
-          <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full mx-auto mb-3" />
-          <p className="font-display text-xs uppercase tracking-wider">Loading Announcements...</p>
+          <div className="animate-spin w-8 h-8 border-2 border-ast-primary border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="font-display text-xs uppercase tracking-wider">Syncing Bulletins...</p>
         </div>
       ) : announcements.length === 0 ? (
-        <div className="p-12 text-center text-ink-soft bg-surface rounded-2xl border border-line">
-          <Megaphone className="w-10 h-10 text-ink-faint mx-auto mb-2" />
-          <h4 className="font-display font-bold text-sm text-ink uppercase">No Announcements</h4>
-          <p className="text-xs text-ink-soft mt-1">Check back later for club bulletins.</p>
-        </div>
+        <EmptyState
+          icon={Megaphone}
+          title="No Announcements Posted"
+          description="Check back later or publish a club-wide notice to update all members."
+        />
       ) : (
-        <div className="space-y-4 animate-vague-in">
-          {announcements.map((ann) => (
-            <Card
-              key={ann.id}
-              className={`p-6 space-y-4 border ${
-                ann.isPinned ? "border-teal-400/80 bg-teal-50/20" : "bg-surface"
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {ann.isPinned && (
-                    <Badge variant="accent" size="sm" className="font-bold">
-                      <Pin className="w-3 h-3" /> Pinned Post
-                    </Badge>
-                  )}
-                  <Badge variant={ann.scope === "CLUB" ? "primary" : "default"} size="sm">
-                    {ann.scope === "CLUB" ? "Club-Wide Broadcast" : ann.department?.name}
-                  </Badge>
-                </div>
-                <span className="text-xs text-ink-faint font-body">
-                  {formatDateTime(ann.createdAt)}
-                </span>
-              </div>
-
-              <div>
-                <h3 className="font-display font-bold text-base sm:text-lg uppercase tracking-wider text-ink">
-                  {ann.title}
-                </h3>
-                <p className="font-body text-xs sm:text-sm text-ink mt-2 leading-relaxed whitespace-pre-line">
-                  {ann.body}
-                </p>
-              </div>
-
-              {/* Author Footer & Discord Badge */}
-              <div className="pt-4 border-t border-line/60 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={ann.author?.name} src={ann.author?.avatarUrl} size="sm" />
-                  <div>
-                    <p className="font-body font-bold text-xs text-ink">{ann.author?.name}</p>
-                    <p className="text-[10px] text-ink-soft font-body">{ann.author?.role}</p>
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {announcements.map((ann) => (
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                key={ann.id}
+              >
+                <Card
+                  className={`p-6 space-y-4 border ${
+                    ann.isPinned
+                      ? "border-ast-light/80 bg-teal-50/20 shadow-md"
+                      : "bg-surface/90 backdrop-blur-md"
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {ann.isPinned && (
+                        <Badge variant="accent" size="sm" className="font-bold">
+                          <Pin className="w-3 h-3" /> Pinned Bulletin
+                        </Badge>
+                      )}
+                      <Badge variant={ann.scope === "CLUB" ? "primary" : "default"} size="sm">
+                        {ann.scope === "CLUB" ? "Club-Wide Broadcast" : ann.department?.name}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-ink-faint font-mono">
+                      {formatDateTime(ann.createdAt)}
+                    </span>
                   </div>
-                </div>
 
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
-                  <Bot className="w-3.5 h-3.5" />
-                  Synced to Discord #announcements
-                </span>
-              </div>
-            </Card>
-          ))}
+                  <div>
+                    <h3 className="font-display font-bold text-base sm:text-lg uppercase tracking-wider text-ink">
+                      {ann.title}
+                    </h3>
+                    <p className="font-body text-xs sm:text-sm text-ink mt-2 leading-relaxed whitespace-pre-line">
+                      {ann.body}
+                    </p>
+                  </div>
+
+                  {/* Author Footer & Discord Badge */}
+                  <div className="pt-4 border-t border-line/60 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={ann.author?.name} src={ann.author?.avatarUrl} size="sm" />
+                      <div>
+                        <p className="font-body font-bold text-xs text-ink">{ann.author?.name}</p>
+                        <p className="text-[10px] text-ink-soft font-body">{ann.author?.role}</p>
+                      </div>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                      <Bot className="w-3.5 h-3.5" />
+                      Synced to Discord #announcements
+                    </span>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -225,7 +253,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
         <div className="space-y-4">
           <Input
             label="Announcement Title *"
-            placeholder="e.g. Asteria Freelance Division Recruitment Open"
+            placeholder="e.g. Asteria Freelance Division Open Call"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
@@ -271,7 +299,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                 id="pinnedCheck"
                 checked={form.isPinned}
                 onChange={(e) => setForm({ ...form, isPinned: e.target.checked })}
-                className="w-4 h-4 text-teal-900 rounded border-line"
+                className="w-4 h-4 text-ast-primary rounded border-line"
               />
               <label htmlFor="pinnedCheck" className="text-xs font-semibold font-body text-ink cursor-pointer">
                 Pin to top of announcements feed
@@ -287,7 +315,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                 className="w-4 h-4 text-indigo-600 rounded border-line"
               />
               <label htmlFor="discordCheck" className="text-xs font-semibold font-body text-indigo-900 cursor-pointer">
-                Simulate Webhook Dispatch to Asteria Discord Server
+                Push Webhook Dispatch to Asteria Discord Server
               </label>
             </div>
           </div>
@@ -299,10 +327,10 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                 <Bot className="w-4 h-4" /> Asteria Bot [BOT] • Today at 12:00 PM
               </div>
               <div className="p-3 bg-[#1e1f22] rounded-lg border-l-4 border-[#60C8D4] space-y-1">
-                <p className="font-bold text-white text-xs">
+                <p className="font-bold text-white text-xs font-display">
                   {form.title || "Announcement Title"}
                 </p>
-                <p className="text-[#dbdee1] text-[11px]">
+                <p className="text-[#dbdee1] text-[11px] font-body">
                   {form.body || "Announcement text will be formatted and posted to the channel."}
                 </p>
               </div>

@@ -10,7 +10,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        ast: {
+          dark: "#0A3A40",      // Deep background / hero sections
+          primary: "#11606E",   // Teal-900 primary brand accent
+          light: "#60C8D4",     // Teal-400 interactive highlights
+          dark2: "#0B4A55",     // Dark headers & badges
+        },
         teal: {
+          950: "#082c31",
           900: "#11606E", // Primary brand color
           800: "#0e505c",
           700: "#187484",
@@ -30,23 +37,25 @@ const config: Config = {
         line: {
           DEFAULT: "#E2E8E7", // Borders and dividers
           dark: "#20464d",
+          light: "#f0f4f4",
         },
         surface: {
           DEFAULT: "#FFFFFF", // Background
           alt: "#F5F8F8",     // Secondary background / cards
-          dark: "#08363e",
-          dark2: "#0B4A55",   // Dark sections / headers / badges
+          dark: "#0A3A40",    // Dark sections
+          dark2: "#0B4A55",   // Secondary dark
         },
       },
       fontFamily: {
-        display: ["var(--font-michroma)", "Michroma", "sans-serif"],
-        body: ["var(--font-manrope)", "Manrope", "sans-serif"],
+        display: ["var(--font-exo2)", "Exo 2", "sans-serif"],
+        body: ["var(--font-jakarta)", "Plus Jakarta Sans", "sans-serif"],
+        mono: ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
       },
       fontSize: {
-        h1: ["48px", { lineHeight: "56px", fontWeight: "700" }],
-        h2: ["32px", { lineHeight: "40px", fontWeight: "700" }],
+        h1: ["48px", { lineHeight: "56px", fontWeight: "700", letterSpacing: "-0.02em" }],
+        h2: ["32px", { lineHeight: "40px", fontWeight: "700", letterSpacing: "-0.01em" }],
         h3: ["20px", { lineHeight: "28px", fontWeight: "600" }],
-        body: ["16px", { lineHeight: "26px", fontWeight: "400" }],
+        body: ["15px", { lineHeight: "24px", fontWeight: "400" }],
         caption: ["13px", { lineHeight: "18px", fontWeight: "500" }],
       },
       transitionTimingFunction: {
@@ -64,6 +73,7 @@ const config: Config = {
         "vague-in": "vagueIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "courant-in": "courantIn 300ms cubic-bezier(0.65, 0, 0.35, 1) forwards",
         "ambient-flow": "ambientFlow 3200ms ease-in-out infinite",
+        "pulse-subtle": "pulseSubtle 2.5s ease-in-out infinite",
       },
       keyframes: {
         vagueIn: {
@@ -77,6 +87,10 @@ const config: Config = {
         ambientFlow: {
           "0%, 100%": { opacity: "0.4", transform: "translateY(0px)" },
           "50%": { opacity: "0.8", transform: "translateY(-4px)" },
+        },
+        pulseSubtle: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.6" },
         },
       },
     },

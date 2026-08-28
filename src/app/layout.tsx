@@ -1,9 +1,33 @@
 import type { Metadata } from "next";
+import { Exo_2, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
+
+const exo2 = Exo_2({
+  subsets: ["latin"],
+  variable: "--font-exo2",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Asteria Club Esprit — Management Platform",
-  description: "Internal operating system for Asteria Club Esprit: members, org structure, scheduling, Kanban tasks, and QR attendance.",
+  title: "Asteria Club Esprit — Operating System",
+  description:
+    "Internal management platform & talent pipeline for Asteria Club Esprit: Graphic Design, Video Editing, Web Development, and Photography.",
   icons: {
     icon: "/favicon.ico",
   },
@@ -15,9 +39,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-screen bg-surface-alt text-ink antialiased flex flex-col">
-        {children}
+    <html
+      lang="en"
+      className={`h-full ${exo2.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="min-h-screen bg-surface-alt text-ink font-body antialiased flex flex-col selection:bg-teal-400 selection:text-ink">
+        <SmoothScrollProvider>{children}</SmoothScrollProvider>
       </body>
     </html>
   );

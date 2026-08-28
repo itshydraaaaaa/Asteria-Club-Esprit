@@ -9,6 +9,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { supabase } from "@/lib/supabase";
 import {
   QrCode,
   KeyRound,
@@ -19,6 +21,7 @@ import {
   Users,
   Sparkles,
   Download,
+  CalendarCheck,
 } from "lucide-react";
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
@@ -29,7 +32,7 @@ interface AttendanceHubProps {
 }
 
 export function AttendanceHub({ currentUser }: AttendanceHubProps) {
-  const [activeTab, setActiveTab] = useState<"checkin" | "history" | "events" | "justify">("checkin");
+  const [activeTab, setActiveTab] = useState<"checkin" | "history">("checkin");
   const [events, setEvents] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
@@ -56,7 +59,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
       setRecords(recRes.records || []);
 
       if (evts.length > 0) {
-        setSelectedEventId(evts[0].id);
+        setSelectedEventId((prev) => prev || evts[0].id);
         generateQr(evts[0].checkInCode);
       }
     } catch (e) {
@@ -68,6 +71,22 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
 
   useEffect(() => {
     fetchData();
+
+    // Supabase Realtime channel for live attendance pop-in
+    const channel = supabase
+      .channel("attendance_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_records" },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const generateQr = async (code: string) => {
@@ -76,7 +95,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         width: 260,
         margin: 2,
         color: {
-          dark: "#11606E", // Teal-900 brand color
+          dark: "#11606E", // ast-primary brand color
           light: "#FFFFFF",
         },
       });
@@ -109,17 +128,16 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         setCheckInStatus({ type: "success", message: data.message });
         setCheckInCodeInput("");
         confetti({
-          particleCount: 80,
+          particleCount: 85,
           spread: 70,
           origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0B4A55"],
+          colors: ["#11606E", "#60C8D4", "#0A3A40"],
         });
         fetchData();
       } else {
         setCheckInStatus({ type: "error", message: data.error });
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
       setCheckInStatus({ type: "error", message: "Check-in failed." });
     }
   };
@@ -138,7 +156,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
           particleCount: 100,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0B4A55"],
+          colors: ["#11606E", "#60C8D4", "#0A3A40"],
         });
         fetchData();
       } else {
@@ -171,15 +189,16 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   };
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
+  const eventAttendanceRecords = records.filter((r) => r.eventId === selectedEventId);
 
   return (
-    <div className="space-y-6 animate-vague-in">
-      {/* Top Module Tabs */}
+    <div className="space-y-6">
+      {/* Tab Switcher & Justification CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Tabs
           tabs={[
             { id: "checkin", label: "Check-In Portal", icon: <QrCode className="w-3.5 h-3.5" /> },
-            { id: "history", label: "Attendance Records", count: records.length, icon: <Clock className="w-3.5 h-3.5" /> },
+            { id: "history", label: "Attendance Verification", count: records.length, icon: <Clock className="w-3.5 h-3.5" /> },
           ]}
           activeTab={activeTab}
           onChange={(id) => setActiveTab(id as any)}
@@ -220,11 +239,11 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         </div>
       )}
 
-      {/* Tab 1: Check-in Portal (QR Generator & Code Scanner) */}
+      {/* Tab 1: Check-in Portal */}
       {activeTab === "checkin" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-vague-in">
-          {/* Left: Dynamic QR Code Generator for Hosts */}
-          <Card className="p-6 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Host Console with QR Generator */}
+          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="primary" size="sm">
@@ -242,7 +261,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
 
             {/* Event Selector */}
             <Select
-              label="Active Event"
+              label="Active Session"
               value={selectedEventId}
               onChange={(e) => handleEventSelect(e.target.value)}
             >
@@ -253,40 +272,54 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
               ))}
             </Select>
 
-            {/* QR Visual */}
-            {selectedEvent && (
-              <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4">
+            {/* QR Card Visual */}
+            {selectedEvent ? (
+              <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
                 {qrDataUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={qrDataUrl}
                     alt="Event QR Code"
-                    className="w-52 h-52 rounded-xl shadow-md border-4 border-surface"
+                    className="w-52 h-52 rounded-2xl shadow-md border-4 border-surface"
                   />
                 )}
+
                 <div className="text-center space-y-1">
                   <span className="text-[10px] uppercase font-bold text-ink-faint font-display">
                     Numeric Passcode
                   </span>
-                  <p className="font-mono text-xl font-bold tracking-widest text-teal-900 bg-teal-50 px-4 py-1 rounded-lg border border-teal-200 inline-block">
+                  <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200 inline-block">
                     {selectedEvent.checkInCode}
                   </p>
+                </div>
+
+                <div className="text-xs text-ink-soft font-body flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-ast-primary" />
+                  <span>
+                    <strong>{eventAttendanceRecords.length}</strong> Attendees Checked In Live
+                  </span>
                 </div>
 
                 <Button
                   size="sm"
                   variant="accent"
-                  className="text-xs"
+                  className="text-xs font-bold"
                   onClick={() => handleSimulateQrScan(selectedEvent.checkInCode)}
                 >
                   ⚡ Simulate Member Camera Scan
                 </Button>
               </div>
+            ) : (
+              <EmptyState
+                icon={CalendarCheck}
+                title="No Active Events"
+                description="Schedule a workshop or general assembly from the calendar to generate dynamic check-in codes."
+              />
             )}
           </Card>
 
-          {/* Right: Member Code Entry & Verification */}
-          <Card className="p-6 space-y-5">
+          {/* Member Manual Passcode Entry */}
+          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="accent" size="sm">
@@ -298,11 +331,11 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                 Enter 6-Digit Passcode
               </h3>
               <p className="font-body text-xs text-ink-soft">
-                Enter the passcode displayed on the presentation projector or read aloud by the HoD.
+                Enter the passcode displayed on the presentation screen or provided by your department lead.
               </p>
             </div>
 
-            <div className="p-6 bg-surface-alt border border-line rounded-2xl space-y-4">
+            <div className="p-6 bg-surface-alt border border-line rounded-2xl space-y-4 shadow-sm">
               <Input
                 label="Enter Event Passcode"
                 placeholder="e.g. AST-2026 / WEB-DEV26"
@@ -322,72 +355,82 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
               </Button>
             </div>
 
-            {/* Quick-test helper */}
-            <div className="pt-2">
-              <span className="text-[11px] font-semibold uppercase text-ink-faint font-display block mb-2">
-                Quick-Test Available Codes:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {events.slice(0, 3).map((evt) => (
-                  <button
-                    key={evt.id}
-                    onClick={() => handleCodeCheckIn(evt.checkInCode)}
-                    className="text-xs font-mono bg-surface border border-line hover:border-teal-400 px-2.5 py-1 rounded-lg text-teal-900 transition-colors"
-                  >
-                    {evt.checkInCode} ({evt.department ? evt.department.name.slice(0, 3) : "Club"})
-                  </button>
-                ))}
+            {/* Available Codes Shortcut */}
+            {events.length > 0 && (
+              <div className="pt-2">
+                <span className="text-[11px] font-semibold uppercase text-ink-faint font-display block mb-2">
+                  Active Session Codes:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {events.slice(0, 3).map((evt) => (
+                    <button
+                      key={evt.id}
+                      onClick={() => handleCodeCheckIn(evt.checkInCode)}
+                      className="text-xs font-mono bg-surface border border-line hover:border-ast-light px-2.5 py-1 rounded-lg text-ast-primary transition-colors"
+                    >
+                      {evt.checkInCode} ({evt.department ? evt.department.name.slice(0, 3) : "Club"})
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </Card>
         </div>
       )}
 
-      {/* Tab 2: Attendance Records History Table */}
+      {/* Tab 2: Attendance Verification Table */}
       {activeTab === "history" && (
-        <Card className="animate-vague-in">
+        <Card className="bg-surface/90 backdrop-blur-md">
           <CardHeader>
             <CardTitle>Attendance Log & Verification Audit</CardTitle>
-            <span className="text-xs text-ink-soft font-body">{records.length} Total Check-ins</span>
+            <span className="text-xs text-ink-soft font-mono">{records.length} Total Check-ins</span>
           </CardHeader>
           <CardContent className="divide-y divide-line/60">
-            {records.map((rec) => (
-              <div key={rec.id} className="py-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <Avatar name={rec.user?.name} src={rec.user?.avatarUrl} size="md" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-body font-bold text-sm text-ink">{rec.user?.name}</h4>
-                      <Badge variant="primary" size="sm">
-                        {rec.user?.role}
+            {records.length > 0 ? (
+              records.map((rec) => (
+                <div key={rec.id} className="py-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <Avatar name={rec.user?.name} src={rec.user?.avatarUrl} size="md" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-body font-bold text-sm text-ink">{rec.user?.name}</h4>
+                        <Badge variant="primary" size="sm">
+                          {rec.user?.role}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-ink-soft font-body mt-0.5">
+                        Session: <strong>{rec.event?.title}</strong>
+                      </p>
+                      {rec.justification && (
+                        <p className="text-[11px] text-amber-800 font-body italic mt-0.5">
+                          Absence Justification: &quot;{rec.justification}&quot;
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right flex-shrink-0">
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-[10px] font-mono font-bold bg-surface-alt px-2 py-0.5 rounded border border-line">
+                        Method: {rec.method}
+                      </span>
+                      <Badge variant={rec.status === "PRESENT" ? "success" : "warning"} size="sm">
+                        {rec.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-ink-soft font-body mt-0.5">
-                      Session: <strong>{rec.event?.title}</strong>
-                    </p>
-                    {rec.justification && (
-                      <p className="text-[11px] text-amber-800 font-body italic mt-0.5">
-                        Absence Justification: &quot;{rec.justification}&quot;
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-right flex-shrink-0">
-                  <div className="flex items-center gap-2 justify-end">
-                    <span className="text-[10px] font-mono font-bold bg-surface-alt px-2 py-0.5 rounded border border-line">
-                      Method: {rec.method}
+                    <span className="text-[10px] text-ink-faint font-mono mt-1 block">
+                      {formatDateTime(rec.checkedInAt)}
                     </span>
-                    <Badge variant={rec.status === "PRESENT" ? "success" : "warning"} size="sm">
-                      {rec.status}
-                    </Badge>
                   </div>
-                  <span className="text-[10px] text-ink-faint font-body mt-1 block">
-                    {formatDateTime(rec.checkedInAt)}
-                  </span>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="No Attendance Records Yet"
+                description="Members will appear here once they scan event QR codes or enter session passcodes."
+              />
+            )}
           </CardContent>
         </Card>
       )}

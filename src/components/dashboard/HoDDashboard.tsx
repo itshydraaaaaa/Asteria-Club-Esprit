@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge, StatusBadge, PriorityBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import {
   Users,
@@ -36,26 +38,27 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
   };
 
   return (
-    <div className="space-y-6 animate-vague-in">
+    <div className="space-y-6">
       {/* Department Header Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-teal-900 to-teal-800 text-white p-6 sm:p-8 shadow-md border border-teal-700">
+      <div className="rounded-3xl gradient-mesh-hero text-white p-6 sm:p-8 shadow-lg border border-teal-700/50">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-teal-400/20 text-teal-300 border border-teal-400/30 text-xs font-semibold uppercase tracking-wider mb-2">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-ast-light/20 text-ast-light border border-ast-light/30 text-xs font-semibold uppercase tracking-wider font-mono">
               <Award className="w-3.5 h-3.5" />
               Department Head Operations
             </div>
             <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wider text-white">
               {dept?.name || "Department"} Hub
             </h2>
-            <p className="font-body text-xs sm:text-sm text-teal-100/90 mt-1 max-w-xl">
-              {dept?.description || "Manage your department curriculum, tasks, member roster, and workshop attendance."}
+            <p className="font-body text-xs sm:text-sm text-teal-100/90 max-w-xl leading-relaxed">
+              {dept?.description ||
+                "Manage your department curriculum, tasks, member roster, and workshop attendance."}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/tasks">
-              <Button variant="accent" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+              <Button variant="accent" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />} className="font-bold">
                 Create Task
               </Button>
             </Link>
@@ -68,44 +71,44 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
         </div>
       </div>
 
-      {/* Task Velocity Grid */}
+      {/* Task Velocity Grid with Animated Counters */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 bg-surface">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft font-body">
+        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft font-display">
             To Do
           </p>
-          <h4 className="font-display font-bold text-2xl text-ink mt-1">
-            {taskStats.todo}
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink mt-1">
+            <AnimatedCounter value={taskStats.todo} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Queued for sprint</span>
+          <span className="text-[10px] text-ink-faint font-body">Sprint queue</span>
         </Card>
 
-        <Card className="p-4 bg-surface">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-900 font-body">
+        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ast-primary font-display">
             In Progress
           </p>
-          <h4 className="font-display font-bold text-2xl text-teal-900 mt-1">
-            {taskStats.inProgress}
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary mt-1">
+            <AnimatedCounter value={taskStats.inProgress} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Being worked on</span>
+          <span className="text-[10px] text-ink-faint font-body">Being crafted</span>
         </Card>
 
-        <Card className="p-4 bg-surface">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 font-body">
+        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 font-display">
             In Review
           </p>
-          <h4 className="font-display font-bold text-2xl text-amber-700 mt-1">
-            {taskStats.review}
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-amber-700 mt-1">
+            <AnimatedCounter value={taskStats.review} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Awaiting HoD feedback</span>
+          <span className="text-[10px] text-ink-faint font-body">HoD feedback</span>
         </Card>
 
-        <Card className="p-4 bg-surface">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 font-body">
+        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 font-display">
             Completed
           </p>
-          <h4 className="font-display font-bold text-2xl text-emerald-700 mt-1">
-            {taskStats.done}
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-emerald-700 mt-1">
+            <AnimatedCounter value={taskStats.done} />
           </h4>
           <span className="text-[10px] text-ink-faint font-body">Production ready</span>
         </Card>
@@ -114,7 +117,7 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
       {/* Active Department Tasks & Member Roster */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Tasks list */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 bg-surface/90 backdrop-blur-md">
           <CardHeader>
             <div>
               <CardTitle>Active Department Tasks</CardTitle>
@@ -123,7 +126,7 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
               </p>
             </div>
             <Link href="/tasks">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="text-xs">
                 Kanban View
               </Button>
             </Link>
@@ -133,65 +136,75 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
               dept.tasks.slice(0, 5).map((t: any) => (
                 <div
                   key={t.id}
-                  className="p-3.5 rounded-xl border border-line bg-surface-alt/40 flex items-center justify-between gap-3 hover:border-teal-400/40 transition-all"
+                  className="p-4 rounded-2xl border border-line bg-surface-alt/50 flex items-center justify-between gap-3 hover:border-ast-light/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={t.status} />
                       <PriorityBadge priority={t.priority} />
                     </div>
-                    <h5 className="font-body font-bold text-xs text-ink">
-                      {t.title}
-                    </h5>
+                    <h5 className="font-body font-bold text-xs text-ink">{t.title}</h5>
                     <p className="text-[11px] text-ink-soft line-clamp-1">
                       {t.description || "No description provided."}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[10px] text-ink-faint font-body">
+                    <span className="text-[10px] text-ink-faint font-mono">
                       {formatDate(t.dueDate)}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-ink-soft text-center py-4">No active tasks in department.</p>
+              <EmptyState
+                icon={KanbanSquare}
+                title="No Tasks in Track"
+                description="Create sprint tasks for your department members."
+              />
             )}
           </CardContent>
         </Card>
 
         {/* Department Member Roster */}
-        <Card>
+        <Card className="bg-surface/90 backdrop-blur-md">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-teal-900" />
+              <Users className="w-4 h-4 text-ast-primary" />
               <CardTitle>Member Roster ({dept?.members?.length || 0})</CardTitle>
             </div>
-            <Link href="/members" className="text-xs text-teal-900 font-semibold hover:underline">
+            <Link href="/members" className="text-xs text-ast-primary font-semibold hover:underline">
               Directory
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dept?.members?.map((m: any) => (
-              <Link
-                key={m.id}
-                href={`/members/${m.id}`}
-                className="p-2.5 rounded-xl border border-line/60 bg-surface-alt/30 hover:bg-surface-alt flex items-center justify-between gap-3 transition-colors block"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Avatar name={m.name} src={m.avatarUrl} size="sm" />
-                  <div>
-                    <p className="font-body font-bold text-xs text-ink">{m.name}</p>
-                    <p className="text-[10px] text-ink-soft">{m.email}</p>
+            {dept?.members?.length > 0 ? (
+              dept.members.map((m: any) => (
+                <Link
+                  key={m.id}
+                  href={`/members/${m.id}`}
+                  className="p-3 rounded-xl border border-line/60 bg-surface-alt/40 hover:bg-surface-alt flex items-center justify-between gap-3 transition-colors block"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={m.name} src={m.avatarUrl} size="sm" />
+                    <div>
+                      <p className="font-body font-bold text-xs text-ink">{m.name}</p>
+                      <p className="text-[10px] text-ink-soft">{m.email}</p>
+                    </div>
                   </div>
-                </div>
-                {m.freelanceReady && (
-                  <Badge variant="accent" size="sm">
-                    ★ Freelance
-                  </Badge>
-                )}
-              </Link>
-            ))}
+                  {m.freelanceReady && (
+                    <Badge variant="accent" size="sm" className="font-mono">
+                      ★ Freelance
+                    </Badge>
+                  )}
+                </Link>
+              ))
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="No Members Enrolled"
+                description="Accepted applicants assigned to this track will appear here."
+              />
+            )}
           </CardContent>
         </Card>
       </div>

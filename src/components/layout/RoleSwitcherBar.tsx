@@ -2,24 +2,30 @@
 
 import React, { useState } from "react";
 import { UserRole, UserSession } from "@/lib/types";
-import { Sparkles, Shield, User, Award, CheckCircle2 } from "lucide-react";
+import { Sparkles, Shield, User, Award, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface RoleSwitcherBarProps {
   currentUser: UserSession | null;
   onRoleSwitched?: () => void;
 }
 
-export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBarProps) {
+export function RoleSwitcherBar({ currentUser }: RoleSwitcherBarProps) {
   const [loading, setLoading] = useState(false);
+
+  // In production, hide unless explicit demo preview flag is turned on
+  const isDemoEnabled =
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
+    process.env.NODE_ENV === "development";
+
+  if (!isDemoEnabled) return null;
 
   const personas = [
     {
       role: "BOARD" as UserRole,
       name: "Yasmine (President)",
       email: "president@asteria.tn",
-      badge: "Board Admin",
+      badge: "Board Executive",
       icon: Shield,
-      color: "bg-teal-900 text-white border-teal-800",
     },
     {
       role: "HOD" as UserRole,
@@ -27,7 +33,6 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
       email: "hod.web@asteria.tn",
       badge: "HoD Web",
       icon: Award,
-      color: "bg-teal-700 text-teal-100 border-teal-600",
     },
     {
       role: "HOD" as UserRole,
@@ -35,7 +40,6 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
       email: "hod.design@asteria.tn",
       badge: "HoD Design",
       icon: Award,
-      color: "bg-teal-600 text-teal-50 border-teal-500",
     },
     {
       role: "MEMBER" as UserRole,
@@ -43,7 +47,6 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
       email: "karim.chaabane@asteria.tn",
       badge: "Member",
       icon: User,
-      color: "bg-teal-100 text-teal-900 border-teal-300",
     },
     {
       role: "APPLICANT" as UserRole,
@@ -51,7 +54,6 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
       email: "mehdi.applicant@esprit.tn",
       badge: "Applicant",
       icon: User,
-      color: "bg-amber-100 text-amber-900 border-amber-300",
     },
   ];
 
@@ -74,14 +76,13 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
   };
 
   return (
-    <div className="bg-surface-dark2 text-white border-b border-teal-800/80 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 shadow-inner z-50">
+    <div className="bg-ast-dark text-white border-b border-teal-800/80 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 shadow-inner z-50">
       <div className="flex items-center gap-2 font-medium">
-        <Sparkles className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
-        <span className="font-display font-semibold uppercase tracking-wider text-teal-300 text-[11px]">
-          Demo Persona Switcher:
+        <span className="font-mono text-[9px] uppercase font-bold tracking-wider bg-teal-400 text-ink px-1.5 py-0.5 rounded">
+          DEMO PREVIEW
         </span>
-        <span className="text-teal-100/80 hidden sm:inline">
-          Active: <strong className="text-white font-semibold">{currentUser?.name}</strong> ({currentUser?.role})
+        <span className="text-teal-100/80 hidden sm:inline font-body">
+          Current Persona: <strong className="text-white font-semibold">{currentUser?.name}</strong> ({currentUser?.role})
         </span>
       </div>
 
@@ -97,7 +98,7 @@ export function RoleSwitcherBar({ currentUser, onRoleSwitched }: RoleSwitcherBar
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 ${
                 isActive
                   ? "bg-teal-400 text-ink border-teal-300 shadow-sm font-bold scale-105"
-                  : "bg-surface-dark2/80 hover:bg-teal-900 text-teal-200 border-teal-700/60 hover:text-white"
+                  : "bg-teal-950/80 hover:bg-teal-900 text-teal-200 border-teal-700/60 hover:text-white"
               } disabled:cursor-default`}
             >
               {isActive ? (

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { signToken, COOKIE_NAME } from "@/lib/auth";
@@ -8,11 +9,53 @@ export async function POST(req: Request) {
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. Attempt Supabase Auth login
+    try {
+      const supabase = await createClient();
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+      if (!authError && authData.user) {
+        const { data: profile } = (await supabase
+          .from("profiles")
+          .select("id, name, email, role, department_id")
+          .eq("id", authData.user.id)
+          .single()) as any;
+
+        return NextResponse.json({
+          success: true,
+          user: profile
+            ? {
+                id: profile.id,
+                name: profile.name,
+                email: profile.email,
+                role: profile.role,
+                departmentName: null,
+              }
+            : {
+                id: authData.user.id,
+                email: authData.user.email,
+              },
+        });
+      }
+    } catch (sbErr) {
+      console.warn("Supabase Auth sign-in attempted, checking local database:", sbErr);
+    }
+
+    // 2. Fallback to local database user check (for seamless local demo and seeding)
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: cleanEmail },
       include: {
         department: true,
         boardSeat: true,

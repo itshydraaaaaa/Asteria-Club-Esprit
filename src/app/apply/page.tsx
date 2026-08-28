@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import Link from "next/link";
 import {
   Sparkles,
@@ -16,6 +17,8 @@ import {
   Camera,
   ArrowRight,
   Send,
+  Shield,
+  Layers,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -55,7 +58,7 @@ export default function ApplyPage() {
           particleCount: 120,
           spread: 80,
           origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0B4A55"],
+          colors: ["#11606E", "#60C8D4", "#0A3A40"],
         });
       } else {
         setError(data.error || "Failed to submit application.");
@@ -77,7 +80,7 @@ export default function ApplyPage() {
     {
       id: "Graphic Design",
       name: "Graphic Design",
-      desc: "Visual branding, Figma design systems, posters & social assets",
+      desc: "Visual branding, Figma design systems, posters & social media assets",
       icon: Palette,
     },
     {
@@ -97,32 +100,34 @@ export default function ApplyPage() {
   return (
     <div className="min-h-screen bg-surface-alt flex flex-col font-body">
       {/* Public Brand Navbar */}
-      <header className="bg-surface border-b border-line px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+      <header className="bg-surface/90 backdrop-blur-md border-b border-line px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <AsteriaLogo variant="light" size="md" href="/" />
-        <Link href="/login">
-          <Button variant="outline" size="sm">
-            Member Login
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/login">
+            <Button variant="outline" size="sm">
+              Member Login
+            </Button>
+          </Link>
+        </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-8 animate-vague-in my-auto">
         {submitted ? (
-          <Card className="p-8 sm:p-12 text-center space-y-5 bg-surface max-w-2xl mx-auto shadow-md">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
+          <Card className="p-8 sm:p-12 text-center space-y-6 bg-surface max-w-2xl mx-auto shadow-xl border-ast-light/40">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div className="space-y-2">
-              <span className="font-display font-semibold text-xs uppercase tracking-widest text-teal-900 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+              <span className="font-mono font-bold text-xs uppercase tracking-widest text-ast-primary bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
                 Application Received
               </span>
               <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wider text-ink">
-                Welcome to the Pipeline!
+                Welcome to the Talent Pipeline!
               </h2>
               <p className="font-body text-sm text-ink-soft max-w-md mx-auto leading-relaxed">
-                Thank you for applying to Asteria Club Esprit, <strong>{form.name}</strong>! Your application for the <strong>{form.departmentPreference}</strong> track is now queued for board review.
+                Thank you for applying to Asteria Club Esprit, <strong>{form.name}</strong>! Your application for the <strong>{form.departmentPreference}</strong> track is now queued for review by our Executive Board.
               </p>
             </div>
 
@@ -152,23 +157,25 @@ export default function ApplyPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Recruitment Hero Banner */}
-            <div className="rounded-3xl bg-gradient-to-r from-teal-900 via-surface-dark2 to-teal-900 text-white p-8 sm:p-10 shadow-lg border border-teal-800 relative overflow-hidden">
+            {/* Recruitment Hero Banner with 3D Canvas */}
+            <div className="rounded-3xl gradient-mesh-hero text-white p-8 sm:p-12 shadow-xl border border-teal-700/50 relative overflow-hidden">
+              <AmbientCanvas particleCount={35} className="absolute inset-0 pointer-events-none opacity-50" />
+
               <div className="relative z-10 max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-teal-400/20 text-teal-300 border border-teal-400/30 text-xs font-semibold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-xl bg-ast-light/20 text-ast-light border border-ast-light/30 text-xs font-semibold uppercase tracking-wider font-mono">
                   <Sparkles className="w-3.5 h-3.5" />
                   Recruitment Season 2026
                 </div>
-                <h1 className="font-display font-bold text-3xl sm:text-4xl uppercase tracking-wider text-white">
+                <h1 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-white">
                   Join Asteria Club Esprit
                 </h1>
-                <p className="font-body text-sm text-teal-100/90 leading-relaxed">
+                <p className="font-body text-sm sm:text-base text-teal-100/90 leading-relaxed">
                   Train with elite student creators, build production-grade web systems, master visual design, and graduate directly into paid client contracts at <strong>Asteria Freelance</strong>.
                 </p>
               </div>
             </div>
 
-            {/* Department Track Picker */}
+            {/* Department Track Selection */}
             <div className="space-y-3">
               <h3 className="font-display font-bold text-sm uppercase tracking-wider text-ink">
                 1. Select Your Specialization Track *
@@ -183,13 +190,13 @@ export default function ApplyPage() {
                       onClick={() => setForm({ ...form, departmentPreference: dept.id })}
                       className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-start gap-3.5 ${
                         isSelected
-                          ? "bg-teal-50/80 border-teal-900 shadow-sm ring-1 ring-teal-900"
-                          : "bg-surface border-line hover:border-teal-400/60"
+                          ? "bg-teal-50/90 border-ast-primary shadow-sm ring-1 ring-ast-primary"
+                          : "bg-surface border-line hover:border-ast-light/60"
                       }`}
                     >
                       <div
                         className={`p-2.5 rounded-xl transition-colors ${
-                          isSelected ? "bg-teal-900 text-white" : "bg-surface-alt text-teal-900"
+                          isSelected ? "bg-ast-primary text-white" : "bg-surface-alt text-ast-primary"
                         }`}
                       >
                         <Icon className="w-5 h-5" />
@@ -200,7 +207,7 @@ export default function ApplyPage() {
                             {dept.name}
                           </h4>
                           {isSelected && (
-                            <CheckCircle2 className="w-4 h-4 text-teal-900" />
+                            <CheckCircle2 className="w-4 h-4 text-ast-primary" />
                           )}
                         </div>
                         <p className="text-[11px] text-ink-soft font-body leading-snug">
@@ -214,7 +221,7 @@ export default function ApplyPage() {
             </div>
 
             {/* Application Form Card */}
-            <Card className="p-6 sm:p-8 bg-surface">
+            <Card className="p-6 sm:p-8 bg-surface/90 backdrop-blur-md shadow-md">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <h3 className="font-display font-bold text-sm uppercase tracking-wider text-ink border-b border-line pb-3">
                   2. Applicant Dossier & Motivation
@@ -265,7 +272,7 @@ export default function ApplyPage() {
 
                 <Textarea
                   label="Motivation & Technical Background *"
-                  placeholder="Tell us about your experience, why you want to join Asteria, and what projects you are eager to build..."
+                  placeholder="Tell us about your background, why you want to join Asteria, and what projects you are eager to build..."
                   rows={4}
                   value={form.motivation}
                   onChange={(e) => setForm({ ...form, motivation: e.target.value })}
