@@ -1,0 +1,184 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  role           String    @default("MEMBER") // BOARD, HOD, MEMBER, APPLICANT
+  departmentId   String?
+  avatarUrl      String?
+  bio            String?
+  skills         String    @default("[]") // JSON stringified array of skills
+  status         String    @default("ACTIVE") // ACTIVE, INACTIVE, ALUMNI
+  freelanceReady Boolean   @default(false)
+  joinDate       DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  department     Department? @relation("DepartmentMembers", fields: [departmentId], references: [id])
+  hodOf          Department? @relation("DepartmentHoD")
+  boardSeat      BoardSeat?
+
+  tasksAssigned      Task[]             @relation("TaskAssignee")
+  tasksCreated       Task[]             @relation("TaskCreator")
+  taskComments       TaskComment[]
+  eventsCreated      Event[]            @relation("EventCreator")
+  rsvps              RSVP[]
+  attendanceRecords  AttendanceRecord[]
+  announcements      Announcement[]
+  auditLogs          AuditLog[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String
+  icon        String?
+  hodUserId   String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hod           User?          @relation("DepartmentHoD", fields: [hodUserId], references: [id])
+  members       User[]         @relation("DepartmentMembers")
+  tasks         Task[]
+  events        Event[]
+  announcements Announcement[]
+}
+
+model BoardSeat {
+  id        String   @id @default(cuid())
+  title     String
+  userId    String   @unique
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id             String    @id @default(cuid())
+  title          String
+  description    String
+  startTime      DateTime
+  endTime        DateTime
+  location       String
+  departmentId   String?   // null = Club-wide
+  recurrenceRule String?   // e.g. "WEEKLY", "MONTHLY"
+  checkInCode    String    @default("AST-2026")
+  createdById    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  createdBy         User               @relation("EventCreator", fields: [createdById], references: [id])
+  rsvps             RSVP[]
+  attendanceRecords AttendanceRecord[]
+}
+
+model RSVP {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  status    String   @default("GOING") // GOING, MAYBE, DECLINED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model AttendanceRecord {
+  id            String    @id @default(cuid())
+  eventId       String
+  userId        String
+  checkedInAt   DateTime  @default(now())
+  method        String    @default("MANUAL") // QR, CODE, MANUAL
+  status        String    @default("PRESENT") // PRESENT, ABSENT, EXCUSED
+  justification String?
+  createdAt     DateTime  @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  departmentId String
+  assigneeId   String?
+  createdById  String
+  status       String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  priority     String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  dueDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  assignee   User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy  User          @relation("TaskCreator", fields: [createdById], references: [id])
+  comments   TaskComment[]
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  title        String
+  body         String
+  scope        String   @default("CLUB") // CLUB, DEPARTMENT
+  departmentId String?
+  authorId     String
+  isPinned     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department Department? @relation(fields: [departmentId], references: [id])
+  author     User        @relation(fields: [authorId], references: [id])
+}
+
+model Application {
+  id                   String   @id @default(cuid())
+  name                 String
+  email                String
+  phone                String?
+  departmentPreference String
+  motivation           String
+  portfolioLink        String?
+  status               String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  reviewerNotes        String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}

@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Michroma&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-teal: #11606E;
+  --comp-teal: #60C8D4;
+  --ink: #12201F;
+  --ink-soft: #4B5C5C;
+  --ink-faint: #8A9695;
+  --line: #E2E8E7;
+  --surface: #FFFFFF;
+  --surface-alt: #F5F8F8;
+  --surface-dark2: #0B4A55;
+
+  /* Water-inspired motion easings */
+  --ease-vague: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-courant: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-maree: cubic-bezier(0.37, 0, 0.63, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+  color: var(--ink);
+  background-color: var(--surface-alt);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings font styling */
+h1, h2, h3, h4, .font-display {
+  font-family: 'Michroma', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface-alt);
+}
+::-webkit-scrollbar-thumb {
+  background: #c2cece;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ab0b0;
+}
+
+/* Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Water Ambient Background Glow */
+.asteria-ambient-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(96, 200, 212, 0.12) 0%, rgba(17, 96, 110, 0.02) 60%, transparent 100%);
+}

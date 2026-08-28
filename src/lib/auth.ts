@@ -1,0 +1,108 @@
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+import { prisma } from "./db";
+import { UserRole, UserSession } from "./types";
+
+const JWT_SECRET = process.env.JWT_SECRET || "asteria-super-secret-jwt-key-2026";
+export const COOKIE_NAME = "asteria_session_token";
+
+export interface JwtPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+}
+
+export function signToken(payload: JwtPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+
+export function verifyToken(token: string): JwtPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function getCurrentUser(): Promise<UserSession | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+
+  if (!token) {
+    // If no session cookie, check if there's a default demo user (President)
+    const defaultUser = await prisma.user.findFirst({
+      where: { role: "BOARD" },
+      include: {
+        department: true,
+        boardSeat: true,
+      },
+    });
+
+    if (!defaultUser) return null;
+
+    let skills: string[] = [];
+    try {
+      skills = JSON.parse(defaultUser.skills || "[]");
+    } catch {
+      skills = [];
+    }
+
+    return {
+      id: defaultUser.id,
+      name: defaultUser.name,
+      email: defaultUser.email,
+      role: defaultUser.role as UserRole,
+      departmentId: defaultUser.departmentId,
+      departmentName: defaultUser.department?.name,
+      boardTitle: defaultUser.boardSeat?.title,
+      avatarUrl: defaultUser.avatarUrl,
+      bio: defaultUser.bio,
+      skills,
+      status: defaultUser.status as any,
+      freelanceReady: defaultUser.freelanceReady,
+    };
+  }
+
+  const payload = verifyToken(token);
+  if (!payload?.userId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    include: {
+      department: true,
+      boardSeat: true,
+    },
+  });
+
+  if (!user) return null;
+
+  let skills: string[] = [];
+  try {
+    skills = JSON.parse(user.skills || "[]");
+  } catch {
+    skills = [];
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role as UserRole,
+    departmentId: user.departmentId,
+    departmentName: user.department?.name,
+    boardTitle: user.boardSeat?.title,
+    avatarUrl: user.avatarUrl,
+    bio: user.bio,
+    skills,
+    status: user.status as any,
+    freelanceReady: user.freelanceReady,
+  };
+}
+
+export function hasPermission(
+  userRole: UserRole,
+  allowedRoles: UserRole[]
+): boolean {
+  if (userRole === "BOARD") return true; // Board has superuser access
+  return allowedRoles.includes(userRole);
+}
