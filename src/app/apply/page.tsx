@@ -1,28 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import Link from "next/link";
+import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
+import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
+import { Input, Textarea } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import {
-  Sparkles,
-  CheckCircle2,
   Code2,
   Palette,
   Video,
   Camera,
-  ArrowRight,
+  CheckCircle2,
+  Sparkles,
   Send,
-  Shield,
-  Layers,
+  ArrowLeft,
+  ArrowRight,
+  ShieldCheck,
+  Briefcase,
+  AlertCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export default function ApplyPage() {
+  const [selectedTrack, setSelectedTrack] = useState("Web Development");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -36,109 +37,127 @@ export default function ApplyPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const tracks = [
+    {
+      id: "Web Development",
+      name: "Web Development",
+      badge: "Engineering",
+      icon: Code2,
+      desc: "React, Next.js 15, TypeScript, PostgreSQL, REST APIs & Freelance systems.",
+    },
+    {
+      id: "Graphic Design",
+      name: "Graphic Design",
+      badge: "Visual Branding",
+      icon: Palette,
+      desc: "Figma design systems, brand guidelines, vector posters & UI/UX aesthetics.",
+    },
+    {
+      id: "Video Editing",
+      name: "Video Editing",
+      badge: "Cinematic Media",
+      icon: Video,
+      desc: "Premiere Pro, After Effects, cinematic rushes, sound design & hackathon reels.",
+    },
+    {
+      id: "Photography",
+      name: "Photography",
+      badge: "Studio & Events",
+      icon: Camera,
+      desc: "Studio lighting, event photojournalism, color grading in Lightroom & Photoshop.",
+    },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.motivation) {
-      setError("Please fill out all required fields.");
+      setError("Please complete all required fields (Name, Email, Motivation).");
       return;
     }
 
     setLoading(true);
     setError(null);
+
     try {
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          departmentPreference: selectedTrack,
+        }),
       });
+
       const data = await res.json();
       if (res.ok) {
         setSubmitted(true);
         confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0A3A40"],
+          particleCount: 140,
+          spread: 90,
+          origin: { y: 0.55 },
+          colors: ["#60C8D4", "#11606E", "#FFFFFF"],
         });
       } else {
         setError(data.error || "Failed to submit application.");
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const departments = [
-    {
-      id: "Web Development",
-      name: "Web Development",
-      desc: "React, Next.js, TypeScript, Backend APIs & Freelance Web Engineering",
-      icon: Code2,
-    },
-    {
-      id: "Graphic Design",
-      name: "Graphic Design",
-      desc: "Visual branding, Figma design systems, posters & social media assets",
-      icon: Palette,
-    },
-    {
-      id: "Video Editing",
-      name: "Video Editing",
-      desc: "Premiere, After Effects, cinematic reels, hackathon aftermovies",
-      icon: Video,
-    },
-    {
-      id: "Photography",
-      name: "Photography",
-      desc: "Studio lighting, event photojournalism & color grading",
-      icon: Camera,
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-surface-alt flex flex-col font-body">
-      {/* Public Brand Navbar */}
-      <header className="bg-surface/90 backdrop-blur-md border-b border-line px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <AsteriaLogo variant="light" size="md" href="/" />
-        <div className="flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="outline" size="sm">
-              Member Login
-            </Button>
-          </Link>
+    <div className="min-h-screen bg-[#062327] text-white flex flex-col font-body selection:bg-teal-400 selection:text-ink relative overflow-hidden">
+      <AmbientCanvas particleCount={40} className="absolute inset-0 pointer-events-none opacity-50 z-0" />
+
+      {/* Floating Header */}
+      <header className="sticky top-4 z-50 px-4 sm:px-8 max-w-5xl w-full mx-auto">
+        <div className="glass-nav rounded-2xl px-5 py-3 flex items-center justify-between shadow-2xl">
+          <AsteriaLogo variant="dark" size="md" href="/" />
+
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <button className="px-3.5 py-1.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-teal-200 hover:text-white flex items-center gap-1.5 transition-colors">
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
+              </button>
+            </Link>
+            <Link href="/login">
+              <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-teal-900/80 hover:bg-teal-800 text-teal-200 border border-teal-700/60 hover:text-white transition-all">
+                Member Login
+              </button>
+            </Link>
+          </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-8 space-y-8 animate-vague-in my-auto">
+      {/* Main Container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 relative z-10 flex flex-col justify-center animate-vague-in">
         {submitted ? (
-          <Card className="p-8 sm:p-12 text-center space-y-6 bg-surface max-w-2xl mx-auto shadow-xl border-ast-light/40">
-            <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-10 h-10" />
+          <div className="glass-dark p-8 sm:p-14 rounded-3xl border border-teal-500/40 text-center space-y-6 max-w-2xl mx-auto shadow-2xl">
+            <div className="w-20 h-20 rounded-full bg-teal-900/80 border-2 border-ast-light text-ast-light flex items-center justify-center mx-auto shadow-inner glow-teal">
+              <CheckCircle2 className="w-12 h-12" />
             </div>
 
-            <div className="space-y-2">
-              <span className="font-mono font-bold text-xs uppercase tracking-widest text-ast-primary bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
-                Application Received
+            <div className="space-y-3">
+              <span className="font-mono text-xs uppercase font-bold tracking-widest text-teal-300 bg-teal-900/60 px-3.5 py-1 rounded-full border border-teal-500/30">
+                Application Received · 2026 Cycle
               </span>
-              <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wider text-ink">
-                Welcome to the Talent Pipeline!
+              <h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-wider text-white">
+                WELCOME, {form.name.toUpperCase()}!
               </h2>
-              <p className="font-body text-sm text-ink-soft max-w-md mx-auto leading-relaxed">
-                Thank you for applying to Asteria Club Esprit, <strong>{form.name}</strong>! Your application for the <strong>{form.departmentPreference}</strong> track is now queued for review by our Executive Board.
+              <p className="font-body text-xs sm:text-sm text-teal-100/80 leading-relaxed max-w-lg mx-auto">
+                Your application for the <strong>{selectedTrack}</strong> track has been securely recorded in our database. The Executive Board and Department Heads review submissions weekly.
               </p>
             </div>
 
-            <div className="pt-4 border-t border-line/60 flex flex-col sm:flex-row justify-center gap-3">
-              <Link href="/dashboard">
-                <Button variant="primary">
-                  Go to Dashboard / Demo Console
-                </Button>
+            <div className="pt-6 border-t border-teal-900/80 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/">
+                <button className="px-6 py-3 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button">
+                  Return to Homepage
+                </button>
               </Link>
-              <Button
-                variant="secondary"
+              <button
                 onClick={() => {
                   setSubmitted(false);
                   setForm({
@@ -150,152 +169,186 @@ export default function ApplyPage() {
                     portfolioLink: "",
                   });
                 }}
+                className="px-6 py-3 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-teal-900/80 text-teal-200 border border-teal-700/60 hover:text-white transition-all"
               >
-                Submit Another Application
-              </Button>
+                Submit Another Entry
+              </button>
             </div>
-          </Card>
+          </div>
         ) : (
-          <div className="space-y-6">
-            {/* Recruitment Hero Banner with 3D Canvas */}
-            <div className="rounded-3xl gradient-mesh-hero text-white p-8 sm:p-12 shadow-xl border border-teal-700/50 relative overflow-hidden">
-              <AmbientCanvas particleCount={35} className="absolute inset-0 pointer-events-none opacity-50" />
-
-              <div className="relative z-10 max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-xl bg-ast-light/20 text-ast-light border border-ast-light/30 text-xs font-semibold uppercase tracking-wider font-mono">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Recruitment Season 2026
-                </div>
-                <h1 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-white">
-                  Join Asteria Club Esprit
-                </h1>
-                <p className="font-body text-sm sm:text-base text-teal-100/90 leading-relaxed">
-                  Train with elite student creators, build production-grade web systems, master visual design, and graduate directly into paid client contracts at <strong>Asteria Freelance</strong>.
-                </p>
+          <div className="space-y-8">
+            {/* Title Section */}
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs font-semibold uppercase tracking-wider font-mono">
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                2026 Academic Season Application
               </div>
+              <h1 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-wider text-white">
+                Join Asteria Club Esprit
+              </h1>
+              <p className="font-body text-xs sm:text-sm text-teal-100/80">
+                Choose your track, showcase your motivation, and step into the premier student talent pipeline.
+              </p>
             </div>
 
-            {/* Department Track Selection */}
-            <div className="space-y-3">
-              <h3 className="font-display font-bold text-sm uppercase tracking-wider text-ink">
-                1. Select Your Specialization Track *
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {departments.map((dept) => {
-                  const Icon = dept.icon;
-                  const isSelected = form.departmentPreference === dept.id;
-                  return (
-                    <div
-                      key={dept.id}
-                      onClick={() => setForm({ ...form, departmentPreference: dept.id })}
-                      className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-start gap-3.5 ${
-                        isSelected
-                          ? "bg-teal-50/90 border-ast-primary shadow-sm ring-1 ring-ast-primary"
-                          : "bg-surface border-line hover:border-ast-light/60"
-                      }`}
-                    >
+            {/* Application Card */}
+            <div className="glass-dark p-6 sm:p-10 rounded-3xl border border-teal-500/30 shadow-2xl space-y-8">
+              {/* Step 1: Select Track */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-teal-400">
+                  <span className="w-5 h-5 rounded-full bg-teal-900 flex items-center justify-center text-[10px] border border-teal-500">
+                    1
+                  </span>
+                  Select Technical Track *
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {tracks.map((track) => {
+                    const Icon = track.icon;
+                    const isSelected = selectedTrack === track.id;
+                    return (
                       <div
-                        className={`p-2.5 rounded-xl transition-colors ${
-                          isSelected ? "bg-ast-primary text-white" : "bg-surface-alt text-ast-primary"
+                        key={track.id}
+                        onClick={() => setSelectedTrack(track.id)}
+                        className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-start gap-3.5 ${
+                          isSelected
+                            ? "bg-teal-900/90 border-ast-light shadow-md ring-1 ring-ast-light"
+                            : "bg-[#052024]/80 border-teal-900/80 hover:border-teal-600/60"
                         }`}
                       >
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div className="space-y-0.5 flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-display font-bold text-xs uppercase tracking-wider text-ink">
-                            {dept.name}
-                          </h4>
-                          {isSelected && (
-                            <CheckCircle2 className="w-4 h-4 text-ast-primary" />
-                          )}
+                        <div
+                          className={`p-2.5 rounded-xl transition-colors ${
+                            isSelected
+                              ? "bg-ast-light text-ink"
+                              : "bg-teal-950 text-teal-300 border border-teal-800"
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
                         </div>
-                        <p className="text-[11px] text-ink-soft font-body leading-snug">
-                          {dept.desc}
-                        </p>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-display font-bold text-xs uppercase tracking-wider text-white">
+                              {track.name}
+                            </h4>
+                            {isSelected && (
+                              <CheckCircle2 className="w-4 h-4 text-ast-light" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-teal-100/70 font-body leading-snug">
+                            {track.desc}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Application Form Card */}
-            <Card className="p-6 sm:p-8 bg-surface/90 backdrop-blur-md shadow-md">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <h3 className="font-display font-bold text-sm uppercase tracking-wider text-ink border-b border-line pb-3">
-                  2. Applicant Dossier & Motivation
-                </h3>
+              {/* Step 2: Form Details */}
+              <form onSubmit={handleSubmit} className="space-y-6 pt-6 border-t border-teal-900/80">
+                <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-teal-400">
+                  <span className="w-5 h-5 rounded-full bg-teal-900 flex items-center justify-center text-[10px] border border-teal-500">
+                    2
+                  </span>
+                  Applicant Dossier *
+                </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-body">
-                    {error}
+                  <div className="p-4 bg-red-950/80 border border-red-500/50 text-red-200 rounded-xl text-xs font-body flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Full Name *"
-                    placeholder="e.g. Selim Ben Salem"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
+                  <div>
+                    <label className="text-xs font-display uppercase tracking-wider font-bold text-teal-200 block mb-1.5">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Rayen Ayadi"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      required
+                      className="w-full bg-[#052024] border border-teal-800 rounded-xl px-4 py-2.5 text-sm font-body text-white placeholder:text-teal-600 focus:outline-none focus:border-ast-light focus:ring-1 focus:ring-ast-light"
+                    />
+                  </div>
 
-                  <Input
-                    type="email"
-                    label="Student / Contact Email *"
-                    placeholder="e.g. selim.dev@esprit.tn"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    required
-                  />
+                  <div>
+                    <label className="text-xs font-display uppercase tracking-wider font-bold text-teal-200 block mb-1.5">
+                      Student / Contact Email *
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. rayen.ayadi@esprit.tn"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      required
+                      className="w-full bg-[#052024] border border-teal-800 rounded-xl px-4 py-2.5 text-sm font-body text-white placeholder:text-teal-600 focus:outline-none focus:border-ast-light focus:ring-1 focus:ring-ast-light"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    type="tel"
-                    label="Phone Number"
-                    placeholder="+216 28 111 222"
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  />
+                  <div>
+                    <label className="text-xs font-display uppercase tracking-wider font-bold text-teal-200 block mb-1.5">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="+216 28 111 222"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      className="w-full bg-[#052024] border border-teal-800 rounded-xl px-4 py-2.5 text-sm font-body text-white placeholder:text-teal-600 focus:outline-none focus:border-ast-light focus:ring-1 focus:ring-ast-light"
+                    />
+                  </div>
 
-                  <Input
-                    type="url"
-                    label="Portfolio / GitHub / Behance Link"
-                    placeholder="https://github.com/yourname"
-                    value={form.portfolioLink}
-                    onChange={(e) => setForm({ ...form, portfolioLink: e.target.value })}
+                  <div>
+                    <label className="text-xs font-display uppercase tracking-wider font-bold text-teal-200 block mb-1.5">
+                      Portfolio / GitHub / Behance Link
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://github.com/yourhandle"
+                      value={form.portfolioLink}
+                      onChange={(e) => setForm({ ...form, portfolioLink: e.target.value })}
+                      className="w-full bg-[#052024] border border-teal-800 rounded-xl px-4 py-2.5 text-sm font-body text-white placeholder:text-teal-600 focus:outline-none focus:border-ast-light focus:ring-1 focus:ring-ast-light"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-display uppercase tracking-wider font-bold text-teal-200 block mb-1.5">
+                    Motivation & What You Want to Build *
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder="Tell us about your background, tools you use, why you want to join Asteria Club Esprit, and what you aim to achieve..."
+                    value={form.motivation}
+                    onChange={(e) => setForm({ ...form, motivation: e.target.value })}
+                    required
+                    className="w-full bg-[#052024] border border-teal-800 rounded-xl p-4 text-sm font-body text-white placeholder:text-teal-600 focus:outline-none focus:border-ast-light focus:ring-1 focus:ring-ast-light resize-y"
                   />
                 </div>
 
-                <Textarea
-                  label="Motivation & Technical Background *"
-                  placeholder="Tell us about your background, why you want to join Asteria, and what projects you are eager to build..."
-                  rows={4}
-                  value={form.motivation}
-                  onChange={(e) => setForm({ ...form, motivation: e.target.value })}
-                  required
-                />
+                <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-xs font-body text-teal-300/80">
+                    <ShieldCheck className="w-4 h-4 text-ast-light" />
+                    <span>Your application is stored in our live database.</span>
+                  </div>
 
-                <div className="pt-4 border-t border-line flex items-center justify-between">
-                  <span className="text-xs text-ink-soft font-body">
-                    * Applications are reviewed weekly by Department Heads
-                  </span>
-
-                  <Button
+                  <button
                     type="submit"
-                    variant="primary"
-                    size="lg"
-                    isLoading={loading}
-                    rightIcon={<Send className="w-4 h-4" />}
+                    disabled={loading}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    Submit Application
-                  </Button>
+                    {loading ? "Submitting..." : "Submit Application ★"}
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </form>
-            </Card>
+            </div>
           </div>
         )}
       </main>
