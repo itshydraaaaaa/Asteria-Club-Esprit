@@ -43,7 +43,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`h-full dark ${exo2.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
+      className={`h-full light ${exo2.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white font-body antialiased flex flex-col selection:bg-teal-400 selection:text-ink transition-colors duration-300">
         <ThemeProvider>

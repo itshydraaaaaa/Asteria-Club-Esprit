@@ -195,7 +195,7 @@ export function Sidebar({ user }: SidebarProps) {
         </Link>
 
         <a
-          href="https://asteria-freelance.vercel.app"
+          href="https://asteriafreelance.vercel.app/"
           target="_blank"
           rel="noreferrer"
           className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-ink-soft dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/50 hover:text-ink dark:hover:text-white transition-colors"
