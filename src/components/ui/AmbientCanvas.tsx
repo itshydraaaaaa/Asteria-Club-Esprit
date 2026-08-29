@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface AmbientCanvasProps {
   className?: string;
@@ -13,6 +14,7 @@ export function AmbientCanvas({
   particleCount = 45,
 }: AmbientCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -52,13 +54,15 @@ export function AmbientCanvas({
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute("scale", new THREE.BufferAttribute(scales, 1));
 
-    // Particle material with teal colors
+    const isLight = theme === "light";
+
+    // Adaptive Particle material
     const material = new THREE.PointsMaterial({
-      color: 0x60c8d4, // Teal-400 brand color
-      size: 0.18,
+      color: isLight ? 0x11606e : 0x60c8d4,
+      size: isLight ? 0.22 : 0.18,
       transparent: true,
-      opacity: 0.65,
-      blending: THREE.AdditiveBlending,
+      opacity: isLight ? 0.45 : 0.65,
+      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending,
     });
 
     const particles = new THREE.Points(geometry, material);
@@ -100,7 +104,7 @@ export function AmbientCanvas({
       material.dispose();
       renderer.dispose();
     };
-  }, [particleCount]);
+  }, [particleCount, theme]);
 
   return <div ref={containerRef} className={className} />;
 }

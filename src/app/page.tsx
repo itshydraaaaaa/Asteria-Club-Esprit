@@ -6,6 +6,7 @@ import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { Button } from "@/components/ui/Button";
 import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   Code2,
   Palette,
@@ -51,7 +52,6 @@ export default function HomePage() {
       desc: "Architect modern, production-grade web applications. Master React, Next.js 15, TypeScript, Tailwind CSS, PostgreSQL, and Supabase cloud architectures.",
       icon: Code2,
       skills: ["Next.js 15", "TypeScript", "Tailwind CSS", "Supabase", "REST APIs"],
-      color: "from-teal-500/20 to-emerald-500/20 border-teal-500/30",
     },
     {
       id: "graphic-design",
@@ -60,7 +60,6 @@ export default function HomePage() {
       desc: "Craft high-fidelity brand identities, design systems, and marketing collateral in Figma according to strict visual guidelines and typography scales.",
       icon: Palette,
       skills: ["Figma", "Brand Identity", "Design Systems", "Typography", "UI/UX"],
-      color: "from-cyan-500/20 to-teal-500/20 border-cyan-500/30",
     },
     {
       id: "video-editing",
@@ -69,7 +68,6 @@ export default function HomePage() {
       desc: "Produce cinematic event reels, university hackathon aftermovies, promotional trailers, and motion graphics using Premiere Pro and After Effects.",
       icon: Video,
       skills: ["Premiere Pro", "After Effects", "Motion Graphics", "Sound Design"],
-      color: "from-blue-500/20 to-teal-500/20 border-blue-500/30",
     },
     {
       id: "photography",
@@ -78,7 +76,6 @@ export default function HomePage() {
       desc: "Master studio lighting, aperture control, dynamic event photojournalism, and post-production color grading in Lightroom and Photoshop.",
       icon: Camera,
       skills: ["Studio Lighting", "Event Capture", "Lightroom", "Color Grading"],
-      color: "from-teal-500/20 to-sky-500/20 border-teal-500/30",
     },
   ];
 
@@ -91,12 +88,12 @@ export default function HomePage() {
     {
       step: "02",
       title: "Intensive Masterclasses",
-      desc: "Attend weekly hands-on workshops led by senior student leads and industry alumni to level up your craft.",
+      desc: "Participate in weekly hands-on workshops, master modern industry toolstacks, and pass hands-on benchmark assignments.",
     },
     {
       step: "03",
-      title: "Agile Sprint Deliverables",
-      desc: "Collaborate on real internal and university deliverables managed via the club's live 4-column Kanban board.",
+      title: "Sprint Ticket Deliverables",
+      desc: "Collaborate in agile sprints, pick up real deliverables on the Kanban board, and build an audited portfolio of club projects.",
     },
     {
       step: "04",
@@ -125,35 +122,37 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#062327] text-white flex flex-col font-body selection:bg-teal-400 selection:text-ink">
+    <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col font-body selection:bg-teal-400 selection:text-ink transition-colors duration-300">
       {/* Floating Glass Navbar */}
       <header className="sticky top-4 z-50 px-4 sm:px-8 max-w-7xl w-full mx-auto">
-        <div className="glass-nav rounded-2xl px-5 py-3 flex items-center justify-between shadow-2xl">
-          <AsteriaLogo variant="dark" size="md" href="/" />
+        <div className="glass-nav rounded-2xl px-5 py-3 flex items-center justify-between shadow-2xl transition-all duration-300">
+          <AsteriaLogo variant="auto" size="md" href="/" />
 
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-teal-100/80 font-display">
-            <a href="#tracks" className="hover:text-teal-300 transition-colors">
+          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-100/80 font-display">
+            <a href="#tracks" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               Tracks
             </a>
-            <a href="#pipeline" className="hover:text-teal-300 transition-colors">
+            <a href="#pipeline" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               Freelance Pipeline
             </a>
-            <a href="#platform" className="hover:text-teal-300 transition-colors">
+            <a href="#platform" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               Platform
             </a>
-            <a href="#faq" className="hover:text-teal-300 transition-colors">
+            <a href="#faq" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               FAQ
             </a>
           </nav>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
+
             <Link href="/login">
-              <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-teal-200 hover:text-white transition-colors">
+              <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white transition-colors">
                 Member Login
               </button>
             </Link>
             <Link href="/apply">
-              <button className="px-5 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button scale-100 hover:scale-105 active:scale-95">
+              <button className="px-5 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button scale-100 hover:scale-105 active:scale-95 shadow-md">
                 Apply to Join ★
               </button>
             </Link>
@@ -167,33 +166,33 @@ export default function HomePage() {
 
         <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10 animate-vague-in">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-900/60 border border-teal-500/40 text-teal-300 text-xs font-semibold uppercase tracking-wider font-mono shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/60 border border-teal-200 dark:border-teal-500/40 text-ast-primary dark:text-teal-300 text-xs font-semibold uppercase tracking-wider font-mono shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400 animate-pulse" />
             Official Talent Incubator of Asteria Freelance · Esprit
           </div>
 
           {/* Display Heading */}
-          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tight text-white leading-none">
+          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tight text-ink dark:text-white leading-none">
             WHERE ESPRIT&apos;S <br />
             <span className="gradient-text-teal">TOP CREATORS</span> ARE LAUNCHED
           </h1>
 
           {/* Subheading */}
-          <p className="font-body text-base sm:text-xl text-teal-100/90 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-base sm:text-xl text-ink-soft dark:text-teal-100/90 max-w-3xl mx-auto leading-relaxed">
             Asteria Club Esprit trains students in <strong>Web Development</strong>, <strong>Graphic Design</strong>, <strong>Video Editing</strong>, and <strong>Photography</strong>, then feeds certified talent into paid client contracts at <strong>Asteria Freelance</strong>.
           </p>
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link href="/apply" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group">
+              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group shadow-lg">
                 Apply for 2026 Season
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </Link>
 
             <Link href="/login" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-surface-dark2/80 hover:bg-teal-900 text-white border border-teal-700/80 transition-all flex items-center justify-center gap-2">
+              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-white dark:bg-surface-dark2/80 hover:bg-teal-50 dark:hover:bg-teal-900 text-ink dark:text-white border border-teal-200 dark:border-teal-700/80 transition-all flex items-center justify-center gap-2 shadow-sm">
                 Open Member Portal
               </button>
             </Link>
@@ -201,50 +200,50 @@ export default function HomePage() {
 
           {/* Live Stats Ribbon */}
           <div className="pt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-            <div className="glass-dark p-5 rounded-2xl border-teal-500/20">
-              <span className="text-[11px] font-mono uppercase font-bold text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 Technical Tracks
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
+              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
                 <AnimatedCounter value={stats?.totalDepartments ?? 4} />
               </h3>
-              <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 Web, Design, Video, Photo
               </p>
             </div>
 
-            <div className="glass-dark p-5 rounded-2xl border-teal-500/20">
-              <span className="text-[11px] font-mono uppercase font-bold text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 Sprint Velocity
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
+              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
                 <AnimatedCounter value={stats?.sprintVelocity ?? 94} suffix="%" />
               </h3>
-              <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 Deliverables completion
               </p>
             </div>
 
-            <div className="glass-dark p-5 rounded-2xl border-teal-500/20">
-              <span className="text-[11px] font-mono uppercase font-bold text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 Incubator Pipeline
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
+              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
                 100%
               </h3>
-              <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 Student-governed
               </p>
             </div>
 
-            <div className="glass-dark p-5 rounded-2xl border-teal-500/20">
-              <span className="text-[11px] font-mono uppercase font-bold text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 Freelance Bridge
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
+              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
                 Paid ★
               </h3>
-              <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 Client contract readiness
               </p>
             </div>
@@ -252,17 +251,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4 Technical Specialization Tracks Section */}
-      <section id="tracks" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#041b1e] border-y border-teal-900/60">
+      {/* Interactive 4-Track Technical Showcase */}
+      <section id="tracks" className="py-24 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="font-mono text-xs uppercase font-bold tracking-widest text-teal-400 bg-teal-900/40 px-3 py-1 rounded-full border border-teal-500/30">
-              4 Disciplines of Excellence
+            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
+              Department Architecture
             </span>
-            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-white">
+            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
               Specialization Tracks
             </h2>
-            <p className="font-body text-sm sm:text-base text-teal-100/80">
+            <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
               Each track is led by a dedicated Head of Department with custom curriculums, weekly workshops, and real agile sprints.
             </p>
           </div>
@@ -273,37 +272,37 @@ export default function HomePage() {
               return (
                 <div
                   key={track.id}
-                  className="glass-dark p-8 rounded-3xl border border-teal-500/20 glow-card transition-all duration-300 flex flex-col justify-between space-y-6 group"
+                  className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 glow-card transition-all duration-300 flex flex-col justify-between space-y-6 group shadow-md dark:shadow-2xl"
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="p-3.5 rounded-2xl bg-teal-900/80 text-teal-300 border border-teal-500/40 group-hover:scale-110 transition-transform">
+                      <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 group-hover:scale-110 transition-transform">
                         <Icon className="w-6 h-6" />
                       </div>
-                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-teal-300 bg-teal-950 px-3 py-1 rounded-full border border-teal-700/60">
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-ast-primary dark:text-teal-300 bg-teal-50 dark:bg-teal-950 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-700/60">
                         {track.badge}
                       </span>
                     </div>
 
                     <div>
-                      <h3 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-white group-hover:text-teal-300 transition-colors">
+                      <h3 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-ink dark:text-white group-hover:text-ast-primary dark:group-hover:text-teal-300 transition-colors">
                         {track.name}
                       </h3>
-                      <p className="font-body text-xs sm:text-sm text-teal-100/80 mt-2 leading-relaxed">
+                      <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 mt-2 leading-relaxed">
                         {track.desc}
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-3 pt-4 border-t border-teal-900/60">
-                    <span className="text-[10px] font-mono uppercase font-bold text-teal-400 block">
+                  <div className="space-y-3 pt-4 border-t border-line dark:border-teal-900/60">
+                    <span className="text-[10px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                       Core Stack & Tooling:
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {track.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="text-xs font-mono bg-teal-900/50 text-teal-200 px-2.5 py-1 rounded-lg border border-teal-700/40"
+                          className="text-xs font-mono bg-surface-alt dark:bg-teal-900/50 text-ink dark:text-teal-200 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-700/40"
                         >
                           {skill}
                         </span>
@@ -321,13 +320,13 @@ export default function HomePage() {
       <section id="pipeline" className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="font-mono text-xs uppercase font-bold tracking-widest text-teal-400 bg-teal-900/40 px-3 py-1 rounded-full border border-teal-500/30">
+            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
               The Incubator Journey
             </span>
-            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-white">
+            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
               The Freelance Bridge
             </h2>
-            <p className="font-body text-sm sm:text-base text-teal-100/80">
+            <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
               How we train university students from zero to production-level professionals ready for paid industry contracts.
             </p>
           </div>
@@ -335,173 +334,124 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {pipelineSteps.map((step, i) => (
               <div
-                key={i}
-                className="glass-dark p-6 rounded-3xl border border-teal-500/20 relative space-y-4 glow-card transition-all"
+                key={step.step}
+                className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-6 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 flex flex-col justify-between space-y-6 relative overflow-hidden group shadow-md dark:shadow-2xl"
               >
-                <span className="font-mono font-black text-3xl sm:text-4xl text-teal-400/40 block">
-                  {step.step}
-                </span>
-                <h4 className="font-display font-bold text-lg uppercase tracking-wider text-white">
-                  {step.title}
-                </h4>
-                <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                  {step.desc}
-                </p>
+                <div className="space-y-3">
+                  <span className="font-display font-black text-4xl text-ast-primary/20 dark:text-teal-400/20 group-hover:text-ast-primary dark:group-hover:text-teal-400 transition-colors">
+                    {step.step}
+                  </span>
+                  <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink dark:text-white">
+                    {step.title}
+                  </h3>
+                  <p className="font-body text-xs text-ink-soft dark:text-teal-100/80 leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+
+                <div className="w-full h-1 bg-teal-100 dark:bg-teal-950 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-ast-light rounded-full"
+                    style={{ width: `${(i + 1) * 25}%` }}
+                  />
+                </div>
               </div>
             ))}
           </div>
-
-          <div className="glass-dark p-8 rounded-3xl border border-teal-500/30 text-center max-w-3xl mx-auto space-y-4">
-            <div className="flex items-center justify-center gap-2 text-teal-300 font-display text-sm font-bold uppercase tracking-wider">
-              <Briefcase className="w-4 h-4" />
-              Direct Sister Partnership
-            </div>
-            <h3 className="font-display font-bold text-2xl uppercase tracking-wider text-white">
-              Asteria Club × Asteria Freelance
-            </h3>
-            <p className="font-body text-xs sm:text-sm text-teal-100/80 max-w-xl mx-auto leading-relaxed">
-              Asteria Freelance delivers enterprise-grade software and design solutions to real corporate clients, staffed exclusively by top-performing Asteria Club alumni.
-            </p>
-            <div className="pt-2">
-              <a
-                href="https://asteria-freelance.vercel.app"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-900 text-teal-200 border border-teal-600/60 hover:text-white hover:bg-teal-800 text-xs font-semibold font-display uppercase tracking-wider transition-all"
-              >
-                Visit asteria-freelance.vercel.app <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Internal Management OS Feature Preview */}
-      <section id="platform" className="py-24 px-4 sm:px-6 lg:px-8 bg-[#041b1e] border-y border-teal-900/60">
+      {/* Internal OS Features Preview */}
+      <section id="platform" className="py-24 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="font-mono text-xs uppercase font-bold tracking-widest text-teal-400 bg-teal-900/40 px-3 py-1 rounded-full border border-teal-500/30">
-              Internal Operating System
+            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
+              Platform Modules
             </span>
-            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-white">
-              The Club Management Engine
+            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
+              The Club Operating System
             </h2>
-            <p className="font-body text-sm sm:text-base text-teal-100/80">
-              A bespoke platform built to eliminate administrative friction and manage talent, events, and sprints at scale.
+            <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
+              Built for speed, accountability, and real-time collaboration across board executives, department leads, and members.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <KanbanSquare className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
+              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
+                <KanbanSquare className="w-6 h-6" />
               </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                Agile Kanban Task Board
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                4-column sprint boards with Realtime Supabase updates, priorities, assignees, and threaded task feedback.
+              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
+                Agile Task Kanban
+              </h3>
+              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
+                4-column sprint board with real-time Supabase sync, drag-and-drop state transitions, assignees, priorities, and threaded comments.
               </p>
             </div>
 
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <QrCode className="w-5 h-5" />
+            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
+              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
+                <QrCode className="w-6 h-6" />
               </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                Dynamic QR Attendance Hub
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                Live QR generator for presentation screens, camera scanner simulation, numeric passcodes, and absence justification audits.
+              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
+                Dynamic QR Attendance
+              </h3>
+              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
+                Dynamic QR codes for session hosts, 6-digit numeric passcodes, camera scanner simulation, and member absence justification workflows.
               </p>
             </div>
 
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <Layers className="w-5 h-5" />
+            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
+              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
+                <Briefcase className="w-6 h-6" />
               </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                Interactive Org Hierarchy
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                Tier 1 Executive Board to Tier 2 Department Leads with live member rosters and dedicated track workspaces.
-              </p>
-            </div>
-
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <CalendarCheck className="w-5 h-5" />
-              </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                Shared Calendar & RSVPs
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                Event scheduling with conflict/overlap warning, RSVP tracking, and room booking coordination.
-              </p>
-            </div>
-
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <Megaphone className="w-5 h-5" />
-              </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                Scoped Announcements
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                Club-wide and track-specific bulletins with automatic Discord webhook integration and rich embed previews.
-              </p>
-            </div>
-
-            <div className="glass-dark p-6 rounded-3xl border border-teal-500/20 space-y-3">
-              <div className="p-3 rounded-xl bg-teal-900/80 text-teal-300 w-fit">
-                <Shield className="w-5 h-5" />
-              </div>
-              <h4 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                1-Click Auto-Onboarding
-              </h4>
-              <p className="font-body text-xs text-teal-100/80 leading-relaxed">
-                Review applicant dossiers and instantly provision live Supabase Auth accounts with automatic department allocation.
+              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
+                Freelance Qualification
+              </h3>
+              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
+                Automated auditing tracking member workshop attendance health and sprint deliverable counts to graduate talent directly into client contracts.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ Accordion Section */}
-      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8">
+      {/* Interactive FAQ Accordion */}
+      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto space-y-12">
           <div className="text-center space-y-3">
-            <span className="font-mono text-xs uppercase font-bold tracking-widest text-teal-400 bg-teal-900/40 px-3 py-1 rounded-full border border-teal-500/30">
+            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
               Questions & Answers
             </span>
-            <h2 className="font-display font-bold text-3xl sm:text-4xl uppercase tracking-wider text-white">
-              Frequently Asked Questions
+            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
+              Frequently Asked
             </h2>
           </div>
 
           <div className="space-y-4">
-            {faqs.map((faq, idx) => {
-              const isOpen = openFaq === idx;
+            {faqs.map((faq, index) => {
+              const isOpen = openFaq === index;
               return (
                 <div
-                  key={idx}
-                  className="glass-dark rounded-2xl border border-teal-500/20 overflow-hidden transition-all"
+                  key={index}
+                  className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl rounded-2xl border border-teal-900/10 dark:border-teal-500/20 overflow-hidden transition-all shadow-sm dark:shadow-md"
                 >
                   <button
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full p-5 text-left flex items-center justify-between gap-4 hover:text-teal-300 transition-colors"
+                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    className="w-full p-6 text-left flex items-center justify-between gap-4"
                   >
-                    <span className="font-display font-bold text-sm sm:text-base uppercase tracking-wider">
+                    <span className="font-display font-bold text-sm sm:text-base uppercase tracking-wider text-ink dark:text-white">
                       {faq.q}
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 text-teal-400 transition-transform duration-300 ${
+                      className={`w-4 h-4 text-ast-primary dark:text-teal-400 flex-shrink-0 transition-transform duration-300 ${
                         isOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
+
                   {isOpen && (
-                    <div className="px-5 pb-5 font-body text-xs sm:text-sm text-teal-100/80 leading-relaxed border-t border-teal-900/60 pt-3">
+                    <div className="px-6 pb-6 pt-0 text-xs sm:text-sm font-body text-ink-soft dark:text-teal-100/80 leading-relaxed border-t border-line dark:border-teal-900/40 mt-2">
                       {faq.a}
                     </div>
                   )}
@@ -512,65 +462,44 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* High Impact Bottom CTA Banner */}
+      {/* CTA Bottom Banner */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto rounded-3xl gradient-mesh-hero p-8 sm:p-14 border border-teal-500/40 text-center space-y-6 shadow-2xl relative overflow-hidden">
-          <AmbientCanvas particleCount={30} className="absolute inset-0 pointer-events-none opacity-40" />
-
+        <div className="max-w-5xl mx-auto rounded-3xl gradient-mesh-hero p-8 sm:p-14 text-center space-y-6 shadow-2xl border border-teal-500/30 relative overflow-hidden">
           <div className="relative z-10 space-y-4 max-w-2xl mx-auto">
             <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-wider text-white">
-              READY TO BUILD & FREELANCE?
+              READY TO LEVEL UP YOUR CRAFT?
             </h2>
-            <p className="font-body text-sm sm:text-base text-teal-100/90 leading-relaxed">
-              Join Asteria Club Esprit for the 2026 academic cycle. Elevate your portfolio, learn from student seniors, and unlock paid client work.
+            <p className="font-body text-xs sm:text-sm text-teal-100/90 leading-relaxed">
+              Join Asteria Club Esprit today. Gain hands-on technical skills, build production deliverables, and qualify for paid freelance client contracts.
             </p>
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/apply">
-                <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button">
-                  Submit Your Application ★
+                <button className="px-8 py-3.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center gap-2 shadow-lg">
+                  Submit Application ★
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </Link>
-              <Link href="/login">
-                <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-surface-dark2 hover:bg-teal-900 text-white border border-teal-700/80 transition-all">
-                  Existing Member Login
-                </button>
-              </Link>
+              <a
+                href="https://asteria-freelance.vercel.app"
+                target="_blank"
+                rel="noreferrer"
+                className="px-6 py-3.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-2"
+              >
+                Visit Asteria Freelance
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#031417] border-t border-teal-950 py-12 px-4 sm:px-8 text-xs font-body text-teal-200/60">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <AsteriaLogo variant="dark" size="sm" href="/" />
-            <span className="font-mono text-[11px] text-teal-400/80">
-              • ESPRIT University Club
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6 font-mono text-[11px]">
-            <Link href="/apply" className="hover:text-teal-300 transition-colors">
-              Recruitment
-            </Link>
-            <Link href="/login" className="hover:text-teal-300 transition-colors">
-              Platform Login
-            </Link>
-            <a
-              href="https://asteria-freelance.vercel.app"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-teal-300 transition-colors inline-flex items-center gap-1"
-            >
-              Asteria Freelance <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="font-mono text-[10px] text-teal-500/70">
-            © 2026 Asteria Club Esprit. All rights reserved.
-          </div>
-        </div>
+      <footer className="py-12 px-4 sm:px-8 border-t border-line dark:border-teal-900/60 text-xs font-body text-ink-soft dark:text-teal-200/60 max-w-7xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <AsteriaLogo variant="auto" size="sm" href="/" />
+        <p className="text-center sm:text-right">
+          © 2026 Asteria Club Esprit · ESPRIT University. Sister product to Asteria Freelance.
+        </p>
       </footer>
     </div>
   );
