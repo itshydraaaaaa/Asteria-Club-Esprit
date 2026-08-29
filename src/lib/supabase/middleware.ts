@@ -6,12 +6,16 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://asteria-club-esprit.supabase.co",
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    "https://asteria-club-esprit.supabase.co";
+  const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      "",
-    {
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    "sb_publishable_CslYLGLgxIk7b_UZEPasIA_iPquc6r9";
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -28,14 +32,13 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
-    }
-  );
+    });
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could compromise auth.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    await supabase.auth.getUser();
+  } catch (err) {
+    // Gracefully continue even if Supabase network check fails
+    console.warn("Middleware session update notice:", err);
+  }
 
   return supabaseResponse;
 }
