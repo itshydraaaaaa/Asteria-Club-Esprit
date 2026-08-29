@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Megaphone,
@@ -71,6 +71,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
     fetchAnnouncements();
 
     // Supabase Realtime channel for live announcements
+    const supabase = createClient();
     const channel = supabase
       .channel("announcements_realtime")
       .on(
@@ -320,18 +321,23 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
             </div>
           </div>
 
-          {/* Discord Preview Card */}
+          {/* Discord Webhook Preview Card */}
           {form.syncDiscord && (
-            <div className="p-3 rounded-xl bg-[#2b2d31] text-[#dbdee1] border border-[#1e1f22] space-y-2 text-xs font-body">
-              <div className="flex items-center gap-2 text-[#5865f2] font-bold">
-                <Bot className="w-4 h-4" /> Asteria Bot [BOT] • Today at 12:00 PM
+            <div className="p-3.5 rounded-xl bg-[#2b2d31] text-[#dbdee1] border border-[#1e1f22] space-y-2 text-xs font-body">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[#5865f2] font-bold">
+                  <Bot className="w-4 h-4" /> Asteria Bot [BOT]
+                </div>
+                <span className="text-[10px] font-mono text-teal-400 bg-teal-950/80 px-2 py-0.5 rounded border border-teal-800/60 font-semibold">
+                  Webhook Dispatch Preview
+                </span>
               </div>
               <div className="p-3 bg-[#1e1f22] rounded-lg border-l-4 border-[#60C8D4] space-y-1">
                 <p className="font-bold text-white text-xs font-display">
                   {form.title || "Announcement Title"}
                 </p>
                 <p className="text-[#dbdee1] text-[11px] font-body">
-                  {form.body || "Announcement text will be formatted and posted to the channel."}
+                  {form.body || "Announcement text will be formatted as a rich Discord embed and broadcasted."}
                 </p>
               </div>
             </div>

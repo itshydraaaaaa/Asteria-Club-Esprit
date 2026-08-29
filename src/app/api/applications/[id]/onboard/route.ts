@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export async function POST(
   req: Request,
@@ -26,51 +27,51 @@ export async function POST(
       return NextResponse.json({ error: "Application not found" }, { status: 404 });
     }
 
-    // Match department
+    // Match department by preference
     const department = await prisma.department.findFirst({
       where: {
         name: { contains: application.departmentPreference },
       },
     });
 
-    const defaultPassword = "password123";
-    const defaultPasswordHash = await bcrypt.hash(defaultPassword, 10);
+    // Generate cryptographically random secure temporary password
+    const secureTemporaryPassword = `Ast_${crypto.randomBytes(12).toString("base64url")}!`;
+    const passwordHash = await bcrypt.hash(secureTemporaryPassword, 10);
     const cleanEmail = application.email.toLowerCase().trim();
 
-    // 1. Create / Provision real Supabase Auth user
+    // 1. Create / Provision real Supabase Auth user via admin client
     try {
-      if (supabaseAdmin) {
-        const { data: authUser, error: authError } =
-          await supabaseAdmin.auth.admin.createUser({
-            email: cleanEmail,
-            password: defaultPassword,
-            email_confirm: true,
-            user_metadata: {
-              name: application.name,
-              role: "MEMBER",
-              department_id: department?.id,
-            },
-          });
-
-        if (!authError && authUser?.user) {
-          // Upsert Supabase Profile
-          await supabaseAdmin.from("profiles").upsert({
-            id: authUser.user.id,
+      const supabaseAdmin = await createAdminClient();
+      const { data: authUser, error: authError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email: cleanEmail,
+          password: secureTemporaryPassword,
+          email_confirm: true,
+          user_metadata: {
             name: application.name,
-            email: cleanEmail,
             role: "MEMBER",
             department_id: department?.id,
-            bio: application.motivation,
-            status: "ACTIVE",
-            freelance_ready: false,
-          });
-        }
+          },
+        });
+
+      if (!authError && authUser?.user) {
+        // Upsert Supabase Profile
+        await supabaseAdmin.from("profiles").upsert({
+          id: authUser.user.id,
+          name: application.name,
+          email: cleanEmail,
+          role: "MEMBER",
+          department_id: department?.id,
+          bio: application.motivation,
+          status: "ACTIVE",
+          freelance_ready: false,
+        } as any);
       }
     } catch (sbErr) {
       console.warn("Supabase Auth admin user creation error:", sbErr);
     }
 
-    // 2. Create or update local user
+    // 2. Create or update database member
     const newUser = await prisma.user.upsert({
       where: { email: cleanEmail },
       update: {
@@ -82,7 +83,7 @@ export async function POST(
       create: {
         name: application.name,
         email: cleanEmail,
-        passwordHash: defaultPasswordHash,
+        passwordHash,
         role: "MEMBER",
         status: "ACTIVE",
         departmentId: department?.id || null,
@@ -114,8 +115,14 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: `Applicant ${application.name} successfully onboarded into ${department?.name}!`,
-      user: newUser,
+      message: `Applicant ${application.name} successfully onboarded into ${department?.name || "Asteria Club"}!`,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        departmentId: newUser.departmentId,
+      },
       application: updatedApp,
     });
   } catch (error) {

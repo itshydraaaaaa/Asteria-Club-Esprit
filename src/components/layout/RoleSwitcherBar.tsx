@@ -12,10 +12,8 @@ interface RoleSwitcherBarProps {
 export function RoleSwitcherBar({ currentUser }: RoleSwitcherBarProps) {
   const [loading, setLoading] = useState(false);
 
-  // In production, hide unless explicit demo preview flag is turned on
-  const isDemoEnabled =
-    process.env.NEXT_PUBLIC_DEMO_MODE === "true" ||
-    process.env.NODE_ENV === "development";
+  // Strictly gate demo preview behind explicit env flag, disabled by default
+  const isDemoEnabled = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
   if (!isDemoEnabled) return null;
 

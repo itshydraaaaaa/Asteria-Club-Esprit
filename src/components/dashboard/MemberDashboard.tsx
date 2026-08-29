@@ -32,7 +32,15 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
   const attendanceRecords = roleData?.myAttendanceRecords || [];
 
   const completedTasks = myTasks.filter((t: any) => t.status === "DONE").length;
-  const attendanceRate = attendanceRecords.length > 0 ? 92 : 100;
+  const presentRecords = attendanceRecords.filter((r: any) => r.status === "PRESENT").length;
+  const totalAttendanceRecords = attendanceRecords.length;
+  const attendanceRate =
+    totalAttendanceRecords > 0
+      ? Math.round((presentRecords / totalAttendanceRecords) * 100)
+      : null;
+
+  const FREELANCE_THRESHOLD = 5;
+  const remainingTasks = Math.max(0, FREELANCE_THRESHOLD - completedTasks);
 
   return (
     <div className="space-y-6">
@@ -95,10 +103,18 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
                 Attendance Health
               </p>
               <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary mt-1">
-                <AnimatedCounter value={attendanceRate} suffix="%" />
+                {attendanceRate !== null ? (
+                  <AnimatedCounter value={attendanceRate} suffix="%" />
+                ) : (
+                  <span className="text-base text-ink-soft font-body">No sessions yet</span>
+                )}
               </h4>
               <p className="text-xs text-emerald-700 font-body mt-1 font-semibold">
-                Good Standing
+                {attendanceRate !== null && attendanceRate >= 75
+                  ? "Good Standing"
+                  : attendanceRate !== null
+                  ? "Action Required"
+                  : "New Member"}
               </p>
             </div>
             <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-sm">
@@ -119,7 +135,9 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               <p className="text-xs text-ink-soft font-body mt-1">
                 {user?.freelanceReady
                   ? "Eligible for paid client contracts"
-                  : "Complete 2 more tasks to qualify"}
+                  : remainingTasks === 0
+                  ? "Eligible for Board review"
+                  : `Complete ${remainingTasks} more task${remainingTasks > 1 ? "s" : ""} to qualify`}
               </p>
             </div>
             <div className="p-3 rounded-2xl bg-ast-light/20 border border-ast-light/40 text-ast-primary shadow-sm">

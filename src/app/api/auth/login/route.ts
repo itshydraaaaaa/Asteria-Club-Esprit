@@ -50,10 +50,10 @@ export async function POST(req: Request) {
         });
       }
     } catch (sbErr) {
-      console.warn("Supabase Auth sign-in attempted, checking local database:", sbErr);
+      console.warn("Supabase Auth sign-in attempted, checking database:", sbErr);
     }
 
-    // 2. Fallback to local database user check (for seamless local demo and seeding)
+    // 2. Database user check with bcrypt hash verification
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
       include: {
@@ -66,8 +66,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
+    // Strict bcrypt password verification — no backdoors or shortcuts
     const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid && password !== "password123") {
+    if (!isValid) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 

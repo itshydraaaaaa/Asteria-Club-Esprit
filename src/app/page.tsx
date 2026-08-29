@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +29,19 @@ import {
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [stats, setStats] = useState<{
+    totalMembers: number;
+    totalDepartments: number;
+    sprintVelocity: number;
+    departments: any[];
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch((err) => console.error("Error fetching stats:", err));
+  }, []);
 
   const tracks = [
     {
@@ -193,7 +206,7 @@ export default function HomePage() {
                 Technical Tracks
               </span>
               <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
-                <AnimatedCounter value={4} />
+                <AnimatedCounter value={stats?.totalDepartments ?? 4} />
               </h3>
               <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
                 Web, Design, Video, Photo
@@ -205,7 +218,7 @@ export default function HomePage() {
                 Sprint Velocity
               </span>
               <h3 className="font-display font-black text-2xl sm:text-3xl text-white mt-1">
-                <AnimatedCounter value={94} suffix="%" />
+                <AnimatedCounter value={stats?.sprintVelocity ?? 94} suffix="%" />
               </h3>
               <p className="text-[11px] text-teal-200/70 mt-0.5 font-body">
                 Deliverables completion

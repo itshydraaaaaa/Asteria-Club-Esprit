@@ -17,10 +17,12 @@ import {
 } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("president@asteria.tn");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -146,45 +148,46 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Evaluation Accounts */}
-          <div className="pt-4 border-t border-teal-900/80 space-y-2.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-teal-400 font-mono">
-              <Sparkles className="w-3.5 h-3.5 text-ast-light" />
-              1-Click Demo Evaluation Personas:
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((acc) => {
-                const Icon = acc.icon;
-                return (
-                  <button
-                    key={acc.email}
-                    onClick={() => {
-                      setEmail(acc.email);
-                      setPassword("password123");
-                      fetch("/api/auth/switch-role", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: acc.email }),
-                      }).then(() => {
-                        window.location.href = "/dashboard";
-                      });
-                    }}
-                    className="p-2.5 rounded-xl border border-teal-900/80 bg-[#052024]/80 hover:bg-teal-900/80 hover:border-ast-light/60 text-left transition-all group"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Icon className="w-3 h-3 text-ast-light" />
-                      <span className="font-bold text-[11px] text-white truncate group-hover:text-ast-light">
-                        {acc.title}
+          {/* Quick Demo Evaluation Accounts (Gated behind NEXT_PUBLIC_DEMO_MODE) */}
+          {isDemoMode && (
+            <div className="pt-4 border-t border-teal-900/80 space-y-2.5">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-teal-400 font-mono">
+                <Sparkles className="w-3.5 h-3.5 text-ast-light" />
+                Demo Evaluation Personas:
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {demoAccounts.map((acc) => {
+                  const Icon = acc.icon;
+                  return (
+                    <button
+                      key={acc.email}
+                      onClick={() => {
+                        setEmail(acc.email);
+                        fetch("/api/auth/switch-role", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: acc.email }),
+                        }).then(() => {
+                          window.location.href = "/dashboard";
+                        });
+                      }}
+                      className="p-2.5 rounded-xl border border-teal-900/80 bg-[#052024]/80 hover:bg-teal-900/80 hover:border-ast-light/60 text-left transition-all group"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Icon className="w-3 h-3 text-ast-light" />
+                        <span className="font-bold text-[11px] text-white truncate group-hover:text-ast-light">
+                          {acc.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-teal-200/60 block truncate mt-0.5 font-body">
+                        {acc.role}
                       </span>
-                    </div>
-                    <span className="text-[10px] text-teal-200/60 block truncate mt-0.5 font-body">
-                      {acc.role}
-                    </span>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-3 border-t border-teal-900/80 flex items-center justify-between text-xs font-body text-teal-200/70">
             <Link href="/apply" className="text-ast-light font-semibold hover:underline">

@@ -10,7 +10,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskStatus, TaskPriority } from "@/lib/types";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
@@ -106,6 +106,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
     fetchTasks();
 
     // Supabase Realtime channel for live Kanban sync
+    const supabase = createClient();
     const channel = supabase
       .channel("tasks_realtime")
       .on(

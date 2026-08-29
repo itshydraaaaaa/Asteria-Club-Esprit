@@ -10,7 +10,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import {
   QrCode,
   KeyRound,
@@ -72,7 +72,8 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   useEffect(() => {
     fetchData();
 
-    // Supabase Realtime channel for live attendance pop-in
+    // Supabase Realtime channel for live check-in updates
+    const supabase = createClient();
     const channel = supabase
       .channel("attendance_realtime")
       .on(

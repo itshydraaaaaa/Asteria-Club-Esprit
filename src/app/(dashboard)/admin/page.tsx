@@ -117,10 +117,10 @@ export default function AdminPage() {
                 <span className="text-xs text-ink-soft font-body">Current Semester Period</span>
               </div>
               <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                {data?.currentCycle?.name}
+                {data?.currentCycle?.name || "Academic Year 2025–2026"}
               </h3>
               <p className="text-xs text-ink-soft font-body">
-                Sept 2025 – June 2026 • 4 Technical Tracks Operational
+                {data?.currentCycle?.startDate ? `${formatDate(data.currentCycle.startDate)} – ${formatDate(data.currentCycle.endDate)}` : "Active Academic Semester"} • {data?.departments?.length || 4} Technical Tracks Operational
               </p>
             </div>
 
@@ -141,24 +141,24 @@ export default function AdminPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="accent" size="sm" className="font-bold">
-                  ★ Supabase Connected
+                  ★ Supabase Cloud Connected
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">Cloud Database & Storage Integration</span>
+                <span className="text-xs text-ink-soft font-body">PostgreSQL Database & Storage Engine</span>
               </div>
               <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink">
-                Asteria Club Esprit · Cloud Backend
+                Asteria Club Esprit · Cloud Production Backend
               </h3>
               <div className="pt-2 flex flex-wrap gap-4 text-xs font-body text-ink-soft">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-ink-faint block">Publishable API Key:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="font-mono text-[11px] text-teal-900 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                    sb_publishable_...q6r9 (Active)
+                    Row Level Security (RLS) Active
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-ink-faint block">Service Role Key:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span className="font-mono text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    sb_secret_...QDzj (Secured)
+                    Realtime WebSockets Synchronized
                   </span>
                 </div>
               </div>
@@ -166,7 +166,7 @@ export default function AdminPage() {
 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                <CheckCircle className="w-4 h-4 text-emerald-600" /> Synced
+                <CheckCircle className="w-4 h-4 text-emerald-600" /> Live & Protected
               </span>
             </div>
           </div>
