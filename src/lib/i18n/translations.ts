@@ -26,8 +26,8 @@ export const translations: TranslationDictionary = {
     fr: "Gouvernance",
   },
   "nav.freelance": {
-    en: "Asteria Freelance",
-    fr: "Asteria Freelance",
+    en: "Asteria Freelance PreLaunch",
+    fr: "Asteria Freelance PreLaunch",
   },
   "nav.apply": {
     en: "Join Asteria",
@@ -212,8 +212,8 @@ export const translations: TranslationDictionary = {
     fr: "Passerelle Freelance Directe",
   },
   "workflow.step4.desc": {
-    en: "Top performers fast-track directly into Asteria Freelance for paid commercial client projects across EMEA.",
-    fr: "Les meilleurs profils accèdent directement à Asteria Freelance pour des projets clients rémunérés en zone EMEA.",
+    en: "Top performers fast-track directly into Asteria Freelance PreLaunch for paid commercial client projects across EMEA.",
+    fr: "Les meilleurs profils accèdent directement à Asteria Freelance PreLaunch pour des projets clients rémunérés en zone EMEA.",
   },
 
   // Recruitment Section
@@ -272,12 +272,12 @@ export const translations: TranslationDictionary = {
     fr: "Vous cherchez des projets clients rémunérés ?",
   },
   "freelance.subtitle": {
-    en: "Asteria Freelance is our commercial agency branch delivering high-end brand identities, full-stack applications, and video productions worldwide.",
-    fr: "Asteria Freelance est notre agence commerciale réalisant des identités visuelles, des applications web complètes et des productions vidéo à l'international.",
+    en: "Asteria Freelance PreLaunch is our commercial agency branch delivering high-end brand identities, full-stack applications, and video productions worldwide.",
+    fr: "Asteria Freelance PreLaunch est notre agence commerciale réalisant des identités visuelles, des applications web complètes et des productions vidéo à l'international.",
   },
   "freelance.cta": {
-    en: "Visit Asteria Freelance",
-    fr: "Découvrir Asteria Freelance",
+    en: "Visit Asteria Freelance PreLaunch",
+    fr: "Découvrir Asteria Freelance PreLaunch",
   },
 
   // Apply Form Page

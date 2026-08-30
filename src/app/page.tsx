@@ -134,11 +134,11 @@ export default function HomePage() {
     },
     {
       q: isFr
-        ? "Comment fonctionne la passerelle Asteria Freelance ?"
-        : "How does the Asteria Freelance talent bridge work?",
+        ? "Comment fonctionne la passerelle Asteria Freelance PreLaunch ?"
+        : "How does the Asteria Freelance PreLaunch talent bridge work?",
       a: isFr
-        ? "Asteria Club Esprit sert d'incubateur de talents pour Asteria Freelance. Dès que vous réalisez des livrables de sprint avec succès, maintenez une assiduité exemplaire et validez l'évaluation de pôle, vous êtes certifié 'Prêt pour le Freelance' pour des projets clients rémunérés."
-        : "Asteria Club Esprit functions as the training incubator for Asteria Freelance. Once you successfully deliver sprint tickets, maintain good workshop attendance, and pass department review, you are certified as 'Freelance Ready' for paid client projects.",
+        ? "Asteria Club Esprit sert d'incubateur de talents pour Asteria Freelance PreLaunch. Dès que vous réalisez des livrables de sprint avec succès, maintenez une assiduité exemplaire et validez l'évaluation de pôle, vous êtes certifié 'Prêt pour le Freelance' pour des projets clients rémunérés."
+        : "Asteria Club Esprit functions as the training incubator for Asteria Freelance PreLaunch. Once you successfully deliver sprint tickets, maintain good workshop attendance, and pass department review, you are certified as 'Freelance Ready' for paid client projects.",
     },
     {
       q: isFr
@@ -207,8 +207,8 @@ export default function HomePage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/60 border border-teal-200 dark:border-teal-500/40 text-ast-primary dark:text-teal-300 text-xs font-semibold uppercase tracking-wider font-mono shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400 animate-pulse" />
             {isFr
-              ? "Incubateur Officiel de Talents Asteria Freelance · Esprit"
-              : "Official Talent Incubator of Asteria Freelance · Esprit"}
+              ? "Incubateur Officiel de Talents Asteria Freelance PreLaunch · Esprit"
+              : "Official Talent Incubator of Asteria Freelance PreLaunch · Esprit"}
           </div>
 
           {/* Display Heading */}
@@ -230,11 +230,11 @@ export default function HomePage() {
           <p className="font-body text-base sm:text-xl text-ink-soft dark:text-teal-100/90 max-w-3xl mx-auto leading-relaxed">
             {isFr ? (
               <>
-                Asteria Club Esprit forme les étudiants en <strong>Développement Web</strong>, <strong>Design Graphique</strong>, <strong>Montage Vidéo</strong> et <strong>Photographie</strong>, puis oriente les talents certifiés vers des contrats rémunérés chez <strong>Asteria Freelance</strong>.
+                Asteria Club Esprit forme les étudiants en <strong>Développement Web</strong>, <strong>Design Graphique</strong>, <strong>Montage Vidéo</strong> et <strong>Photographie</strong>, puis oriente les talents certifiés vers des contrats rémunérés chez <strong>Asteria Freelance PreLaunch</strong>.
               </>
             ) : (
               <>
-                Asteria Club Esprit trains students in <strong>Web Development</strong>, <strong>Graphic Design</strong>, <strong>Video Editing</strong>, and <strong>Photography</strong>, then feeds certified talent into paid client contracts at <strong>Asteria Freelance</strong>.
+                Asteria Club Esprit trains students in <strong>Web Development</strong>, <strong>Graphic Design</strong>, <strong>Video Editing</strong>, and <strong>Photography</strong>, then feeds certified talent into paid client contracts at <strong>Asteria Freelance PreLaunch</strong>.
               </>
             )}
           </p>
@@ -551,7 +551,7 @@ export default function HomePage() {
                 rel="noreferrer"
                 className="px-6 py-3.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-2"
               >
-                {t("freelance.cta", "Visit Asteria Freelance")}
+                {t("freelance.cta", "Visit Asteria Freelance PreLaunch")}
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -563,7 +563,7 @@ export default function HomePage() {
       <footer className="py-12 px-4 sm:px-8 border-t border-line dark:border-teal-900/60 text-xs font-body text-ink-soft dark:text-teal-200/60 max-w-7xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <AsteriaLogo variant="auto" size="sm" href="/" />
         <p className="text-center sm:text-right">
-          © 2026 Asteria Club Esprit · ESPRIT University. {isFr ? "Produit affilié à Asteria Freelance." : "Sister product to Asteria Freelance."}
+          © 2026 Asteria Club Esprit · ESPRIT University. {isFr ? "Produit affilié à Asteria Freelance PreLaunch." : "Sister product to Asteria Freelance PreLaunch."}
         </p>
       </footer>
     </div>

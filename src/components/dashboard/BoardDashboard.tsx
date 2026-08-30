@@ -85,8 +85,8 @@ export function BoardDashboard({ data }: BoardDashboardProps) {
           </h2>
           <p className="font-body text-xs sm:text-sm text-teal-100/90 leading-relaxed">
             {isFr
-              ? "Bienvenue sur le système d'exploitation du club. Pilotez les sprints de pôles, surveillez l'assiduité des membres, évaluez les recrutements et orientez les talents vers Asteria Freelance."
-              : "Welcome to the club executive operating system. Oversee departmental sprints, monitor member attendance health, review talent recruitment, and graduate creators into Asteria Freelance."}
+              ? "Bienvenue sur le système d'exploitation du club. Pilotez les sprints de pôles, surveillez l'assiduité des membres, évaluez les recrutements et orientez les talents vers Asteria Freelance PreLaunch."
+              : "Welcome to the club executive operating system. Oversee departmental sprints, monitor member attendance health, review talent recruitment, and graduate creators into Asteria Freelance PreLaunch."}
           </p>
           <div className="flex items-center gap-3 pt-2 flex-wrap">
             <Link href="/tasks">

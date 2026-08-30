@@ -63,8 +63,8 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
             </h2>
             <p className="font-body text-xs sm:text-sm text-teal-100/90 max-w-xl leading-relaxed">
               {isFr
-                ? "Suivez vos livrables de sprint, confirmez vos inscriptions aux événements, scannez vos présences et progressez vers la qualification Asteria Freelance."
-                : "Track your assigned sprint tickets, confirm event RSVPs, scan attendance QR codes, and advance toward Asteria Freelance Readiness."}
+                ? "Suivez vos livrables de sprint, confirmez vos inscriptions aux événements, scannez vos présences et progressez vers la qualification Asteria Freelance PreLaunch."
+                : "Track your assigned sprint tickets, confirm event RSVPs, scan attendance QR codes, and advance toward Asteria Freelance PreLaunch Readiness."}
             </p>
           </div>
 

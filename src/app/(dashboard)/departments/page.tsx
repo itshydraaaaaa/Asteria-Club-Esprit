@@ -57,8 +57,8 @@ export default function DepartmentsPage() {
 
           <div className="text-xs text-ink-soft font-body">
             {isFr
-              ? "4 pôles techniques d'élite orientés vers Asteria Freelance"
-              : "4 Core Technical Tracks feeding into Asteria Freelance"}
+              ? "4 pôles techniques d'élite orientés vers Asteria Freelance PreLaunch"
+              : "4 Core Technical Tracks feeding into Asteria Freelance PreLaunch"}
           </div>
         </div>
 
