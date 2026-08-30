@@ -52,7 +52,7 @@ The platform acts as the internal operating system managing talent progression f
 ├──────────────────────────────┬─────────────────────────────────────────┤
 │        FRONTEND LAYER        │             BACKEND LAYER               │
 │ • Google Fonts (Exo 2,       │ • Next.js Route Handlers (/api/*)       │
-│   Plus Jakarta Sans,         │ • Prisma ORM 6.1 (PostgreSQL / SQLite)  │
+│   Plus Jakarta Sans,         │ • Prisma ORM 6.1 (Supabase PostgreSQL)  │
 │   JetBrains Mono)            │ • Supabase SSR Auth & Cookie Sessions   │
 │ • Three.js Ambient Particle  │ • Supabase Realtime Channels (WebSocket)│
 │   Canvas (AmbientCanvas.tsx) │ • Row Level Security (RLS) Policies     │
@@ -64,7 +64,7 @@ The platform acts as the internal operating system managing talent progression f
 - **Framework**: Next.js 15.1 (App Router architecture with SSR & Server Components).
 - **Language**: TypeScript 5.7 (Strict type-checking enabled).
 - **Styling**: Tailwind CSS 3.4 with custom glassmorphism and motion tokens.
-- **Database & ORM**: Prisma ORM with relational SQLite (local) / Supabase PostgreSQL (cloud).
+- **Database & ORM**: Prisma ORM with Supabase PostgreSQL (Cloud Database).
 - **Auth Layer**: `@supabase/ssr` with HttpOnly cookie session refresh and JWT token verification.
 - **Realtime**: Supabase Realtime WebSocket channels (`tasks`, `attendance_records`, `announcements`).
 - **3D & Motion**: Three.js WebGL particle mesh, Lenis smooth scrolling, Framer Motion layout transitions.
@@ -405,8 +405,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your_supabase_publishable_key"
 SUPABASE_SERVICE_ROLE_KEY="your_supabase_secret_key"
 SUPABASE_SECRET_KEY="your_supabase_secret_key"
 
-# Database Connection (Local SQLite or Supabase PostgreSQL URI)
-DATABASE_URL="file:./dev.db"
+# Database Connection (Supabase PostgreSQL Connection URI)
+DATABASE_URL="postgresql://postgres:password@db.your-project.supabase.co:5432/postgres"
 
 # JWT Secret
 JWT_SECRET="asteria-super-secret-jwt-key-2026"

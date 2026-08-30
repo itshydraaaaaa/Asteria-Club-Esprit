@@ -132,25 +132,52 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
         </Card>
 
         <Card className="p-5 bg-surface/90 backdrop-blur-md">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between">
+            <div className="space-y-1.5 flex-1 pr-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display">
-                {isFr ? "Pôle Freelance" : "Freelance Division"}
+                {isFr ? "Pôle Freelance PreLaunch" : "Freelance PreLaunch"}
               </p>
-              <h4 className="font-display font-bold text-base sm:text-lg text-ink mt-1">
-                {user?.freelanceReady ? (isFr ? "Qualifié ★" : "Qualified ★") : (isFr ? "En Formation" : "In Training")}
-              </h4>
-              <p className="text-xs text-ink-soft font-body mt-1">
+              <h4 className="font-display font-bold text-base sm:text-lg text-ink">
                 {user?.freelanceReady
-                  ? (isFr ? "Éligible aux contrats rémunérés" : "Eligible for paid client contracts")
-                  : remainingTasks === 0
-                  ? (isFr ? "Éligible à la revue du Bureau" : "Eligible for Board review")
-                  : (isFr
-                      ? `Encore ${remainingTasks} tâche${remainingTasks > 1 ? "s" : ""} pour se qualifier`
-                      : `Complete ${remainingTasks} more task${remainingTasks > 1 ? "s" : ""} to qualify`)}
+                  ? (isFr ? "Qualifié ★" : "Qualified ★")
+                  : completedTasks >= 5 && (attendanceRate !== null && attendanceRate >= 75)
+                  ? (isFr ? "Éligible ★" : "Threshold Met ★")
+                  : (isFr ? "En Formation" : "In Training")}
+              </h4>
+              
+              {/* Dual Conditions Status Breakdown */}
+              <div className="space-y-1 text-[11px] font-body text-ink-soft pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    {completedTasks >= 5 ? "✓" : "○"} {isFr ? "Livrables de sprint" : "Sprint tasks"}:
+                  </span>
+                  <span className={`font-mono font-semibold ${completedTasks >= 5 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {completedTasks}/5
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    {attendanceRate !== null && attendanceRate >= 75 ? "✓" : "○"} {isFr ? "Assiduité requise" : "Attendance rate"}:
+                  </span>
+                  <span className={`font-mono font-semibold ${attendanceRate !== null && attendanceRate >= 75 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {attendanceRate !== null ? `${attendanceRate}%/75%` : (isFr ? "N/A" : "0%/75%")}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-[11px] font-body pt-1 font-medium text-ast-primary dark:text-teal-300">
+                {user?.freelanceReady
+                  ? (isFr ? "Certifié pour les contrats clients payés." : "Certified for paid commercial client contracts.")
+                  : completedTasks >= 5 && (attendanceRate !== null && attendanceRate >= 75)
+                  ? (isFr ? "Seuils atteints · En attente de validation." : "Criteria met · Pending Executive Board review.")
+                  : completedTasks < 5 && (attendanceRate !== null && attendanceRate < 75)
+                  ? (isFr ? `Bloqueur : ${5 - completedTasks} tâche(s) + assiduité < 75%` : `Blocker: Need ${5 - completedTasks} more tasks & ≥75% attendance`)
+                  : completedTasks < 5
+                  ? (isFr ? `Bloqueur : ${5 - completedTasks} tâche(s) de sprint restante(s)` : `Blocker: Need ${5 - completedTasks} more completed sprint task${5 - completedTasks > 1 ? "s" : ""}`)
+                  : (isFr ? `Bloqueur : Assiduité à ${attendanceRate ?? 0}% (minimum 75% requis)` : `Blocker: Attendance at ${attendanceRate ?? 0}% (≥75% required)`)}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-ast-light/20 border border-ast-light/40 text-ast-primary shadow-sm">
+            <div className="p-3 rounded-2xl bg-ast-light/20 border border-ast-light/40 text-ast-primary shadow-sm flex-shrink-0">
               <Briefcase className="w-5 h-5" />
             </div>
           </div>

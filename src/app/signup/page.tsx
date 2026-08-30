@@ -1,52 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { Lock, Mail, User, ArrowRight, ArrowLeft, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, ShieldCheck, FileText, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const isFr = language === "fr";
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !password) {
-      setError(isFr ? "Tous les champs sont obligatoires." : "All fields are required.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        window.location.href = "/dashboard";
-      } else {
-        setError(data.error || (isFr ? "Erreur lors de l'inscription." : "Signup error."));
-      }
-    } catch {
-      setError(isFr ? "Erreur réseau. Veuillez réessayer." : "Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-body relative overflow-hidden selection:bg-teal-400 selection:text-ink transition-colors duration-300">
@@ -70,90 +35,56 @@ export default function SignupPage() {
         <AsteriaLogo variant="auto" size="lg" href="/" className="justify-center" />
         <p className="font-body text-xs text-ink-soft dark:text-teal-200/80 font-medium">
           {isFr
-            ? "Créer un Compte Membre · Asteria Club Esprit"
-            : "Create Member Account · Asteria Club Esprit"}
+            ? "Portail d'Adhésion & Onboarding · Asteria Club Esprit"
+            : "Membership & Onboarding Portal · Asteria Club Esprit"}
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-vague-in">
-        <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-6">
-          <form onSubmit={handleSignup} className="space-y-4">
-            {error && (
-              <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-500/50 text-red-700 dark:text-red-200 text-xs font-body flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+        <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-6 text-center">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 mx-auto">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
 
-            <div>
-              <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                {t("auth.signup.name", "Full Name")}
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder={isFr ? "Ex: Karim Chaabane" : "e.g. Karim Chaabane"}
-                  className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
-                />
-              </div>
+          <div className="space-y-2">
+            <h2 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
+              {isFr ? "Adhésion sur Candidature" : "Membership by Application Only"}
+            </h2>
+            <p className="font-body text-xs text-ink-soft dark:text-teal-100/80 leading-relaxed">
+              {isFr
+                ? "Asteria Club Esprit fonctionne comme un incubateur d'élite sélectif. Les comptes membres sont créés et activés par le Bureau Exécutif après examen de votre portfolio et audition."
+                : "Asteria Club Esprit operates as a selective talent incubator. Member accounts are provisioned by the Executive Board upon portfolio evaluation and audition acceptance."}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-teal-50/60 dark:bg-teal-950/60 border border-teal-200/60 dark:border-teal-800/60 text-left space-y-2 text-xs font-body">
+            <div className="flex items-center gap-2 text-ink dark:text-teal-200 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <span>{isFr ? "1. Déposez votre candidature sur /apply" : "1. Submit your application on /apply"}</span>
             </div>
-
-            <div>
-              <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                {t("auth.login.email", "Student Email Address")}
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="karim.chaabane@asteria.tn"
-                  className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
-                />
-              </div>
+            <div className="flex items-center gap-2 text-ink dark:text-teal-200 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <span>{isFr ? "2. Évaluation par les chefs de pôle" : "2. Portfolio review by Department Leads"}</span>
             </div>
-
-            <div>
-              <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                {t("auth.login.password", "Password")}
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
-                />
-              </div>
+            <div className="flex items-center gap-2 text-ink dark:text-teal-200 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <span>{isFr ? "3. Activation de vos identifiants membres" : "3. 1-Click activation of your member credentials"}</span>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 disabled:opacity-50 mt-2 shadow-md"
-            >
-              {loading
-                ? (isFr ? "Création en cours..." : "Creating...")
-                : (isFr ? "Créer mon Compte Membre ★" : "Create Account ★")}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          <div className="pt-3 border-t border-line dark:border-teal-900/80 flex items-center justify-between text-xs font-body text-ink-soft dark:text-teal-200/70">
-            <Link href="/apply" className="text-ast-primary dark:text-ast-light font-semibold hover:underline">
-              {isFr ? "Formulaire de Candidature →" : "Recruitment Form →"}
+          <div className="space-y-3 pt-2">
+            <Link href="/apply" className="block">
+              <button className="w-full py-3.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 shadow-md">
+                <Sparkles className="w-4 h-4" />
+                {isFr ? "Postuler au Recrutement ★" : "Apply for Membership ★"}
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </Link>
-            <Link href="/login" className="hover:text-ink dark:hover:text-white transition-colors">
-              {t("auth.signup.haveAccount", "Already have an account? Log In")}
+
+            <Link href="/login" className="block">
+              <button className="w-full py-3 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white dark:bg-[#052024] hover:bg-teal-50 dark:hover:bg-teal-900/60 text-ink dark:text-white border border-teal-200 dark:border-teal-700 transition-all">
+                {isFr ? "Déjà membre ? Se connecter" : "Already a member? Sign In"}
+              </button>
             </Link>
           </div>
         </div>

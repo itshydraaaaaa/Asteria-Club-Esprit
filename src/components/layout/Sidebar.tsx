@@ -24,8 +24,11 @@ import {
   LogOut,
   Home,
   ArrowRight,
+  HelpCircle,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PlatformGuideModal } from "@/components/dashboard/PlatformGuideModal";
 
 interface SidebarProps {
   user: UserSession | null;
@@ -35,6 +38,7 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const { language, t } = useLanguage();
   const isFr = language === "fr";
+  const [isGuideOpen, setIsGuideOpen] = React.useState(false);
 
   const navItems = [
     {
@@ -197,6 +201,16 @@ export function Sidebar({ user }: SidebarProps) {
           <ThemeToggle variant="pill" />
         </div>
 
+        <button
+          onClick={() => setIsGuideOpen(true)}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-ast-primary dark:text-ast-light bg-teal-50/70 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900 border border-teal-200/60 dark:border-teal-800 transition-colors"
+        >
+          <span className="flex items-center gap-2 font-semibold">
+            <BookOpen className="w-3.5 h-3.5" /> {isFr ? "Guide Plateforme" : "Platform Guide"}
+          </span>
+          <ArrowRight className="w-3 h-3" />
+        </button>
+
         <Link
           href="/"
           className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-ink-soft dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/50 hover:text-ink dark:hover:text-white transition-colors"
@@ -227,6 +241,13 @@ export function Sidebar({ user }: SidebarProps) {
           <span>{t("nav.logout", "Sign Out")}</span>
         </button>
       </div>
+
+      {/* Post-Login Guide Modal */}
+      <PlatformGuideModal
+        user={user}
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </aside>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserSession } from "@/lib/types";
-import { Bell, Plus, Sparkles, Check, ChevronRight } from "lucide-react";
+import { Bell, Plus, Sparkles, Check, ChevronRight, HelpCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { PlatformGuideModal } from "@/components/dashboard/PlatformGuideModal";
 import Link from "next/link";
 
 interface HeaderProps {
@@ -21,6 +22,17 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if user has seen onboarding guide
+    if (typeof window !== "undefined") {
+      const seen = localStorage.getItem("asteria_platform_guide_dismissed");
+      if (!seen) {
+        setIsGuideOpen(true);
+      }
+    }
+  }, []);
 
   return (
     <header className="bg-white/85 dark:bg-[#052024]/90 backdrop-blur-md border-b border-line dark:border-teal-900/80 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
@@ -62,6 +74,15 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
             </Button>
           </Link>
         )}
+
+        {/* Platform Guide / Help Trigger */}
+        <button
+          onClick={() => setIsGuideOpen(true)}
+          title={isFr ? "Guide de la Plateforme" : "Platform Guide & Help"}
+          className="p-2 rounded-xl bg-surface-alt dark:bg-[#08262b] border border-line dark:border-teal-900 text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:border-ast-primary dark:hover:border-ast-light relative transition-all"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
 
         {/* Notifications Popover */}
         <div className="relative">
@@ -108,6 +129,13 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
           )}
         </div>
       </div>
+
+      {/* Post-Login Onboarding / Orientation Guide Modal */}
+      <PlatformGuideModal
+        user={user}
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </header>
   );
 }

@@ -92,6 +92,30 @@ export default function HomePage() {
     },
   ];
 
+  const studioPillars = [
+    {
+      icon: Layers,
+      title: isFr ? "Pipelines de Studio Professionnel" : "Agency-Grade Production",
+      desc: isFr
+        ? "Des cahiers des charges réels, des revues de code et de design par les pairs, et des livrables de sprint avec des exigences de qualité rigoureuses."
+        : "Real client briefs, peer code and design reviews, and agile sprint deliverables executed with strict production standards.",
+    },
+    {
+      icon: Code2,
+      title: isFr ? "Masterclasses & Mentorat Actif" : "Hands-On Masterclasses",
+      desc: isFr
+        ? "Des ateliers hebdomadaires immersifs animés par des étudiants seniors et des professionnels pour maîtriser les outils modernes de l'industrie."
+        : "Weekly practical workshops led by senior student leads to master modern industry toolstacks and build portfolio-grade projects.",
+    },
+    {
+      icon: Briefcase,
+      title: isFr ? "Passerelle Freelance Directe" : "Direct Commercial Launchpad",
+      desc: isFr
+        ? "Les créateurs certifiés accèdent directement au pôle Asteria Freelance PreLaunch pour exécuter des contrats clients rémunérés en Tunisie et à l'international."
+        : "Certified creators fast-track directly into Asteria Freelance PreLaunch to take on paid commercial client contracts across EMEA.",
+    },
+  ];
+
   const pipelineSteps = [
     {
       step: "01",
@@ -116,10 +140,10 @@ export default function HomePage() {
     },
     {
       step: "04",
-      title: isFr ? "Passerelle Asteria Freelance" : "Asteria Freelance Graduation",
+      title: isFr ? "Qualification Asteria Freelance" : "Asteria Freelance Qualification",
       desc: isFr
-        ? "Accédez au vivier Asteria Freelance et décrochez des contrats clients rémunérés avec nos entreprises partenaires."
-        : "Qualify for the Asteria Freelance roster and receive paid client contracts with corporate and startup partners.",
+        ? "Validez au moins 5 livrables de sprint et maintenez ≥75% d'assiduité pour être certifié 'Prêt pour le Freelance' et recevoir des contrats rémunérés."
+        : "Complete ≥5 sprint deliverables and maintain ≥75% workshop attendance to earn your Freelance Ready certification and receive paid client contracts.",
     },
   ];
 
@@ -137,8 +161,8 @@ export default function HomePage() {
         ? "Comment fonctionne la passerelle Asteria Freelance PreLaunch ?"
         : "How does the Asteria Freelance PreLaunch talent bridge work?",
       a: isFr
-        ? "Asteria Club Esprit sert d'incubateur de talents pour Asteria Freelance PreLaunch. Dès que vous réalisez des livrables de sprint avec succès, maintenez une assiduité exemplaire et validez l'évaluation de pôle, vous êtes certifié 'Prêt pour le Freelance' pour des projets clients rémunérés."
-        : "Asteria Club Esprit functions as the training incubator for Asteria Freelance PreLaunch. Once you successfully deliver sprint tickets, maintain good workshop attendance, and pass department review, you are certified as 'Freelance Ready' for paid client projects.",
+        ? "Asteria Club Esprit sert d'incubateur de talents pour Asteria Freelance PreLaunch. Pour être certifié 'Prêt pour le Freelance' et recevoir des contrats clients rémunérés, chaque membre doit obligatoirement valider deux conditions : (1) Terminer au moins 5 livrables de sprint sur le Kanban, et (2) Maintenir un taux d'assiduité d'au moins 75% aux ateliers. Dès que ces seuils sont atteints, le Bureau Exécutif certifie le profil pour les missions commerciales."
+        : "Asteria Club Esprit functions as the training incubator for Asteria Freelance PreLaunch. To qualify for paid commercial client contracts, members must meet two exact requirements: (1) Complete at least 5 sprint task deliverables on the Kanban board, and (2) Maintain an attendance health score of at least 75% across scheduled workshops. Once both thresholds are met, the Executive Board certifies the member as 'Freelance Ready'.",
     },
     {
       q: isFr
@@ -153,8 +177,8 @@ export default function HomePage() {
         ? "Comment fonctionne le suivi de présence et de tâches sur la plateforme ?"
         : "How does attendance and task management work on the platform?",
       a: isFr
-        ? "La plateforme intègre un check-in par QR code dynamique pour les sessions et un tableau Kanban agile synchronisé en direct pour gérer vos tâches et suivre votre score de présence."
-        : "The platform provides dynamic QR code check-ins for events and a real-time agile Kanban board where you pick up sprint deliverables, submit work for review, and track your attendance health score.",
+        ? "Les membres acceptés reçoivent un compte sur le système d'exploitation Asteria. Ils scannent le QR code dynamique de session pour valider leur présence et gèrent leurs tickets de production sur un tableau Kanban synchronisé en direct."
+        : "Accepted members gain access to the Asteria Operating System. They verify workshop presence via dynamic session QR codes and passcodes, and track agile deliverables on our real-time Kanban sprint board.",
     },
   ];
 
@@ -166,14 +190,14 @@ export default function HomePage() {
           <AsteriaLogo variant="auto" size="md" href="/" />
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-100/80 font-display">
+            <a href="#about" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
+              {isFr ? "Le Studio" : "About Club"}
+            </a>
             <a href="#tracks" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               {isFr ? "Pôles" : "Tracks"}
             </a>
             <a href="#pipeline" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               {isFr ? "Passerelle Freelance" : "Freelance Pipeline"}
-            </a>
-            <a href="#platform" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
-              {isFr ? "Plateforme" : "Platform"}
             </a>
             <a href="#faq" className="hover:text-ast-primary dark:hover:text-teal-300 transition-colors">
               {isFr ? "FAQ" : "FAQ"}
@@ -308,18 +332,59 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* NEW: About The Club / Studio Philosophy Section */}
+      <section id="about" className="py-24 px-4 sm:px-6 lg:px-8 relative border-t border-line/60 dark:border-teal-900/60">
+        <div className="max-w-7xl mx-auto space-y-16">
+          <div className="text-center space-y-3 max-w-3xl mx-auto">
+            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
+              {isFr ? "Identité & Philosophie" : "Studio Philosophy"}
+            </span>
+            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
+              {isFr ? "Bien Plus Qu'un Club. Un Studio de Production." : "Not Just a Club. A Production Studio."}
+            </h2>
+            <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80 leading-relaxed">
+              {isFr
+                ? "Asteria Club Esprit rompt avec le modèle associatif traditionnel. Nous fonctionnons comme un studio créatif décentralisé où les étudiants acquièrent une rigueur professionnelle, livrent des projets d'envergure et accèdent directement à des contrats freelance rémunérés."
+                : "Asteria Club Esprit departs from the traditional campus club model. We operate as an autonomous student production studio where creators gain production rigor, ship portfolio-grade deliverables, and earn direct entry into paid client freelance contracts."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {studioPillars.map((pillar, i) => {
+              const Icon = pillar.icon;
+              return (
+                <div
+                  key={i}
+                  className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl transition-all hover:border-teal-500/40"
+                >
+                  <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
+                    {pillar.title}
+                  </h3>
+                  <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
+                    {pillar.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Interactive 4-Track Technical Showcase */}
       <section id="tracks" className="py-24 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
-              {t("departments.badge", "Department Architecture")}
+              {t("departments.badge", "Creative Capabilities")}
             </span>
             <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
-              {t("departments.title", "Specialization Tracks")}
+              {t("departments.title", "Four Hubs. One Standard.")}
             </h2>
             <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
-              {t("departments.subtitle", "Each track is led by a dedicated Head of Department with custom curriculums, weekly workshops, and real agile sprints.")}
+              {t("departments.subtitle", "Every department operates as an autonomous studio with senior leadership, structured pipelines, and production-grade tools.")}
             </p>
           </div>
 
@@ -378,13 +443,13 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
-              {t("recruitment.badge", "The Incubator Journey")}
+              {t("recruitment.badge", "Talent Pipeline")}
             </span>
             <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
-              {t("recruitment.title", "The Freelance Bridge")}
+              {t("recruitment.title", "How to Join Asteria")}
             </h2>
             <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
-              {t("recruitment.subtitle", "How we train university students from zero to production-level professionals ready for paid industry contracts.")}
+              {t("recruitment.subtitle", "We accept ambitious creators through a selective, portfolio-first evaluation process twice per year.")}
             </p>
           </div>
 
@@ -418,64 +483,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Internal OS Features Preview */}
-      <section id="platform" className="py-24 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-7xl mx-auto space-y-16">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="font-mono text-xs uppercase font-bold tracking-widest text-ast-primary dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-3 py-1 rounded-full border border-teal-200 dark:border-teal-500/30">
-              {t("workflow.badge", "Platform Modules")}
-            </span>
-            <h2 className="font-display font-bold text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
-              {t("workflow.title", "The Club Operating System")}
-            </h2>
-            <p className="font-body text-sm sm:text-base text-ink-soft dark:text-teal-100/80">
-              {t("workflow.subtitle", "Built for speed, accountability, and real-time collaboration across board executives, department leads, and members.")}
-            </p>
+      {/* Internal OS Brief Showcase */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl bg-white/70 dark:bg-[#08262b]/70 backdrop-blur-xl border border-teal-900/10 dark:border-teal-500/20 shadow-lg text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-900/50 text-ast-primary dark:text-teal-300 text-xs font-mono uppercase font-bold">
+            <Layers className="w-3.5 h-3.5" />
+            {isFr ? "Système d'Exploitation Interne" : "Internal Operating System"}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
-              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
-                <KanbanSquare className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
-                {t("tasks.title", "Agile Task Kanban")}
-              </h3>
-              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
-                {isFr
-                  ? "Tableau de sprint à 4 colonnes synchronisé en direct avec transitions drag-and-drop, assignations et commentaires."
-                  : "4-column sprint board with real-time sync, drag-and-drop state transitions, assignees, priorities, and threaded comments."}
-              </p>
-            </div>
-
-            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
-              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
-                <QrCode className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
-                {t("attendance.title", "Dynamic QR Attendance")}
-              </h3>
-              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
-                {isFr
-                  ? "QR codes dynamiques pour les animateurs de session, codes à 6 chiffres, scanner interactif et justifications d'absence."
-                  : "Dynamic QR codes for session hosts, 6-digit numeric passcodes, camera scanner simulation, and member absence justification workflows."}
-              </p>
-            </div>
-
-            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/20 space-y-4 shadow-md dark:shadow-2xl">
-              <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 w-fit">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-xl uppercase tracking-wider text-ink dark:text-white">
-                {t("freelance.badge", "Freelance Qualification")}
-              </h3>
-              <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed">
-                {isFr
-                  ? "Audit automatisé mesurant l'assiduité aux ateliers et le nombre de livrables validés pour intégrer les projets clients."
-                  : "Automated auditing tracking member workshop attendance health and sprint deliverable counts to graduate talent directly into client contracts."}
-              </p>
-            </div>
-          </div>
+          <h3 className="font-display font-bold text-lg sm:text-xl uppercase tracking-wider text-ink dark:text-white">
+            {isFr ? "Un Espace Dédié Pour Chaque Membre" : "A Unified Platform For Every Creator"}
+          </h3>
+          <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 max-w-2xl mx-auto leading-relaxed">
+            {isFr
+              ? "Dès leur intégration, tous les membres accèdent à notre plateforme interne pour piloter leurs livrables Kanban, valider leur présence aux sessions par QR code, synchroniser leur planning et suivre leur progression vers Asteria Freelance PreLaunch."
+              : "Once onboarded, all members gain full access to our internal operating system to manage agile Kanban deliverables, verify session attendance via QR codes, sync calendar workshops, and track freelance readiness progression."}
+          </p>
         </div>
       </section>
 
