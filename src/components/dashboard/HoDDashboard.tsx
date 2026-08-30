@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import Link from "next/link";
 import {
   Users,
@@ -27,6 +28,9 @@ interface HoDDashboardProps {
 }
 
 export function HoDDashboard({ data, user }: HoDDashboardProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const { overview, roleData } = data;
   const dept = roleData?.department;
   const taskStats = roleData?.deptTaskStats || {
@@ -45,26 +49,28 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-ast-light/20 text-ast-light border border-ast-light/30 text-xs font-semibold uppercase tracking-wider font-mono">
               <Award className="w-3.5 h-3.5" />
-              Department Head Operations
+              {isFr ? "Opérations Chef de Département" : "Department Head Operations"}
             </div>
             <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wider text-white">
-              {dept?.name || "Department"} Hub
+              {isFr ? `Pôle ${dept?.name || "Département"}` : `${dept?.name || "Department"} Hub`}
             </h2>
             <p className="font-body text-xs sm:text-sm text-teal-100/90 max-w-xl leading-relaxed">
               {dept?.description ||
-                "Manage your department curriculum, tasks, member roster, and workshop attendance."}
+                (isFr
+                  ? "Gérez les programmes, les tâches, les membres de votre pôle et l'assiduité aux ateliers."
+                  : "Manage your department curriculum, tasks, member roster, and workshop attendance.")}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/tasks">
               <Button variant="accent" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />} className="font-bold">
-                Create Task
+                {isFr ? "Créer une Tâche" : "Create Task"}
               </Button>
             </Link>
             <Link href={`/departments/${dept?.id}`}>
               <Button variant="secondary" size="sm" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-                Department Page
+                {isFr ? "Page du Pôle" : "Department Page"}
               </Button>
             </Link>
           </div>
@@ -75,42 +81,42 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="p-5 bg-surface/90 backdrop-blur-md">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft font-display">
-            To Do
+            {t("tasks.col.todo", "To Do")}
           </p>
           <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink mt-1">
             <AnimatedCounter value={taskStats.todo} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Sprint queue</span>
+          <span className="text-[10px] text-ink-faint font-body">{isFr ? "File d'attente" : "Sprint queue"}</span>
         </Card>
 
         <Card className="p-5 bg-surface/90 backdrop-blur-md">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-ast-primary font-display">
-            In Progress
+            {t("tasks.col.inProgress", "In Progress")}
           </p>
           <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary mt-1">
             <AnimatedCounter value={taskStats.inProgress} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Being crafted</span>
+          <span className="text-[10px] text-ink-faint font-body">{isFr ? "En production" : "Being crafted"}</span>
         </Card>
 
         <Card className="p-5 bg-surface/90 backdrop-blur-md">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 font-display">
-            In Review
+            {t("tasks.col.review", "In Review")}
           </p>
           <h4 className="font-display font-bold text-2xl sm:text-3xl text-amber-700 mt-1">
             <AnimatedCounter value={taskStats.review} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">HoD feedback</span>
+          <span className="text-[10px] text-ink-faint font-body">{isFr ? "Revue responsable" : "HoD feedback"}</span>
         </Card>
 
         <Card className="p-5 bg-surface/90 backdrop-blur-md">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 font-display">
-            Completed
+            {t("tasks.col.done", "Completed")}
           </p>
           <h4 className="font-display font-bold text-2xl sm:text-3xl text-emerald-700 mt-1">
             <AnimatedCounter value={taskStats.done} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">Production ready</span>
+          <span className="text-[10px] text-ink-faint font-body">{isFr ? "Validé" : "Production ready"}</span>
         </Card>
       </div>
 
@@ -120,37 +126,37 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
         <Card className="lg:col-span-2 bg-surface/90 backdrop-blur-md">
           <CardHeader>
             <div>
-              <CardTitle>Active Department Tasks</CardTitle>
+              <CardTitle>{isFr ? "Tâches Actives du Pôle" : "Active Department Tasks"}</CardTitle>
               <p className="text-xs text-ink-soft font-body mt-0.5">
-                Current sprint tasks assigned to members
+                {isFr ? "Tâches de sprint en cours assignées aux membres" : "Current sprint tasks assigned to members"}
               </p>
             </div>
             <Link href="/tasks">
               <Button variant="outline" size="sm" className="text-xs">
-                Kanban View
+                {isFr ? "Vue Kanban" : "Kanban View"}
               </Button>
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
             {dept?.tasks?.length > 0 ? (
-              dept.tasks.slice(0, 5).map((t: any) => (
+              dept.tasks.slice(0, 5).map((tItem: any) => (
                 <div
-                  key={t.id}
+                  key={tItem.id}
                   className="p-4 rounded-2xl border border-line bg-surface-alt/50 flex items-center justify-between gap-3 hover:border-ast-light/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <StatusBadge status={t.status} />
-                      <PriorityBadge priority={t.priority} />
+                      <StatusBadge status={tItem.status} />
+                      <PriorityBadge priority={tItem.priority} />
                     </div>
-                    <h5 className="font-body font-bold text-xs text-ink">{t.title}</h5>
+                    <h5 className="font-body font-bold text-xs text-ink">{tItem.title}</h5>
                     <p className="text-[11px] text-ink-soft line-clamp-1">
-                      {t.description || "No description provided."}
+                      {tItem.description || (isFr ? "Aucune description fournie." : "No description provided.")}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-[10px] text-ink-faint font-mono">
-                      {formatDate(t.dueDate)}
+                      {formatDate(tItem.dueDate)}
                     </span>
                   </div>
                 </div>
@@ -158,8 +164,8 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
             ) : (
               <EmptyState
                 icon={KanbanSquare}
-                title="No Tasks in Track"
-                description="Create sprint tasks for your department members."
+                title={isFr ? "Aucune tâche dans ce pôle" : "No Tasks in Track"}
+                description={isFr ? "Créez des tâches de sprint pour les membres de votre pôle." : "Create sprint tasks for your department members."}
               />
             )}
           </CardContent>
@@ -170,10 +176,10 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-ast-primary" />
-              <CardTitle>Member Roster ({dept?.members?.length || 0})</CardTitle>
+              <CardTitle>{isFr ? "Effectif du Pôle" : "Member Roster"} ({dept?.members?.length || 0})</CardTitle>
             </div>
             <Link href="/members" className="text-xs text-ast-primary font-semibold hover:underline">
-              Directory
+              {t("nav.members", "Directory")}
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -201,8 +207,8 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
             ) : (
               <EmptyState
                 icon={Users}
-                title="No Members Enrolled"
-                description="Accepted applicants assigned to this track will appear here."
+                title={isFr ? "Aucun membre inscrit" : "No Members Enrolled"}
+                description={isFr ? "Les candidats acceptés dans ce pôle apparaîtront ici." : "Accepted applicants assigned to this track will appear here."}
               />
             )}
           </CardContent>

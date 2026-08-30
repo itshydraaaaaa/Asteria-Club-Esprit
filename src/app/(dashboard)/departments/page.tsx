@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tabs } from "@/components/ui/Tabs";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import Link from "next/link";
 import {
   Layers,
@@ -21,6 +22,9 @@ import {
 } from "lucide-react";
 
 export default function DepartmentsPage() {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [activeTab, setActiveTab] = useState<"chart" | "grid">("chart");
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +39,8 @@ export default function DepartmentsPage() {
   return (
     <div className="flex-1 flex flex-col">
       <Header
-        title="Departments & Org Structure"
-        subtitle="Interactive hierarchy and technical specialization tracks"
+        title={isFr ? "Pôles & Structure Organisationnelle" : "Departments & Org Structure"}
+        subtitle={isFr ? "Hiérarchie interactive et pôles de spécialisation technique" : "Interactive hierarchy and technical specialization tracks"}
       />
 
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
@@ -44,15 +48,17 @@ export default function DepartmentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Tabs
             tabs={[
-              { id: "chart", label: "Interactive Org Chart", icon: <Network className="w-3.5 h-3.5" /> },
-              { id: "grid", label: "Department Cards", icon: <Layers className="w-3.5 h-3.5" /> },
+              { id: "chart", label: isFr ? "Organigramme Interactif" : "Interactive Org Chart", icon: <Network className="w-3.5 h-3.5" /> },
+              { id: "grid", label: isFr ? "Cartes des Pôles" : "Department Cards", icon: <Layers className="w-3.5 h-3.5" /> },
             ]}
             activeTab={activeTab}
             onChange={(id) => setActiveTab(id as any)}
           />
 
           <div className="text-xs text-ink-soft font-body">
-            4 Core Technical Tracks feeding into <strong>Asteria Freelance</strong>
+            {isFr
+              ? "4 pôles techniques d'élite orientés vers Asteria Freelance"
+              : "4 Core Technical Tracks feeding into Asteria Freelance"}
           </div>
         </div>
 
@@ -76,7 +82,7 @@ export default function DepartmentsPage() {
                       )}
                     </div>
                     <Badge variant="primary" size="sm">
-                      {dept._count?.members || 0} Members
+                      {dept._count?.members || 0} {isFr ? "Membres" : "Members"}
                     </Badge>
                   </div>
 
@@ -95,12 +101,12 @@ export default function DepartmentsPage() {
                         <Avatar name={dept.hod.name} src={dept.hod.avatarUrl} size="sm" />
                         <div>
                           <p className="text-xs font-bold font-body text-ink">{dept.hod.name}</p>
-                          <p className="text-[10px] text-ink-soft font-body">Head of Department</p>
+                          <p className="text-[10px] text-ink-soft font-body">{isFr ? "Chef de Pôle" : "Head of Department"}</p>
                         </div>
                       </div>
                       <Link href={`/members/${dept.hod.id}`}>
                         <Button variant="ghost" size="sm" className="text-[11px] h-7">
-                          Profile
+                          {isFr ? "Profil" : "Profile"}
                         </Button>
                       </Link>
                     </div>
@@ -108,12 +114,12 @@ export default function DepartmentsPage() {
 
                   <div className="pt-3 border-t border-line/70 flex items-center justify-between">
                     <div className="flex items-center gap-4 text-xs text-ink-soft">
-                      <span><strong>{dept._count?.tasks || 0}</strong> Active Tasks</span>
-                      <span><strong>{dept._count?.events || 0}</strong> Events</span>
+                      <span><strong>{dept._count?.tasks || 0}</strong> {isFr ? "Tâches Actives" : "Active Tasks"}</span>
+                      <span><strong>{dept._count?.events || 0}</strong> {isFr ? "Événements" : "Events"}</span>
                     </div>
                     <Link href={`/departments/${dept.id}`}>
                       <Button variant="primary" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                        Open Hub
+                        {isFr ? "Ouvrir l'Espace" : "Open Hub"}
                       </Button>
                     </Link>
                   </div>

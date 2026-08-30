@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -28,6 +29,9 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ currentUser }: CalendarViewProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [events, setEvents] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [scopeFilter, setScopeFilter] = useState("all");
@@ -141,7 +145,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
                   : "bg-surface-alt text-ink-soft border-line hover:text-ink"
               }`}
             >
-              All Events
+              {isFr ? "Tous les Événements" : "All Events"}
             </button>
             <button
               onClick={() => setScopeFilter("my")}
@@ -151,7 +155,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
                   : "bg-surface-alt text-ink-soft border-line hover:text-ink"
               }`}
             >
-              My Events
+              {isFr ? "Mes Événements" : "My Events"}
             </button>
             <button
               onClick={() => setScopeFilter("club")}
@@ -161,7 +165,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
                   : "bg-surface-alt text-ink-soft border-line hover:text-ink"
               }`}
             >
-              Club-Wide Assemblies
+              {isFr ? "Assemblées Générales" : "Club-Wide Assemblies"}
             </button>
 
             <Select
@@ -169,10 +173,10 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
               onChange={(e) => setScopeFilter(e.target.value)}
               className="w-48 text-xs py-1.5"
             >
-              <option value="all">Filter Department...</option>
+              <option value="all">{isFr ? "Filtrer par pôle..." : "Filter Department..."}</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name} Only
+                  {d.name} {isFr ? "Uniquement" : "Only"}
                 </option>
               ))}
             </Select>
@@ -185,7 +189,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
               leftIcon={<Plus className="w-4 h-4" />}
               onClick={() => setIsNewEventOpen(true)}
             >
-              Schedule Event
+              {isFr ? "Planifier un Événement" : "Schedule Event"}
             </Button>
           )}
         </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Settings,
   ShieldAlert,
@@ -21,6 +22,9 @@ import {
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export default function AdminPage() {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +34,9 @@ export default function AdminPage() {
 
   // Cycle Rollover Modal
   const [isCycleModalOpen, setIsCycleModalOpen] = useState(false);
-  const [cycleName, setCycleName] = useState("Academic Year 2026-2027 · Semester 1");
+  const [cycleName, setCycleName] = useState(
+    isFr ? "Année Universitaire 2026-2027 · Semestre 1" : "Academic Year 2026-2027 · Semester 1"
+  );
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -93,7 +99,7 @@ export default function AdminPage() {
     return (
       <div className="p-12 text-center text-ink-soft">
         <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="font-display text-xs uppercase tracking-wider">Loading Admin Controls...</p>
+        <p className="font-display text-xs uppercase tracking-wider">{isFr ? "Chargement des Contrôles Admin..." : "Loading Admin Controls..."}</p>
       </div>
     );
   }
@@ -101,8 +107,8 @@ export default function AdminPage() {
   return (
     <div className="flex-1 flex flex-col">
       <Header
-        title="Admin & System Governance"
-        subtitle="Cycle management, board seat allocations, department management, and security audit logs"
+        title={isFr ? "Administration & Gouvernance Système" : "Admin & System Governance"}
+        subtitle={isFr ? "Gestion des cycles, sièges du bureau, pôles techniques et journaux d'audit" : "Cycle management, board seat allocations, department management, and security audit logs"}
       />
 
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 animate-vague-in">
@@ -112,15 +118,15 @@ export default function AdminPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="success" size="sm">
-                  Active Cycle
+                  {isFr ? "Cycle Actif" : "Active Cycle"}
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">Current Semester Period</span>
+                <span className="text-xs text-ink-soft font-body">{isFr ? "Période Semestrielle Courante" : "Current Semester Period"}</span>
               </div>
               <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                {data?.currentCycle?.name || "Academic Year 2025–2026"}
+                {data?.currentCycle?.name || (isFr ? "Année Universitaire 2025–2026" : "Academic Year 2025–2026")}
               </h3>
               <p className="text-xs text-ink-soft font-body">
-                {data?.currentCycle?.startDate ? `${formatDate(data.currentCycle.startDate)} – ${formatDate(data.currentCycle.endDate)}` : "Active Academic Semester"} • {data?.departments?.length || 4} Technical Tracks Operational
+                {data?.currentCycle?.startDate ? `${formatDate(data.currentCycle.startDate)} – ${formatDate(data.currentCycle.endDate)}` : (isFr ? "Semestre Académique Actif" : "Active Academic Semester")} • {data?.departments?.length || 4} {isFr ? "Pôles Techniques Opérationnels" : "Technical Tracks Operational"}
               </p>
             </div>
 
@@ -130,7 +136,7 @@ export default function AdminPage() {
               leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
               onClick={() => setIsCycleModalOpen(true)}
             >
-              Rollover / Archive Cycle
+              {isFr ? "Basculer / Archiver le Cycle" : "Rollover / Archive Cycle"}
             </Button>
           </div>
         </Card>
@@ -143,7 +149,7 @@ export default function AdminPage() {
                 <Badge variant="accent" size="sm" className="font-bold">
                   ★ Supabase Cloud Connected
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">PostgreSQL Database & Storage Engine</span>
+                <span className="text-xs text-ink-soft font-body">{isFr ? "Base de Données PostgreSQL & Stockage Cloud" : "PostgreSQL Database & Storage Engine"}</span>
               </div>
               <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink">
                 Asteria Club Esprit · Cloud Production Backend
@@ -166,7 +172,7 @@ export default function AdminPage() {
 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                <CheckCircle className="w-4 h-4 text-emerald-600" /> Live & Protected
+                <CheckCircle className="w-4 h-4 text-emerald-600" /> {isFr ? "En Ligne & Sécurisé" : "Live & Protected"}
               </span>
             </div>
           </div>
@@ -179,10 +185,10 @@ export default function AdminPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-teal-900" />
-                <CardTitle>Executive Board Seats</CardTitle>
+                <CardTitle>{isFr ? "Sièges du Bureau Exécutif" : "Executive Board Seats"}</CardTitle>
               </div>
               <span className="text-xs text-ink-soft font-body">
-                {data?.boardSeats?.length || 0} Configured
+                {data?.boardSeats?.length || 0} {isFr ? "Configurés" : "Configured"}
               </span>
             </CardHeader>
             <CardContent className="divide-y divide-line/60">
@@ -198,7 +204,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <Badge variant="primary" size="sm">
-                    Seat #{seat.order}
+                    {isFr ? "Siège n°" : "Seat #"}{seat.order}
                   </Badge>
                 </div>
               ))}
@@ -210,7 +216,7 @@ export default function AdminPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-teal-900" />
-                <CardTitle>Department Divisions</CardTitle>
+                <CardTitle>{isFr ? "Pôles & Divisions" : "Department Divisions"}</CardTitle>
               </div>
               <Button
                 size="sm"
@@ -218,7 +224,7 @@ export default function AdminPage() {
                 leftIcon={<Plus className="w-3.5 h-3.5" />}
                 onClick={() => setIsDeptModalOpen(true)}
               >
-                Add Track
+                {isFr ? "Ajouter un Pôle" : "Add Track"}
               </Button>
             </CardHeader>
             <CardContent className="divide-y divide-line/60">
@@ -229,11 +235,11 @@ export default function AdminPage() {
                       {dept.name}
                     </h4>
                     <p className="text-[11px] text-ink-soft font-body">
-                      Lead: <strong>{dept.hod?.name || "Unassigned"}</strong> • {dept._count?.members || 0} Members
+                      {isFr ? "Responsable :" : "Lead:"} <strong>{dept.hod?.name || (isFr ? "Non assigné" : "Unassigned")}</strong> • {dept._count?.members || 0} {isFr ? "Membres" : "Members"}
                     </p>
                   </div>
                   <Badge variant="default" size="sm">
-                    {dept._count?.tasks || 0} Tasks
+                    {dept._count?.tasks || 0} {isFr ? "Tâches" : "Tasks"}
                   </Badge>
                 </div>
               ))}
@@ -246,9 +252,9 @@ export default function AdminPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-teal-900" />
-              <CardTitle>System Governance & Audit Trail</CardTitle>
+              <CardTitle>{isFr ? "Gouvernance & Piste d'Audit" : "System Governance & Audit Trail"}</CardTitle>
             </div>
-            <span className="text-xs text-ink-soft font-body">Real-time action logging</span>
+            <span className="text-xs text-ink-soft font-body">{isFr ? "Journalisation en temps réel" : "Real-time action logging"}</span>
           </CardHeader>
           <CardContent className="divide-y divide-line/60">
             {data?.auditLogs?.map((log: any) => (
@@ -278,30 +284,30 @@ export default function AdminPage() {
       <Modal
         isOpen={isDeptModalOpen}
         onClose={() => setIsDeptModalOpen(false)}
-        title="Add Technical Department Division"
-        description="Create an extensible training division for Asteria Club"
+        title={isFr ? "Ajouter un Pôle Technique" : "Add Technical Department Division"}
+        description={isFr ? "Créer une nouvelle division de formation pour le Club Asteria" : "Create an extensible training division for Asteria Club"}
       >
         <div className="space-y-4">
           <Input
-            label="Department Name *"
-            placeholder="e.g., 3D Animation & VFX"
+            label={isFr ? "Nom du Pôle *" : "Department Name *"}
+            placeholder={isFr ? "Ex: Animation 3D & VFX" : "e.g., 3D Animation & VFX"}
             value={deptForm.name}
             onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
           />
 
           <Textarea
-            label="Curriculum & Mission Description *"
-            placeholder="Outline skills, tool stack, and deliverables..."
+            label={isFr ? "Description du Programme & Mission *" : "Curriculum & Mission Description *"}
+            placeholder={isFr ? "Présentez les compétences, outils et livrables attendus..." : "Outline skills, tool stack, and deliverables..."}
             value={deptForm.description}
             onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })}
           />
 
           <div className="pt-4 border-t border-line flex justify-end gap-2">
             <Button variant="secondary" size="sm" onClick={() => setIsDeptModalOpen(false)}>
-              Cancel
+              {isFr ? "Annuler" : "Cancel"}
             </Button>
             <Button variant="primary" size="sm" onClick={handleCreateDepartment}>
-              Create Department
+              {isFr ? "Créer le Pôle" : "Create Department"}
             </Button>
           </div>
         </div>
@@ -311,26 +317,28 @@ export default function AdminPage() {
       <Modal
         isOpen={isCycleModalOpen}
         onClose={() => setIsCycleModalOpen(false)}
-        title="Initiate Academic Cycle Rollover"
-        description="Archive current semester statistics and initialize the new club period"
+        title={isFr ? "Initier la Bascule de Cycle Universitaire" : "Initiate Academic Cycle Rollover"}
+        description={isFr ? "Archiver les statistiques du semestre actuel et initialiser la nouvelle période" : "Archive current semester statistics and initialize the new club period"}
       >
         <div className="space-y-4">
           <Input
-            label="New Cycle Title *"
+            label={isFr ? "Titre du Nouveau Cycle *" : "New Cycle Title *"}
             value={cycleName}
             onChange={(e) => setCycleName(e.target.value)}
           />
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-body">
-            ⚠️ This action will mark current cycle activities as archived and create an audit log entry for the new semester period.
+            {isFr
+              ? "⚠️ Cette action marquera les activités du cycle courant comme archivées et créera une entrée d'audit pour le nouveau semestre."
+              : "⚠️ This action will mark current cycle activities as archived and create an audit log entry for the new semester period."}
           </div>
 
           <div className="pt-4 border-t border-line flex justify-end gap-2">
             <Button variant="secondary" size="sm" onClick={() => setIsCycleModalOpen(false)}>
-              Cancel
+              {isFr ? "Annuler" : "Cancel"}
             </Button>
             <Button variant="primary" size="sm" onClick={handleRolloverCycle}>
-              Confirm Rollover
+              {isFr ? "Confirmer la Bascule" : "Confirm Rollover"}
             </Button>
           </div>
         </div>

@@ -7,6 +7,8 @@ import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { RoleBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { UserSession } from "@/lib/types";
 import {
   LayoutDashboard,
@@ -31,58 +33,60 @@ interface SidebarProps {
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
 
   const navItems = [
     {
-      label: "Dashboard",
+      label: isFr ? "Tableau de bord" : "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
       roles: ["BOARD", "HOD", "MEMBER", "APPLICANT"],
     },
     {
-      label: "Members Directory",
+      label: isFr ? "Annuaire des Membres" : "Members Directory",
       href: "/members",
       icon: Users,
       roles: ["BOARD", "HOD", "MEMBER"],
     },
     {
-      label: "Departments & Org",
+      label: isFr ? "Pôles & Organigramme" : "Departments & Org",
       href: "/departments",
       icon: Network,
       roles: ["BOARD", "HOD", "MEMBER"],
     },
     {
-      label: "Calendar & Events",
+      label: isFr ? "Calendrier & Événements" : "Calendar & Events",
       href: "/calendar",
       icon: Calendar,
       roles: ["BOARD", "HOD", "MEMBER"],
     },
     {
-      label: "Task Kanban",
+      label: isFr ? "Tableau Kanban" : "Task Kanban",
       href: "/tasks",
       icon: KanbanSquare,
       roles: ["BOARD", "HOD", "MEMBER"],
     },
     {
-      label: "Attendance & QR",
+      label: isFr ? "Présence & QR" : "Attendance & QR",
       href: "/attendance",
       icon: QrCode,
       roles: ["BOARD", "HOD", "MEMBER"],
     },
     {
-      label: "Announcements",
+      label: isFr ? "Annonces & Bulletins" : "Announcements",
       href: "/announcements",
       icon: Megaphone,
       roles: ["BOARD", "HOD", "MEMBER", "APPLICANT"],
     },
     {
-      label: "Recruitment Pipeline",
+      label: isFr ? "Candidatures" : "Recruitment Pipeline",
       href: "/applications",
       icon: UserPlus,
       roles: ["BOARD", "HOD"],
     },
     {
-      label: "Admin & Governance",
+      label: isFr ? "Administration & Audit" : "Admin & Governance",
       href: "/admin",
       icon: Settings,
       roles: ["BOARD"],
@@ -139,7 +143,7 @@ export function Sidebar({ user }: SidebarProps) {
         {/* Navigation Menu */}
         <nav className="p-3 space-y-1">
           <div className="px-3 py-1.5 text-[10px] font-display font-bold uppercase tracking-wider text-ast-primary dark:text-teal-400/80 font-mono">
-            Platform Navigation
+            {isFr ? "Navigation Système" : "Platform Navigation"}
           </div>
 
           {allowedNav.map((item) => {
@@ -180,7 +184,16 @@ export function Sidebar({ user }: SidebarProps) {
       {/* Bottom Footer Actions */}
       <div className="p-4 border-t border-line dark:border-teal-900/80 space-y-2 bg-surface-alt/40 dark:bg-[#04191c]">
         <div className="flex items-center justify-between px-2 pb-1">
-          <span className="text-[11px] font-mono text-ink-soft dark:text-teal-300/80 font-bold uppercase tracking-wider">Theme Mode</span>
+          <span className="text-[11px] font-mono text-ink-soft dark:text-teal-300/80 font-bold uppercase tracking-wider">
+            {isFr ? "Langue" : "Language"}
+          </span>
+          <LanguageToggle variant="pill" />
+        </div>
+
+        <div className="flex items-center justify-between px-2 pb-1">
+          <span className="text-[11px] font-mono text-ink-soft dark:text-teal-300/80 font-bold uppercase tracking-wider">
+            {isFr ? "Thème" : "Theme Mode"}
+          </span>
           <ThemeToggle variant="pill" />
         </div>
 
@@ -189,7 +202,7 @@ export function Sidebar({ user }: SidebarProps) {
           className="flex items-center justify-between px-3 py-2 rounded-xl text-xs text-ink-soft dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/50 hover:text-ink dark:hover:text-white transition-colors"
         >
           <span className="flex items-center gap-2 font-semibold">
-            <Home className="w-3.5 h-3.5" /> Public Homepage
+            <Home className="w-3.5 h-3.5" /> {isFr ? "Site Public" : "Public Homepage"}
           </span>
           <ArrowRight className="w-3 h-3 text-ast-primary/60 dark:text-teal-500" />
         </Link>
@@ -211,7 +224,7 @@ export function Sidebar({ user }: SidebarProps) {
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300 transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>Sign Out</span>
+          <span>{t("nav.logout", "Sign Out")}</span>
         </button>
       </div>
     </aside>

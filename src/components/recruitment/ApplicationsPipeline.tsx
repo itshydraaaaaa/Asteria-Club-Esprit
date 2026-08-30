@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   UserPlus,
   ExternalLink,
@@ -27,6 +28,9 @@ interface ApplicationsPipelineProps {
 }
 
 export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [applications, setApplications] = useState<any[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -107,10 +111,10 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-44 text-xs py-1.5"
             >
-              <option value="all">All Application Statuses</option>
-              <option value="PENDING">Pending Review</option>
-              <option value="ACCEPTED">Accepted</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="all">{isFr ? "Tous les Statuts" : "All Application Statuses"}</option>
+              <option value="PENDING">{isFr ? "En Attente" : "Pending Review"}</option>
+              <option value="ACCEPTED">{isFr ? "Acceptée" : "Accepted"}</option>
+              <option value="REJECTED">{isFr ? "Refusée" : "Rejected"}</option>
             </Select>
 
             <Select
@@ -118,16 +122,16 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
               onChange={(e) => setDepartmentFilter(e.target.value)}
               className="w-48 text-xs py-1.5"
             >
-              <option value="all">All Preferred Departments</option>
-              <option value="Web Development">Web Development</option>
-              <option value="Graphic Design">Graphic Design</option>
-              <option value="Video Editing">Video Editing</option>
-              <option value="Photography">Photography</option>
+              <option value="all">{isFr ? "Tous les Pôles Souhaités" : "All Preferred Departments"}</option>
+              <option value="Web Development">{isFr ? "Développement Web" : "Web Development"}</option>
+              <option value="Graphic Design">{isFr ? "Design Graphique" : "Graphic Design"}</option>
+              <option value="Video Editing">{isFr ? "Montage Vidéo" : "Video Editing"}</option>
+              <option value="Photography">{isFr ? "Photographie" : "Photography"}</option>
             </Select>
           </div>
 
           <div className="text-xs text-ink-soft font-body">
-            <strong>{applications.length}</strong> Applicants in Review Pipeline
+            <strong>{applications.length}</strong> {isFr ? "Candidats dans le Pipeline" : "Applicants in Review Pipeline"}
           </div>
         </div>
       </Card>

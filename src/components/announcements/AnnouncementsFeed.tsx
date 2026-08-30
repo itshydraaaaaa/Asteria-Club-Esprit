@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Megaphone,
   Pin,
@@ -28,6 +29,9 @@ interface AnnouncementsFeedProps {
 }
 
 export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
@@ -126,7 +130,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                 : "bg-surface-alt text-ink-soft border-line hover:text-ink"
             }`}
           >
-            All Broadcasts
+            {isFr ? "Toutes les Annonces" : "All Broadcasts"}
           </button>
           <button
             onClick={() => setFilter("CLUB")}
@@ -136,7 +140,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                 : "bg-surface-alt text-ink-soft border-line hover:text-ink"
             }`}
           >
-            Club-Wide Feed
+            {isFr ? "Tout le Club" : "Club-Wide Feed"}
           </button>
 
           <Select
@@ -144,10 +148,10 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
             onChange={(e) => setFilter(e.target.value)}
             className="w-48 text-xs py-1.5"
           >
-            <option value="all">Filter Department...</option>
+            <option value="all">{isFr ? "Filtrer par pôle..." : "Filter Department..."}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name} Division
+                {d.name} {isFr ? "Pôle" : "Division"}
               </option>
             ))}
           </Select>
@@ -160,7 +164,7 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
             leftIcon={<Plus className="w-4 h-4" />}
             onClick={() => setIsOpen(true)}
           >
-            Publish Announcement
+            {isFr ? "Publier une Annonce" : "Publish Announcement"}
           </Button>
         )}
       </div>

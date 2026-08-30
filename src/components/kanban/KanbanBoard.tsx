@@ -13,6 +13,7 @@ import { TaskStatus, TaskPriority } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Plus,
   MessageSquare,
@@ -35,6 +36,9 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ currentUser }: KanbanBoardProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -203,10 +207,10 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
     accentColor: string;
     borderTop: string;
   }[] = [
-    { id: "TODO", title: "To Do", accentColor: "text-ink-soft", borderTop: "border-t-teal-900/40" },
-    { id: "IN_PROGRESS", title: "In Progress", accentColor: "text-teal-900", borderTop: "border-t-teal-500" },
-    { id: "REVIEW", title: "In Review", accentColor: "text-amber-700", borderTop: "border-t-amber-500" },
-    { id: "DONE", title: "Completed", accentColor: "text-emerald-700", borderTop: "border-t-emerald-500" },
+    { id: "TODO", title: t("tasks.col.todo", "To Do"), accentColor: "text-ink-soft", borderTop: "border-t-teal-900/40" },
+    { id: "IN_PROGRESS", title: t("tasks.col.inProgress", "In Progress"), accentColor: "text-teal-900", borderTop: "border-t-teal-500" },
+    { id: "REVIEW", title: t("tasks.col.review", "In Review"), accentColor: "text-amber-700", borderTop: "border-t-amber-500" },
+    { id: "DONE", title: t("tasks.col.done", "Completed"), accentColor: "text-emerald-700", borderTop: "border-t-emerald-500" },
   ];
 
   return (
@@ -222,7 +226,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
                 : "bg-surface-alt text-ink-soft border-line hover:text-ink hover:bg-surface"
             }`}
           >
-            ★ My Assigned Tasks
+            {isFr ? "★ Mes Tâches Assignées" : "★ My Assigned Tasks"}
           </button>
 
           <Select
@@ -230,7 +234,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
             onChange={(e) => setDepartmentFilter(e.target.value)}
             className="w-48 text-xs py-2"
           >
-            <option value="all">All Technical Tracks</option>
+            <option value="all">{isFr ? "Tous les Pôles Techniques" : "All Technical Tracks"}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -244,7 +248,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
             disabled={myTasksOnly}
             className="w-48 text-xs py-2"
           >
-            <option value="all">All Members</option>
+            <option value="all">{isFr ? "Tous les Membres" : "All Members"}</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name} ({m.departmentName || m.role})
@@ -259,7 +263,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           leftIcon={<Plus className="w-4 h-4" />}
           onClick={() => setIsNewTaskOpen(true)}
         >
-          Create Sprint Task
+          {t("tasks.add", "Create Sprint Task")}
         </Button>
       </div>
 

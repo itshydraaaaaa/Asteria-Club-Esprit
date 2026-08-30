@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Lock,
   Mail,
@@ -18,6 +20,9 @@ import {
 } from "lucide-react";
 
 export default function LoginPage() {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,10 +44,10 @@ export default function LoginPage() {
       if (res.ok) {
         window.location.href = "/dashboard";
       } else {
-        setError(data.error || "Invalid email or password.");
+        setError(data.error || (isFr ? "Email ou mot de passe incorrect." : "Invalid email or password."));
       }
     } catch {
-      setError("Connection error. Please try again.");
+      setError(isFr ? "Erreur de connexion. Veuillez réessayer." : "Connection error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -50,27 +55,27 @@ export default function LoginPage() {
 
   const demoAccounts = [
     {
-      title: "President (Board)",
+      title: isFr ? "Présidente (Bureau)" : "President (Board)",
       email: "president@asteria.tn",
-      role: "Board Executive",
+      role: isFr ? "Bureau Exécutif" : "Board Executive",
       icon: Shield,
     },
     {
-      title: "HoD Web Development",
+      title: isFr ? "Chef de Pôle Web" : "HoD Web Development",
       email: "hod.web@asteria.tn",
-      role: "Department Lead",
+      role: isFr ? "Responsable de Pôle" : "Department Lead",
       icon: Award,
     },
     {
-      title: "Karim (Active Member)",
+      title: isFr ? "Karim (Membre Actif)" : "Karim (Active Member)",
       email: "karim.chaabane@asteria.tn",
-      role: "Web Dev Member",
+      role: isFr ? "Membre Pôle Web" : "Web Dev Member",
       icon: User,
     },
     {
-      title: "Mehdi (Applicant)",
+      title: isFr ? "Mehdi (Candidat)" : "Mehdi (Applicant)",
       email: "mehdi.applicant@esprit.tn",
-      role: "Applicant Portal",
+      role: isFr ? "Portail Candidat" : "Applicant Portal",
       icon: User,
     },
   ];
@@ -83,19 +88,22 @@ export default function LoginPage() {
       <div className="absolute top-6 left-6 z-20">
         <Link href="/">
           <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white glass-nav flex items-center gap-2 transition-all shadow-sm">
-            <ArrowLeft className="w-3.5 h-3.5" /> Return to Home
+            <ArrowLeft className="w-3.5 h-3.5" /> {isFr ? "Accueil" : "Return to Home"}
           </button>
         </Link>
       </div>
 
-      <div className="absolute top-6 right-6 z-20">
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-2.5">
+        <LanguageToggle variant="pill" />
         <ThemeToggle />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10 animate-vague-in">
         <AsteriaLogo variant="auto" size="lg" href="/" className="justify-center" />
         <p className="font-body text-xs text-ink-soft dark:text-teal-200/80 font-medium">
-          Asteria Club Esprit Operating System · Management Console
+          {isFr
+            ? "Système d'Exploitation Asteria Club Esprit · Console de Gestion"
+            : "Asteria Club Esprit Operating System · Management Console"}
         </p>
       </div>
 
@@ -111,7 +119,7 @@ export default function LoginPage() {
 
             <div>
               <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                Email Address
+                {t("auth.login.email", "Email Address")}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -128,7 +136,7 @@ export default function LoginPage() {
 
             <div>
               <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                Password
+                {t("auth.login.password", "Password")}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -148,7 +156,9 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 disabled:opacity-50 mt-2 shadow-md"
             >
-              {loading ? "Authenticating..." : "Sign In to Platform"}
+              {loading
+                ? (isFr ? "Authentification..." : "Authenticating...")
+                : (isFr ? "Se Connecter à la Plateforme" : "Sign In to Platform")}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
@@ -158,7 +168,7 @@ export default function LoginPage() {
             <div className="pt-4 border-t border-line dark:border-teal-900/80 space-y-2.5">
               <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-ast-primary dark:text-teal-400 font-mono">
                 <Sparkles className="w-3.5 h-3.5 text-ast-primary dark:text-ast-light" />
-                Demo Evaluation Personas:
+                {isFr ? "Comptes de Démonstration :" : "Demo Evaluation Personas:"}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {demoAccounts.map((acc) => {
@@ -196,10 +206,10 @@ export default function LoginPage() {
 
           <div className="pt-3 border-t border-line dark:border-teal-900/80 flex items-center justify-between text-xs font-body text-ink-soft dark:text-teal-200/70">
             <Link href="/apply" className="text-ast-primary dark:text-ast-light font-semibold hover:underline">
-              Join Asteria Form →
+              {isFr ? "Formulaire de Candidature →" : "Join Asteria Form →"}
             </Link>
             <Link href="/signup" className="hover:text-ink dark:hover:text-white transition-colors">
-              Create Account
+              {t("auth.signup.submit", "Create Account")}
             </Link>
           </div>
         </div>

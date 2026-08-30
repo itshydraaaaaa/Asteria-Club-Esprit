@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/client";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   QrCode,
   KeyRound,
@@ -32,6 +33,9 @@ interface AttendanceHubProps {
 }
 
 export function AttendanceHub({ currentUser }: AttendanceHubProps) {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [activeTab, setActiveTab] = useState<"checkin" | "history">("checkin");
   const [events, setEvents] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
@@ -198,8 +202,8 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Tabs
           tabs={[
-            { id: "checkin", label: "Check-In Portal", icon: <QrCode className="w-3.5 h-3.5" /> },
-            { id: "history", label: "Attendance Verification", count: records.length, icon: <Clock className="w-3.5 h-3.5" /> },
+            { id: "checkin", label: isFr ? "Portail de Présence" : "Check-In Portal", icon: <QrCode className="w-3.5 h-3.5" /> },
+            { id: "history", label: isFr ? "Vérification des Présences" : "Attendance Verification", count: records.length, icon: <Clock className="w-3.5 h-3.5" /> },
           ]}
           activeTab={activeTab}
           onChange={(id) => setActiveTab(id as any)}
@@ -211,7 +215,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
           leftIcon={<FileText className="w-3.5 h-3.5" />}
           onClick={() => setIsJustifyOpen(true)}
         >
-          Submit Absence Justification
+          {t("attendance.justify", "Submit Absence Justification")}
         </Button>
       </div>
 

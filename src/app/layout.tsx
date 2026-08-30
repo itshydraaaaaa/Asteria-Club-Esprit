@@ -3,6 +3,7 @@ import { Exo_2, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const exo2 = Exo_2({
   subsets: ["latin"],
@@ -47,7 +48,9 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white font-body antialiased flex flex-col selection:bg-teal-400 selection:text-ink transition-colors duration-300">
         <ThemeProvider>
-          <SmoothScrollProvider>{children}</SmoothScrollProvider>
+          <LanguageProvider>
+            <SmoothScrollProvider>{children}</SmoothScrollProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

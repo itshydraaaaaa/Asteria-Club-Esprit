@@ -5,9 +5,14 @@ import Link from "next/link";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Lock, Mail, User, ArrowRight, ArrowLeft, AlertCircle, Sparkles } from "lucide-react";
 
 export default function SignupPage() {
+  const { language, t } = useLanguage();
+  const isFr = language === "fr";
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +22,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
-      setError("All fields are required.");
+      setError(isFr ? "Tous les champs sont obligatoires." : "All fields are required.");
       return;
     }
 
@@ -34,10 +39,10 @@ export default function SignupPage() {
       if (res.ok) {
         window.location.href = "/dashboard";
       } else {
-        setError(data.error || "Signup error.");
+        setError(data.error || (isFr ? "Erreur lors de l'inscription." : "Signup error."));
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError(isFr ? "Erreur réseau. Veuillez réessayer." : "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -51,19 +56,22 @@ export default function SignupPage() {
       <div className="absolute top-6 left-6 z-20">
         <Link href="/">
           <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white glass-nav flex items-center gap-2 transition-all shadow-sm">
-            <ArrowLeft className="w-3.5 h-3.5" /> Return to Home
+            <ArrowLeft className="w-3.5 h-3.5" /> {isFr ? "Accueil" : "Return to Home"}
           </button>
         </Link>
       </div>
 
-      <div className="absolute top-6 right-6 z-20">
+      <div className="absolute top-6 right-6 z-20 flex items-center gap-2.5">
+        <LanguageToggle variant="pill" />
         <ThemeToggle />
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10 animate-vague-in">
         <AsteriaLogo variant="auto" size="lg" href="/" className="justify-center" />
         <p className="font-body text-xs text-ink-soft dark:text-teal-200/80 font-medium">
-          Create Member Account · Asteria Club Esprit
+          {isFr
+            ? "Créer un Compte Membre · Asteria Club Esprit"
+            : "Create Member Account · Asteria Club Esprit"}
         </p>
       </div>
 
@@ -79,7 +87,7 @@ export default function SignupPage() {
 
             <div>
               <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                Full Name
+                {t("auth.signup.name", "Full Name")}
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -88,7 +96,7 @@ export default function SignupPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  placeholder="e.g. Karim Chaabane"
+                  placeholder={isFr ? "Ex: Karim Chaabane" : "e.g. Karim Chaabane"}
                   className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
                 />
               </div>
@@ -96,7 +104,7 @@ export default function SignupPage() {
 
             <div>
               <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                Student Email Address
+                {t("auth.login.email", "Student Email Address")}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -113,7 +121,7 @@ export default function SignupPage() {
 
             <div>
               <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                Password
+                {t("auth.login.password", "Password")}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -133,17 +141,19 @@ export default function SignupPage() {
               disabled={loading}
               className="w-full py-3 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 disabled:opacity-50 mt-2 shadow-md"
             >
-              {loading ? "Creating..." : "Create Account ★"}
+              {loading
+                ? (isFr ? "Création en cours..." : "Creating...")
+                : (isFr ? "Créer mon Compte Membre ★" : "Create Account ★")}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
           <div className="pt-3 border-t border-line dark:border-teal-900/80 flex items-center justify-between text-xs font-body text-ink-soft dark:text-teal-200/70">
             <Link href="/apply" className="text-ast-primary dark:text-ast-light font-semibold hover:underline">
-              Recruitment Form →
+              {isFr ? "Formulaire de Candidature →" : "Recruitment Form →"}
             </Link>
             <Link href="/login" className="hover:text-ink dark:hover:text-white transition-colors">
-              Already have an account? Log In
+              {t("auth.signup.haveAccount", "Already have an account? Log In")}
             </Link>
           </div>
         </div>
