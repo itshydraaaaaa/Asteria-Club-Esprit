@@ -39,7 +39,7 @@
 4. **Photography** (Studio Lighting, Event Photojournalism, Color Grading)
 
 ### The Talent Bridge to Asteria Freelance PreLaunch
-The platform acts as the internal operating system managing talent progression from initial recruitment application, through weekly workshops and sprint ticket deliverables, directly into paid client contracts at **Asteria Freelance PreLaunch** (`https://asteriafreelance.vercel.app/`).
+The platform acts as the internal operating system managing talent progression from initial recruitment application, through weekly workshops and sprint ticket deliverables, directly into paid client contracts at **Asteria Freelance PreLaunch** (`https://asteria-freelance-prelaunch.vercel.app/`).
 
 ---
 

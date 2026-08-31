@@ -568,7 +568,7 @@ export default function HomePage() {
                 </button>
               </Link>
               <a
-                href="https://asteriafreelance.vercel.app/"
+                href="https://asteria-freelance-prelaunch.vercel.app/"
                 target="_blank"
                 rel="noreferrer"
                 className="px-6 py-3.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white dark:bg-white/10 hover:bg-teal-50 dark:hover:bg-white/20 text-ink dark:text-white border border-teal-200 dark:border-white/20 transition-all flex items-center gap-2 shadow-sm"
