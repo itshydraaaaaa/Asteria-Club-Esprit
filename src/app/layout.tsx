@@ -27,11 +27,66 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Asteria Club Esprit — Operating System",
+  metadataBase: new URL("https://asteria-club-esprit.vercel.app"),
+  title: {
+    default: "Asteria Club Esprit — Premier Student Studio & Talent Incubator",
+    template: "%s | Asteria Club Esprit",
+  },
   description:
-    "Internal management platform & talent pipeline for Asteria Club Esprit: Graphic Design, Video Editing, Web Development, and Photography.",
+    "Where ESPRIT's top creators in Web Development, Graphic Design, Video Editing, and Photography build real projects and graduate into paid commercial client contracts at Asteria Freelance PreLaunch.",
+  keywords: [
+    "Asteria Club",
+    "Asteria Club Esprit",
+    "ESPRIT University",
+    "Web Development",
+    "Graphic Design",
+    "Video Editing",
+    "Photography",
+    "Student Creative Studio",
+    "Asteria Freelance PreLaunch",
+    "Tunisia Student Incubator",
+  ],
+  authors: [{ name: "Asteria Club Esprit" }],
+  creator: "Asteria Club Esprit",
+  publisher: "Asteria Club Esprit",
   icons: {
     icon: "/logo.png",
+    apple: "/logo.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://asteria-club-esprit.vercel.app",
+    siteName: "Asteria Club Esprit",
+    title: "Asteria Club Esprit — Learn. Create. Connect.",
+    description:
+      "Empowering students at ESPRIT to master digital crafts, build production projects, and earn paid freelance contracts.",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Asteria Club Esprit",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Asteria Club Esprit — Premier Student Creative & Tech Studio",
+    description:
+      "Where ESPRIT's top creators in Web Development, Graphic Design, Video Editing, and Photography are launched.",
+    images: ["/logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

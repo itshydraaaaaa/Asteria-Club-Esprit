@@ -28,6 +28,11 @@ import {
   ChevronDown,
   ExternalLink,
   ChevronRight,
+  Instagram,
+  Linkedin,
+  Github,
+  Mail,
+  MapPin,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -581,12 +586,155 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-4 sm:px-8 border-t border-line dark:border-teal-900/60 text-xs font-body text-ink-soft dark:text-teal-200/60 max-w-7xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <AsteriaLogo variant="auto" size="sm" href="/" />
-        <p className="text-center sm:text-right">
-          © 2026 Asteria Club Esprit · ESPRIT University. {isFr ? "Produit affilié à Asteria Freelance PreLaunch." : "Sister product to Asteria Freelance PreLaunch."}
-        </p>
+      {/* Comprehensive Pre-Launch Footer */}
+      <footer className="pt-16 pb-12 px-4 sm:px-8 border-t border-line dark:border-teal-900/60 bg-surface/50 dark:bg-[#052024]/80 backdrop-blur-md text-xs font-body text-ink-soft dark:text-teal-200/70 transition-colors">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
+            {/* Column 1: Brand & Bio */}
+            <div className="space-y-4 md:col-span-1">
+              <AsteriaLogo variant="auto" size="md" href="/" />
+              <p className="leading-relaxed text-xs">
+                {isFr
+                  ? "Le premier studio de production créative et incubateur de talents technologiques à ESPRIT. Formez-vous, livrez des projets réels et accédez à des contrats freelance rémunérés."
+                  : "The premier student-led creative production studio and tech talent incubator at ESPRIT. Master digital crafts, build production projects, and earn paid freelance client work."}
+              </p>
+              <div className="flex items-center gap-3 pt-2">
+                <a
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 rounded-xl bg-surface-alt dark:bg-teal-900/60 text-ink dark:text-teal-200 hover:text-ast-primary dark:hover:text-ast-light border border-line dark:border-teal-800 transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 rounded-xl bg-surface-alt dark:bg-teal-900/60 text-ink dark:text-teal-200 hover:text-ast-primary dark:hover:text-ast-light border border-line dark:border-teal-800 transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://github.com/itshydraaaaaa/Asteria-Club-Esprit"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 rounded-xl bg-surface-alt dark:bg-teal-900/60 text-ink dark:text-teal-200 hover:text-ast-primary dark:hover:text-ast-light border border-line dark:border-teal-800 transition-colors"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+                <a
+                  href="mailto:contact@asteria.tn"
+                  className="p-2 rounded-xl bg-surface-alt dark:bg-teal-900/60 text-ink dark:text-teal-200 hover:text-ast-primary dark:hover:text-ast-light border border-line dark:border-teal-800 transition-colors"
+                  aria-label="Contact Email"
+                >
+                  <Mail className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Column 2: 4 Creative Hubs */}
+            <div className="space-y-3">
+              <span className="font-display font-bold uppercase tracking-wider text-ink dark:text-white text-xs block">
+                {isFr ? "Pôles de Spécialisation" : "Specialization Hubs"}
+              </span>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <a href="#tracks" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Développement Web & Cloud" : "• Web & Cloud Engineering"}
+                  </a>
+                </li>
+                <li>
+                  <a href="#tracks" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Design Graphique & UI/UX" : "• Graphic Design & Systems"}
+                  </a>
+                </li>
+                <li>
+                  <a href="#tracks" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Montage Vidéo & Motion" : "• Video & Motion Cinema"}
+                  </a>
+                </li>
+                <li>
+                  <a href="#tracks" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Photographie & Studio" : "• Photography & Lighting"}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Platform & Ecosystem */}
+            <div className="space-y-3">
+              <span className="font-display font-bold uppercase tracking-wider text-ink dark:text-white text-xs block">
+                {isFr ? "Écosystème & Accès" : "Ecosystem & Portals"}
+              </span>
+              <ul className="space-y-2 text-xs">
+                <li>
+                  <Link href="/apply" className="hover:text-ast-primary dark:hover:text-ast-light font-semibold text-ast-primary dark:text-teal-300 transition-colors">
+                    ★ {isFr ? "Postuler au Recrutement" : "Apply for Membership"}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Portail Membre (OS)" : "• Member Operating System"}
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="https://asteria-freelance-prelaunch.vercel.app/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-ast-primary dark:hover:text-ast-light transition-colors flex items-center gap-1"
+                  >
+                    <span>★ Asteria Freelance PreLaunch</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="hover:text-ast-primary dark:hover:text-ast-light transition-colors">
+                    {isFr ? "• Foire Aux Questions (FAQ)" : "• Frequently Asked Questions"}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Campus & Inquiries */}
+            <div className="space-y-3">
+              <span className="font-display font-bold uppercase tracking-wider text-ink dark:text-white text-xs block">
+                {isFr ? "Campus & Contact" : "Campus & Inquiries"}
+              </span>
+              <div className="space-y-2 text-xs">
+                <p className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-ast-primary dark:text-teal-400 flex-shrink-0 mt-0.5" />
+                  <span>ESPRIT University · Ariana Soghra, Tunis, Tunisia</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-ast-primary dark:text-teal-400 flex-shrink-0" />
+                  <a href="mailto:contact@asteria.tn" className="hover:underline">contact@asteria.tn</a>
+                </p>
+                <div className="pt-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-mono font-bold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {isFr ? "Candidatures Ouvertes 2026" : "Recruitment Cycle Active"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Subfooter */}
+          <div className="pt-8 border-t border-line dark:border-teal-900/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+            <p className="text-center sm:text-left">
+              © 2026 Asteria Club Esprit · ESPRIT University. {isFr ? "Produit affilié à Asteria Freelance PreLaunch." : "Sister product to Asteria Freelance PreLaunch."}
+            </p>
+            <div className="flex items-center gap-4">
+              <LanguageToggle variant="pill" />
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
