@@ -207,7 +207,7 @@ export default function MemberProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-body">
-                  Asteria Freelance
+                  Asteria Freelance PreLaunch
                 </p>
                 <h4 className="font-display font-bold text-base text-ink mt-1">
                   {member.freelanceReady ? "Qualified ★" : "In Progress"}
@@ -344,7 +344,7 @@ export default function MemberProfilePage() {
               className="w-4 h-4 text-teal-900 rounded border-line focus:ring-teal-400"
             />
             <label htmlFor="freelanceCheck" className="text-xs font-bold font-body text-ink cursor-pointer">
-              Certify as Asteria Freelance Ready
+              Certify as Asteria Freelance PreLaunch Ready
             </label>
           </div>
 

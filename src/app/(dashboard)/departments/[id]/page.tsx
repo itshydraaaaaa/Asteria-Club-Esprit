@@ -144,7 +144,7 @@ export default function DepartmentDetailPage() {
                       </p>
                       {member.freelanceReady && (
                         <span className="inline-block text-[10px] font-bold text-teal-900 bg-teal-400/30 px-1.5 py-0.5 rounded mt-2">
-                          ★ Asteria Freelance Ready
+                          ★ Asteria Freelance PreLaunch Ready
                         </span>
                       )}
                     </div>

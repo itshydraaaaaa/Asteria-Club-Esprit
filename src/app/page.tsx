@@ -140,7 +140,7 @@ export default function HomePage() {
     },
     {
       step: "04",
-      title: isFr ? "Qualification Asteria Freelance" : "Asteria Freelance Qualification",
+      title: isFr ? "Qualification Asteria Freelance PreLaunch" : "Asteria Freelance PreLaunch Qualification",
       desc: isFr
         ? "Validez au moins 5 livrables de sprint et maintenez ≥75% d'assiduité pour être certifié 'Prêt pour le Freelance' et recevoir des contrats rémunérés."
         : "Complete ≥5 sprint deliverables and maintain ≥75% workshop attendance to earn your Freelance Ready certification and receive paid client contracts.",
@@ -551,10 +551,10 @@ export default function HomePage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto rounded-3xl gradient-mesh-hero p-8 sm:p-14 text-center space-y-6 shadow-2xl border border-teal-500/30 relative overflow-hidden">
           <div className="relative z-10 space-y-4 max-w-2xl mx-auto">
-            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-wider text-white">
+            <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-wider text-ink dark:text-white">
               {isFr ? "PRÊT À RÉVÉLER VOTRE POTENTIEL ?" : "READY TO LEVEL UP YOUR CRAFT?"}
             </h2>
-            <p className="font-body text-xs sm:text-sm text-teal-100/90 leading-relaxed">
+            <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/90 leading-relaxed">
               {isFr
                 ? "Rejoignez Asteria Club Esprit dès aujourd'hui. Développez des compétences pratiques, livrez des projets réels et accédez à des contrats freelance rémunérés."
                 : "Join Asteria Club Esprit today. Gain hands-on technical skills, build production deliverables, and qualify for paid freelance client contracts."}
@@ -571,7 +571,7 @@ export default function HomePage() {
                 href="https://asteriafreelance.vercel.app/"
                 target="_blank"
                 rel="noreferrer"
-                className="px-6 py-3.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-2"
+                className="px-6 py-3.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white dark:bg-white/10 hover:bg-teal-50 dark:hover:bg-white/20 text-ink dark:text-white border border-teal-200 dark:border-white/20 transition-all flex items-center gap-2 shadow-sm"
               >
                 {t("freelance.cta", "Visit Asteria Freelance PreLaunch")}
                 <ExternalLink className="w-3.5 h-3.5" />
