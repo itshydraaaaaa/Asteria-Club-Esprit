@@ -29,38 +29,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
   if (!token) {
-    // If no session cookie, check if there's a default demo user (President)
-    const defaultUser = await prisma.user.findFirst({
-      where: { role: "BOARD" },
-      include: {
-        department: true,
-        boardSeat: true,
-      },
-    });
-
-    if (!defaultUser) return null;
-
-    let skills: string[] = [];
-    try {
-      skills = JSON.parse(defaultUser.skills || "[]");
-    } catch {
-      skills = [];
-    }
-
-    return {
-      id: defaultUser.id,
-      name: defaultUser.name,
-      email: defaultUser.email,
-      role: defaultUser.role as UserRole,
-      departmentId: defaultUser.departmentId,
-      departmentName: defaultUser.department?.name,
-      boardTitle: defaultUser.boardSeat?.title,
-      avatarUrl: defaultUser.avatarUrl,
-      bio: defaultUser.bio,
-      skills,
-      status: defaultUser.status as any,
-      freelanceReady: defaultUser.freelanceReady,
-    };
+    return null;
   }
 
   const payload = verifyToken(token);
