@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
@@ -82,9 +82,13 @@ export async function POST(req: Request) {
       },
       include: {
         department: true,
-        assignee: true,
-        createdBy: true,
-        comments: true,
+        assignee: { select: SAFE_USER_SELECT },
+        createdBy: { select: SAFE_USER_SELECT },
+        comments: {
+          include: {
+            user: { select: SAFE_USER_SELECT },
+          },
+        },
       },
     });
 

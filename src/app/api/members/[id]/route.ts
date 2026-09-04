@@ -109,7 +109,8 @@ export async function PATCH(
       include: { department: true, boardSeat: true },
     });
 
-    return NextResponse.json({ member: updated });
+    const { passwordHash: _, ...safeMember } = updated;
+    return NextResponse.json({ member: safeMember });
   } catch (error) {
     console.error("Error updating member:", error);
     return NextResponse.json({ error: "Failed to update member" }, { status: 500 });

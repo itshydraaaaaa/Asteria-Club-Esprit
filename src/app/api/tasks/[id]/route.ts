@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function PATCH(
@@ -29,11 +29,11 @@ export async function PATCH(
       data: updateData,
       include: {
         department: true,
-        assignee: true,
-        createdBy: true,
+        assignee: { select: SAFE_USER_SELECT },
+        createdBy: { select: SAFE_USER_SELECT },
         comments: {
           include: {
-            user: true,
+            user: { select: SAFE_USER_SELECT },
           },
         },
       },

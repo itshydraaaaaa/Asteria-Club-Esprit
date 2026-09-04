@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 
 export async function GET(
   req: Request,
@@ -12,14 +12,15 @@ export async function GET(
         OR: [{ id }, { slug: id }],
       },
       include: {
-        hod: true,
+        hod: { select: SAFE_USER_SELECT },
         members: {
+          select: SAFE_USER_SELECT,
           orderBy: [{ role: "asc" }, { name: "asc" }],
         },
         tasks: {
           include: {
-            assignee: true,
-            createdBy: true,
+            assignee: { select: SAFE_USER_SELECT },
+            createdBy: { select: SAFE_USER_SELECT },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -31,7 +32,7 @@ export async function GET(
         },
         announcements: {
           include: {
-            author: true,
+            author: { select: SAFE_USER_SELECT },
           },
           orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
         },

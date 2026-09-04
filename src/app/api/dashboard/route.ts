@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
@@ -25,7 +25,7 @@ export async function GET() {
 
     if (user.role === "BOARD") {
       const recentAuditLogs = await prisma.auditLog.findMany({
-        include: { user: true },
+        include: { user: { select: SAFE_USER_SELECT } },
         orderBy: { createdAt: "desc" },
         take: 6,
       });
@@ -54,7 +54,7 @@ export async function GET() {
       const dept = await prisma.department.findUnique({
         where: { id: user.departmentId },
         include: {
-          members: { where: { status: "ACTIVE" } },
+          members: { where: { status: "ACTIVE" }, select: SAFE_USER_SELECT },
           tasks: true,
           events: {
             where: { startTime: { gte: new Date() } },
