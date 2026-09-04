@@ -3,6 +3,13 @@ import { prisma } from "@/lib/db";
 import { signToken, COOKIE_NAME } from "@/lib/auth";
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_DEMO_MODE !== "true") {
+    return NextResponse.json(
+      { error: "Forbidden in production" },
+      { status: 403 }
+    );
+  }
+
   try {
     const { targetRole, email } = await req.json();
 
