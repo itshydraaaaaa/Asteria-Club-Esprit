@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   req: Request,
@@ -89,15 +90,39 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await req.json();
+
+    // Only BOARD can change role, status, or departmentId
+    if (
+      (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) &&
+      currentUser.role !== "BOARD"
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: Only Board members can change role, status, or department" },
+        { status: 403 }
+      );
+    }
+
+    // Users can only edit their own profile unless they are BOARD
+    if (currentUser.id !== id && currentUser.role !== "BOARD") {
+      return NextResponse.json(
+        { error: "Forbidden: You can only edit your own profile" },
+        { status: 403 }
+      );
+    }
 
     const updateData: any = {};
     if (body.name !== undefined) updateData.name = body.name;
     if (body.bio !== undefined) updateData.bio = body.bio;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.role !== undefined) updateData.role = body.role;
-    if (body.departmentId !== undefined) updateData.departmentId = body.departmentId;
+    if (body.status !== undefined && currentUser.role === "BOARD") updateData.status = body.status;
+    if (body.role !== undefined && currentUser.role === "BOARD") updateData.role = body.role;
+    if (body.departmentId !== undefined && currentUser.role === "BOARD") updateData.departmentId = body.departmentId;
     if (body.freelanceReady !== undefined) updateData.freelanceReady = body.freelanceReady;
     if (body.skills !== undefined) {
       updateData.skills = Array.isArray(body.skills) ? JSON.stringify(body.skills) : body.skills;
