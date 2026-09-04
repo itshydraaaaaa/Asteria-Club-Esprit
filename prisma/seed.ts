@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+    throw new Error("Refusing to seed in production without ALLOW_PRODUCTION_SEED=true");
+  }
+
   console.log("Cleaning existing database...");
   await prisma.auditLog.deleteMany();
   await prisma.application.deleteMany();
