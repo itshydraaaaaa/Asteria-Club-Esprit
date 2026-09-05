@@ -6,15 +6,17 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET() {
   try {
     let authUser: any = null;
+    let supabase: any = null;
     try {
-      const supabase = await createClient();
+      supabase = await createClient();
       const { data } = await supabase.auth.getUser();
       authUser = data?.user || null;
     } catch {
       authUser = null;
+      supabase = null;
     }
 
-    if (authUser) {
+    if (authUser && supabase) {
       const { data: profile } = (await supabase
         .from("profiles")
         .select(`
