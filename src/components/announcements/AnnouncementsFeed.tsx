@@ -10,6 +10,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/client";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
@@ -73,31 +74,14 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
 
   useEffect(() => {
     fetchAnnouncements();
-
-    // Supabase Realtime channel for live announcements
-    const supabase = createClient();
-    const channel = supabase
-      .channel("announcements_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "announcements" },
-        () => {
-          fetchAnnouncements();
-        }
-      )
-      .on(
-        "broadcast",
-        { event: "announcement_updated" },
-        () => {
-          fetchAnnouncements();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [filter]);
+
+  useRealtimeSubscription({
+    channelName: "announcements_realtime",
+    table: "announcements",
+    broadcastEvent: "announcement_updated",
+    onUpdate: fetchAnnouncements,
+  });
 
   const handleCreate = async () => {
     if (!form.title || !form.body) return;

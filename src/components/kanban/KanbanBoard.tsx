@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TaskStatus, TaskPriority } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -108,31 +109,14 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
 
   useEffect(() => {
     fetchTasks();
-
-    // Supabase Realtime channel for live Kanban sync
-    const supabase = createClient();
-    const channel = supabase
-      .channel("tasks_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks" },
-        () => {
-          fetchTasks();
-        }
-      )
-      .on(
-        "broadcast",
-        { event: "task_updated" },
-        () => {
-          fetchTasks();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [departmentFilter, assigneeFilter, myTasksOnly]);
+
+  useRealtimeSubscription({
+    channelName: "tasks_realtime",
+    table: "tasks",
+    broadcastEvent: "task_updated",
+    onUpdate: fetchTasks,
+  });
 
   const handleCreateTask = async () => {
     if (!newTaskForm.title || !newTaskForm.departmentId) return;

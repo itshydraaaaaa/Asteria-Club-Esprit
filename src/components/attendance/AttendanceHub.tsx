@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/client";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   QrCode,
@@ -75,31 +76,14 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
 
   useEffect(() => {
     fetchData();
-
-    // Supabase Realtime channel for live check-in updates
-    const supabase = createClient();
-    const channel = supabase
-      .channel("attendance_realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "attendance_records" },
-        () => {
-          fetchData();
-        }
-      )
-      .on(
-        "broadcast",
-        { event: "attendance_updated" },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
+
+  useRealtimeSubscription({
+    channelName: "attendance_realtime",
+    table: "attendance_records",
+    broadcastEvent: "attendance_updated",
+    onUpdate: fetchData,
+  });
 
   const generateQr = async (code: string) => {
     try {
