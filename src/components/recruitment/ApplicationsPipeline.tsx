@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Copy,
   Check,
+  AlertCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { formatDate } from "@/lib/utils";
@@ -407,24 +408,41 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
           maxWidth="md"
         >
           <div className="space-y-4 font-body">
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs">
-                <h5 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm font-display uppercase tracking-wide">
-                  {isFr ? "Email d'Acceptation Envoyé !" : "Acceptance Email Dispatched!"}
-                </h5>
-                <p className="text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
-                  {isFr
-                    ? `Un email avec les instructions et les identifiants de connexion a été envoyé à ${createdCredentials.email}.`
-                    : `An acceptance email with portal instructions and login credentials was successfully dispatched to ${createdCredentials.email}.`}
-                </p>
-                {createdCredentials.emailDelivery?.provider && (
-                  <span className="inline-block mt-1 font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
-                    Service: {createdCredentials.emailDelivery.provider.toUpperCase()}
-                  </span>
-                )}
+            {createdCredentials.emailDelivery?.success ? (
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <h5 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm font-display uppercase tracking-wide">
+                    {isFr ? "Email d'Acceptation Envoyé !" : "Acceptance Email Dispatched!"}
+                  </h5>
+                  <p className="text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
+                    {isFr
+                      ? `Un email officiel avec les instructions et les identifiants de connexion a été délivré à ${createdCredentials.email}.`
+                      : `An acceptance email with portal instructions and login credentials was successfully delivered to ${createdCredentials.email}.`}
+                  </p>
+                  {createdCredentials.emailDelivery?.provider && (
+                    <span className="inline-block mt-1 font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
+                      Service: {createdCredentials.emailDelivery.provider.toUpperCase()} {createdCredentials.emailDelivery.messageId ? `(${createdCredentials.emailDelivery.messageId})` : ""}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <h5 className="font-bold text-amber-900 dark:text-amber-200 text-sm font-display uppercase tracking-wide">
+                    {isFr ? "Compte Créé · Avis d'Envoi Email" : "Account Created · Email Delivery Note"}
+                  </h5>
+                  <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                    {createdCredentials.emailDelivery?.error || (isFr ? "Le compte a été créé. Vérifiez votre configuration Resend dans .env." : "Account created. Verify your Resend setup in .env.")}
+                  </p>
+                  <p className="text-amber-700 dark:text-amber-300 font-medium">
+                    {isFr ? "Vous pouvez copier les identifiants ci-dessous pour les transmettre manuellement." : "You can copy the credentials below to share them directly with the candidate."}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Credentials Card */}
             <div className="p-4 rounded-2xl bg-[#0A3A40] text-white border border-teal-700/60 space-y-3 shadow-lg">
