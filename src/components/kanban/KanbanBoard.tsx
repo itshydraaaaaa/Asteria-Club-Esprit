@@ -120,6 +120,13 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           fetchTasks();
         }
       )
+      .on(
+        "broadcast",
+        { event: "task_updated" },
+        () => {
+          fetchTasks();
+        }
+      )
       .subscribe();
 
     return () => {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function POST(req: Request) {
   try {
@@ -60,6 +61,12 @@ export async function POST(req: Request) {
         event: true,
         user: { select: SAFE_USER_SELECT },
       },
+    });
+
+    await broadcastRealtime("attendance_realtime", "attendance_updated", {
+      recordId: record.id,
+      eventId: event.id,
+      userId: user.id,
     });
 
     return NextResponse.json({

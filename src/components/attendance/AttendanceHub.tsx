@@ -87,6 +87,13 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
           fetchData();
         }
       )
+      .on(
+        "broadcast",
+        { event: "attendance_updated" },
+        () => {
+          fetchData();
+        }
+      )
       .subscribe();
 
     return () => {

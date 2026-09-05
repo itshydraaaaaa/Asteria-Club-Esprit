@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function GET(req: Request) {
   try {
@@ -100,6 +101,9 @@ export async function POST(req: Request) {
         details: `Created task "${task.title}" in ${task.department.name}`,
       },
     });
+
+    // Broadcast realtime event
+    await broadcastRealtime("tasks_realtime", "task_updated", { taskId: task.id, action: "CREATED" });
 
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {

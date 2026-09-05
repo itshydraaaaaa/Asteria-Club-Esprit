@@ -85,6 +85,13 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
           fetchAnnouncements();
         }
       )
+      .on(
+        "broadcast",
+        { event: "announcement_updated" },
+        () => {
+          fetchAnnouncements();
+        }
+      )
       .subscribe();
 
     return () => {

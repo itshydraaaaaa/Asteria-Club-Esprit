@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function PATCH(
   req: Request,
@@ -39,6 +40,8 @@ export async function PATCH(
       },
     });
 
+    await broadcastRealtime("tasks_realtime", "task_updated", { taskId: id, action: "UPDATED" });
+
     return NextResponse.json({ task });
   } catch (error) {
     console.error("Error in PATCH /api/tasks/[id]:", error);
@@ -58,6 +61,8 @@ export async function DELETE(
 
     const { id } = await params;
     await prisma.task.delete({ where: { id } });
+
+    await broadcastRealtime("tasks_realtime", "task_updated", { taskId: id, action: "DELETED" });
 
     return NextResponse.json({ success: true });
   } catch (error) {

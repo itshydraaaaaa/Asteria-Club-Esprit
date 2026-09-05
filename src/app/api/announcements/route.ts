@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function GET(req: Request) {
   try {
@@ -74,6 +75,11 @@ export async function POST(req: Request) {
         action: "ANNOUNCEMENT_POSTED",
         details: `Published announcement: "${title}" (Scope: ${scope})`,
       },
+    });
+
+    await broadcastRealtime("announcements_realtime", "announcement_updated", {
+      announcementId: announcement.id,
+      scope,
     });
 
     return NextResponse.json({
