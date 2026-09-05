@@ -25,8 +25,13 @@ export function verifyToken(token: string): JwtPayload | null {
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  let token: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    token = cookieStore.get(COOKIE_NAME)?.value;
+  } catch {
+    token = undefined;
+  }
 
   if (!token) {
     return null;

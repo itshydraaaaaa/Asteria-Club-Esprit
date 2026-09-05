@@ -5,10 +5,14 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
+    let authUser: any = null;
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
+      authUser = data?.user || null;
+    } catch {
+      authUser = null;
+    }
 
     if (authUser) {
       const { data: profile } = (await supabase
