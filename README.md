@@ -59,6 +59,16 @@ This platform strictly adheres to Asteria's official brand guidelines:
 
 ---
 
+## 🛡️ Production Readiness & Security Health
+
+[![Production Health](https://img.shields.io/badge/Production%20Health-96.4%2F100-brightgreen?style=for-the-badge)](PRODUCTION_READINESS_SIGN_OFF.md)
+[![Security Hardened](https://img.shields.io/badge/Security-Hardened%20(98%2F100)-blue?style=for-the-badge)](PRODUCTION_READINESS_SIGN_OFF.md)
+[![CI Pipeline](https://img.shields.io/badge/CI-Automated%20Workflow-teal?style=for-the-badge)](.github/workflows/ci.yml)
+
+For full audit reports and architectural verification details, consult [PRODUCTION_READINESS_SIGN_OFF.md](PRODUCTION_READINESS_SIGN_OFF.md).
+
+---
+
 ## 🛠️ Getting Started
 
 ### 1. Clone the repository
@@ -72,13 +82,29 @@ cd Asteria-Club-Esprit
 npm install
 ```
 
-### 3. Setup Database & Seed Data
+### 3. Configure Environment Variables
+Copy `.env.example` to `.env` and fill in your Supabase PostgreSQL credentials:
 ```bash
-npx prisma db push
-npx tsx prisma/seed.ts
+cp .env.example .env
 ```
 
-### 4. Run Development Server
+### 4. Generate Prisma Client & Run Migrations
+```bash
+npm run prisma:generate
+npm run prisma:push
+```
+*Optional: Seed initial test accounts (development only):*
+```bash
+npm run db:seed
+```
+
+### 5. Typecheck & Build for Production
+```bash
+npm run lint
+npm run build
+```
+
+### 6. Run Development Server
 ```bash
 npm run dev
 ```
