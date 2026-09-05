@@ -1,0 +1,41 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Typecheck & Lint
+        run: npm run lint
+
+      - name: Build Next.js Application
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://postgres:dummy@localhost:5432/asteria_test?schema=public"
+          DIRECT_URL: "postgresql://postgres:dummy@localhost:5432/asteria_test?schema=public"
+          JWT_SECRET: "ci-test-jwt-secret-key-for-asteria-2026"
+          NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "ey-dummy-anon-key"
+          SUPABASE_SERVICE_ROLE_KEY: "ey-dummy-service-role-key"
