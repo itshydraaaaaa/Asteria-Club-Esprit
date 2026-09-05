@@ -236,11 +236,14 @@ export async function sendAcceptanceEmail(
   const text = buildAcceptanceEmailText(params);
 
   const resendApiKey = process.env.RESEND_API_KEY;
-  const smtpHost = process.env.SMTP_HOST;
+  const smtpHost = process.env.SMTP_HOST || (process.env.SMTP_USER ? "smtp.gmail.com" : undefined);
   const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+  const smtpPass = process.env.SMTP_PASS?.replace(/\s+/g, "");
   const fromAddress =
-    process.env.EMAIL_FROM || "Asteria Club Esprit <onboarding@asteria.tn>";
+    process.env.EMAIL_FROM ||
+    (smtpUser ? `Asteria Club Esprit <${smtpUser}>` : "Asteria Club Esprit <onboarding@resend.dev>");
+
+  let lastError: string | undefined;
 
   // 1. Resend REST API dispatch
   if (resendApiKey) {
@@ -252,7 +255,9 @@ export async function sendAcceptanceEmail(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: fromAddress,
+          from: fromAddress.includes("@resend.dev")
+            ? "Asteria Club <onboarding@resend.dev>"
+            : fromAddress,
           to: [params.toEmail],
           subject,
           html,
@@ -262,43 +267,31 @@ export async function sendAcceptanceEmail(
 
       const data = await res.json();
 
-      if (!res.ok) {
-        console.error("[EMAIL ERROR] Resend API error:", data);
+      if (res.ok) {
+        console.log(`[EMAIL] Acceptance email successfully sent to ${params.toEmail} via Resend (${data.id})`);
         return {
-          success: false,
+          success: true,
           provider: "resend",
-          error: data.message || "Failed to send email via Resend",
+          messageId: data.id,
           recipient: params.toEmail,
           dispatchedAt: now,
         };
+      } else {
+        lastError = data.message || "Resend error";
+        console.warn(`[EMAIL] Resend dispatch rejected (${lastError}). Trying SMTP fallback...`);
       }
-
-      console.log(`[EMAIL] Acceptance email successfully sent to ${params.toEmail} via Resend (${data.id})`);
-      return {
-        success: true,
-        provider: "resend",
-        messageId: data.id,
-        recipient: params.toEmail,
-        dispatchedAt: now,
-      };
     } catch (err: any) {
-      console.error("[EMAIL ERROR] Network error sending email via Resend:", err);
-      return {
-        success: false,
-        provider: "resend",
-        error: err.message || "Network error",
-        recipient: params.toEmail,
-        dispatchedAt: now,
-      };
+      lastError = err.message || "Network error via Resend";
+      console.warn(`[EMAIL] Resend network error (${lastError}). Trying SMTP fallback...`);
     }
   }
 
   // 2. SMTP Transport via Nodemailer (Gmail, Outlook, custom SMTP)
-  if (smtpHost || smtpUser) {
+  if (smtpHost && smtpUser && smtpPass) {
     try {
       const nodemailer = await import("nodemailer");
       const transporter = nodemailer.createTransport({
-        host: smtpHost || "smtp.gmail.com",
+        host: smtpHost,
         port: Number(process.env.SMTP_PORT) || 465,
         secure: process.env.SMTP_SECURE !== "false", // true for 465, false for 587
         auth: {
@@ -308,7 +301,7 @@ export async function sendAcceptanceEmail(
       });
 
       const info = await transporter.sendMail({
-        from: fromAddress,
+        from: `Asteria Club Esprit <${smtpUser}>`,
         to: params.toEmail,
         subject,
         html,
@@ -324,15 +317,20 @@ export async function sendAcceptanceEmail(
         dispatchedAt: now,
       };
     } catch (smtpErr: any) {
+      lastError = smtpErr.message || "SMTP error";
       console.error("[EMAIL ERROR] SMTP error:", smtpErr);
-      return {
-        success: false,
-        provider: "smtp",
-        error: smtpErr.message || "SMTP error",
-        recipient: params.toEmail,
-        dispatchedAt: now,
-      };
     }
+  }
+
+  // If credentials were provided but all failed:
+  if (resendApiKey || (smtpHost && smtpUser)) {
+    return {
+      success: false,
+      provider: smtpUser ? "smtp" : "resend",
+      error: lastError || "Failed to dispatch email",
+      recipient: params.toEmail,
+      dispatchedAt: now,
+    };
   }
 
   // 3. Simulated Delivery for Local Development & Demo Environments
