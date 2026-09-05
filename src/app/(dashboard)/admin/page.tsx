@@ -38,12 +38,19 @@ export default function AdminPage() {
     isFr ? "Année Universitaire 2026-2027 · Semestre 1" : "Academic Year 2026-2027 · Semester 1"
   );
 
+  const [healthData, setHealthData] = useState<any>(null);
+
   const fetchAdminData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin");
+      const [res, healthRes] = await Promise.all([
+        fetch("/api/admin"),
+        fetch("/api/health"),
+      ]);
       const resData = await res.json();
+      const healthJson = await healthRes.json();
       setData(resData);
+      setHealthData(healthJson);
     } catch (e) {
       console.error(e);
     } finally {
@@ -146,33 +153,70 @@ export default function AdminPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Badge variant="accent" size="sm" className="font-bold">
-                  ★ Supabase Cloud Connected
+                <Badge
+                  variant={healthData?.status === "healthy" ? "accent" : "warning"}
+                  size="sm"
+                  className="font-bold"
+                >
+                  {healthData?.database?.connected
+                    ? "★ Database Online"
+                    : "⚠ Database Checking"}
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">{isFr ? "Base de Données PostgreSQL & Stockage Cloud" : "PostgreSQL Database & Storage Engine"}</span>
+                <span className="text-xs text-ink-soft font-body">
+                  {isFr
+                    ? "Base de Données PostgreSQL & Stockage Cloud"
+                    : "PostgreSQL Database & Storage Engine"}
+                </span>
               </div>
               <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink">
                 Asteria Club Esprit · Cloud Production Backend
               </h3>
               <div className="pt-2 flex flex-wrap gap-4 text-xs font-body text-ink-soft">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      healthData?.database?.connected
+                        ? "bg-emerald-500 animate-pulse"
+                        : "bg-amber-500"
+                    }`}
+                  />
                   <span className="font-mono text-[11px] text-teal-900 font-bold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                    Row Level Security (RLS) Active
+                    PostgreSQL {healthData?.database?.latencyMs ? `(${healthData.database.latencyMs}ms)` : "Connecting"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      healthData?.supabase?.realtime
+                        ? "bg-emerald-500"
+                        : "bg-amber-500"
+                    }`}
+                  />
                   <span className="font-mono text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Realtime WebSockets Synchronized
+                    {healthData?.supabase?.realtime
+                      ? "Realtime WebSockets Synchronized"
+                      : "Realtime Initializing"}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                <CheckCircle className="w-4 h-4 text-emerald-600" /> {isFr ? "En Ligne & Sécurisé" : "Live & Protected"}
+              <span
+                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border ${
+                  healthData?.status === "healthy"
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-amber-800 bg-amber-50 border-amber-200"
+                }`}
+              >
+                <CheckCircle
+                  className={`w-4 h-4 ${
+                    healthData?.status === "healthy" ? "text-emerald-600" : "text-amber-600"
+                  }`}
+                />{" "}
+                {healthData?.status === "healthy"
+                  ? isFr ? "En Ligne & Sécurisé" : "Live & Protected"
+                  : isFr ? "Configuration Validée" : "Config Verified"}
               </span>
             </div>
           </div>

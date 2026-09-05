@@ -23,6 +23,7 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [bulletins, setBulletins] = useState<any[]>([]);
 
   useEffect(() => {
     // Check if user has seen onboarding guide
@@ -32,6 +33,16 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
         setIsGuideOpen(true);
       }
     }
+
+    // Fetch dynamic announcements for notifications popover
+    fetch("/api/announcements")
+      .then((res) => (res.ok ? res.json() : { announcements: [] }))
+      .then((data) => {
+        const list = data.announcements || [];
+        setBulletins(list.slice(0, 3));
+        setUnreadCount(Math.min(list.length, 3));
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -111,15 +122,38 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
                   Supabase Live
                 </span>
               </div>
-              <div className="p-4 text-center text-xs text-ink-soft dark:text-teal-200/70 font-body">
-                {isFr
-                  ? "Toutes les annonces et alertes de sprint sont synchronisées en direct sur vos appareils."
-                  : "All announcements and sprint notifications are synced live across your devices."}
-                <div className="pt-2">
+              <div className="p-2 space-y-1.5 max-h-64 overflow-y-auto">
+                {bulletins.length > 0 ? (
+                  bulletins.map((b) => (
+                    <Link
+                      key={b.id}
+                      href="/announcements"
+                      onClick={() => setShowNotifications(false)}
+                      className="block p-2 rounded-xl hover:bg-surface-alt dark:hover:bg-teal-950/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="font-bold text-xs text-ink dark:text-white line-clamp-1">
+                          {b.title}
+                        </span>
+                        <span className="text-[9px] font-mono text-ink-soft dark:text-teal-300/60 shrink-0">
+                          {new Date(b.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-2">
+                        {b.body}
+                      </p>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="py-4 text-center text-xs text-ink-soft dark:text-teal-200/70">
+                    {isFr ? "Aucun nouveau bulletin." : "No new bulletins."}
+                  </p>
+                )}
+                <div className="pt-2 border-t border-line dark:border-teal-900 text-center">
                   <Link
                     href="/announcements"
                     onClick={() => setShowNotifications(false)}
-                    className="text-ast-primary dark:text-ast-light font-semibold hover:underline"
+                    className="text-xs text-ast-primary dark:text-ast-light font-semibold hover:underline"
                   >
                     {isFr ? "Voir tous les bulletins →" : "View All Bulletins →"}
                   </Link>

@@ -226,10 +226,12 @@ export function AnnouncementsFeed({ currentUser }: AnnouncementsFeedProps) {
                       </div>
                     </div>
 
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
-                      <Bot className="w-3.5 h-3.5" />
-                      Synced to Discord #announcements
-                    </span>
+                    {(ann as any).discordSynced && (
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                        <Bot className="w-3.5 h-3.5" />
+                        Synced to Discord #announcements
+                      </span>
+                    )}
                   </div>
                 </Card>
               </motion.div>
