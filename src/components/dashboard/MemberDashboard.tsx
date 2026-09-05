@@ -20,6 +20,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { FREELANCE_READINESS_THRESHOLD } from "@/lib/constants";
 
 interface MemberDashboardProps {
   data: any;
@@ -43,7 +44,7 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
       ? Math.round((presentRecords / totalAttendanceRecords) * 100)
       : null;
 
-  const FREELANCE_THRESHOLD = 5;
+  const FREELANCE_THRESHOLD = FREELANCE_READINESS_THRESHOLD;
   const remainingTasks = Math.max(0, FREELANCE_THRESHOLD - completedTasks);
 
   return (
@@ -140,7 +141,7 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               <h4 className="font-display font-bold text-base sm:text-lg text-ink">
                 {user?.freelanceReady
                   ? (isFr ? "Qualifié ★" : "Qualified ★")
-                  : completedTasks >= 5 && (attendanceRate !== null && attendanceRate >= 75)
+                  : completedTasks >= FREELANCE_THRESHOLD && (attendanceRate !== null && attendanceRate >= 75)
                   ? (isFr ? "Éligible ★" : "Threshold Met ★")
                   : (isFr ? "En Formation" : "In Training")}
               </h4>
@@ -149,10 +150,10 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               <div className="space-y-1 text-[11px] font-body text-ink-soft pt-1">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    {completedTasks >= 5 ? "✓" : "○"} {isFr ? "Livrables de sprint" : "Sprint tasks"}:
+                    {completedTasks >= FREELANCE_THRESHOLD ? "✓" : "○"} {isFr ? "Livrables de sprint" : "Sprint tasks"}:
                   </span>
-                  <span className={`font-mono font-semibold ${completedTasks >= 5 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
-                    {completedTasks}/5
+                  <span className={`font-mono font-semibold ${completedTasks >= FREELANCE_THRESHOLD ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {completedTasks}/{FREELANCE_THRESHOLD}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -168,12 +169,12 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               <p className="text-[11px] font-body pt-1 font-medium text-ast-primary dark:text-teal-300">
                 {user?.freelanceReady
                   ? (isFr ? "Certifié pour les contrats clients payés." : "Certified for paid commercial client contracts.")
-                  : completedTasks >= 5 && (attendanceRate !== null && attendanceRate >= 75)
+                  : completedTasks >= FREELANCE_THRESHOLD && (attendanceRate !== null && attendanceRate >= 75)
                   ? (isFr ? "Seuils atteints · En attente de validation." : "Criteria met · Pending Executive Board review.")
-                  : completedTasks < 5 && (attendanceRate !== null && attendanceRate < 75)
-                  ? (isFr ? `Bloqueur : ${5 - completedTasks} tâche(s) + assiduité < 75%` : `Blocker: Need ${5 - completedTasks} more tasks & ≥75% attendance`)
-                  : completedTasks < 5
-                  ? (isFr ? `Bloqueur : ${5 - completedTasks} tâche(s) de sprint restante(s)` : `Blocker: Need ${5 - completedTasks} more completed sprint task${5 - completedTasks > 1 ? "s" : ""}`)
+                  : completedTasks < FREELANCE_THRESHOLD && (attendanceRate !== null && attendanceRate < 75)
+                  ? (isFr ? `Bloqueur : ${FREELANCE_THRESHOLD - completedTasks} tâche(s) + assiduité < 75%` : `Blocker: Need ${FREELANCE_THRESHOLD - completedTasks} more tasks & ≥75% attendance`)
+                  : completedTasks < FREELANCE_THRESHOLD
+                  ? (isFr ? `Bloqueur : ${FREELANCE_THRESHOLD - completedTasks} tâche(s) de sprint restante(s)` : `Blocker: Need ${FREELANCE_THRESHOLD - completedTasks} more completed sprint task${FREELANCE_THRESHOLD - completedTasks > 1 ? "s" : ""}`)
                   : (isFr ? `Bloqueur : Assiduité à ${attendanceRate ?? 0}% (minimum 75% requis)` : `Blocker: Attendance at ${attendanceRate ?? 0}% (≥75% required)`)}
               </p>
             </div>

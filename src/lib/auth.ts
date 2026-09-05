@@ -3,9 +3,10 @@ import { cookies } from "next/headers";
 import { prisma } from "./db";
 import { UserRole, UserSession } from "./types";
 import { createClient } from "./supabase/server";
+import { SESSION_CONFIG } from "./constants";
 
 const JWT_SECRET = process.env.JWT_SECRET || "asteria-super-secret-jwt-key-2026";
-export const COOKIE_NAME = "asteria_session_token";
+export const COOKIE_NAME = SESSION_CONFIG.cookieName;
 
 export interface JwtPayload {
   userId: string;
@@ -14,7 +15,7 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: SESSION_CONFIG.tokenExpiry });
 }
 
 export function verifyToken(token: string): JwtPayload | null {

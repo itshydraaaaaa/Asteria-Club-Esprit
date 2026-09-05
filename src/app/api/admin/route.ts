@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, SAFE_USER_SELECT } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { DEFAULT_ACADEMIC_CYCLE } from "@/lib/constants";
 
 export async function GET() {
   try {
@@ -34,12 +35,7 @@ export async function GET() {
       boardSeats,
       departments,
       auditLogs,
-      currentCycle: {
-        name: "Academic Year 2025-2026 · Semester 2",
-        status: "ACTIVE",
-        startDate: "2025-09-01",
-        endDate: "2026-06-30",
-      },
+      currentCycle: DEFAULT_ACADEMIC_CYCLE,
     });
   } catch (error) {
     console.error("Error in /api/admin:", error);

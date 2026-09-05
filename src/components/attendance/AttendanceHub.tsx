@@ -28,6 +28,7 @@ import {
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { BRAND_COLORS } from "@/lib/constants";
 
 interface AttendanceHubProps {
   currentUser: any;
@@ -91,8 +92,8 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         width: 260,
         margin: 2,
         color: {
-          dark: "#11606E", // ast-primary brand color
-          light: "#FFFFFF",
+          dark: BRAND_COLORS.primary, // ast-primary brand color
+          light: BRAND_COLORS.surface,
         },
       });
       setQrDataUrl(url);
