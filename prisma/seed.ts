@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -21,7 +22,12 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.department.deleteMany();
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const defaultPassword =
+    process.env.SEED_DEFAULT_PASSWORD ||
+    (process.env.NODE_ENV === "production"
+      ? crypto.randomBytes(16).toString("hex")
+      : "password123");
+  const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
   console.log("Creating departments...");
   const deptWeb = await prisma.department.create({

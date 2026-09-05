@@ -39,7 +39,7 @@ export async function POST(
 
     // Generate cryptographically random secure temporary password
     const secureTemporaryPassword = `Ast_${crypto.randomBytes(12).toString("base64url")}!`;
-    const passwordHash = await bcrypt.hash(secureTemporaryPassword, 10);
+    const passwordHash = await bcrypt.hash(secureTemporaryPassword, 12);
     const cleanEmail = application.email.toLowerCase().trim();
 
     // 1. Create / Provision real Supabase Auth user via admin client
