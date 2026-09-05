@@ -15,7 +15,7 @@ export interface SendAcceptanceEmailParams {
 
 export interface EmailDeliveryResult {
   success: boolean;
-  provider: "resend" | "simulated" | "error";
+  provider: "resend" | "smtp" | "simulated" | "error";
   messageId?: string;
   error?: string;
   recipient: string;
@@ -222,7 +222,10 @@ https://asteria-club-esprit.vercel.app
 
 /**
  * Dispatches an automated acceptance email to an onboarded applicant.
- * Uses Resend API if configured, otherwise simulates delivery with structured logging.
+ * Priority order:
+ * 1. Resend API (if RESEND_API_KEY is configured)
+ * 2. SMTP Transport via Nodemailer (if SMTP_HOST or SMTP_USER is configured)
+ * 3. Simulated Delivery with formatted console output (local development / testing)
  */
 export async function sendAcceptanceEmail(
   params: SendAcceptanceEmailParams
@@ -233,10 +236,13 @@ export async function sendAcceptanceEmail(
   const text = buildAcceptanceEmailText(params);
 
   const resendApiKey = process.env.RESEND_API_KEY;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
   const fromAddress =
     process.env.EMAIL_FROM || "Asteria Club Esprit <onboarding@asteria.tn>";
 
-  // 1. If RESEND_API_KEY is configured, dispatch via Resend REST API
+  // 1. Resend REST API dispatch
   if (resendApiKey) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -257,7 +263,7 @@ export async function sendAcceptanceEmail(
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Resend API error:", data);
+        console.error("[EMAIL ERROR] Resend API error:", data);
         return {
           success: false,
           provider: "resend",
@@ -276,7 +282,7 @@ export async function sendAcceptanceEmail(
         dispatchedAt: now,
       };
     } catch (err: any) {
-      console.error("Network error sending email via Resend:", err);
+      console.error("[EMAIL ERROR] Network error sending email via Resend:", err);
       return {
         success: false,
         provider: "resend",
@@ -287,10 +293,57 @@ export async function sendAcceptanceEmail(
     }
   }
 
-  // 2. Simulated Delivery for Local Development & Demo Environments
+  // 2. SMTP Transport via Nodemailer (Gmail, Outlook, custom SMTP)
+  if (smtpHost || smtpUser) {
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: smtpHost || "smtp.gmail.com",
+        port: Number(process.env.SMTP_PORT) || 465,
+        secure: process.env.SMTP_SECURE !== "false", // true for 465, false for 587
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: fromAddress,
+        to: params.toEmail,
+        subject,
+        html,
+        text,
+      });
+
+      console.log(`[EMAIL] Acceptance email successfully sent to ${params.toEmail} via SMTP (${info.messageId})`);
+      return {
+        success: true,
+        provider: "smtp",
+        messageId: info.messageId,
+        recipient: params.toEmail,
+        dispatchedAt: now,
+      };
+    } catch (smtpErr: any) {
+      console.error("[EMAIL ERROR] SMTP error:", smtpErr);
+      return {
+        success: false,
+        provider: "smtp",
+        error: smtpErr.message || "SMTP error",
+        recipient: params.toEmail,
+        dispatchedAt: now,
+      };
+    }
+  }
+
+  // 3. Simulated Delivery for Local Development & Demo Environments
   console.log(`
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ 📧 [SIMULATED EMAIL DISPATCH] Member Acceptance Email                      │
+│ ⚠️  [SIMULATED EMAIL DISPATCH — NO OUTBOUND CREDENTIALS CONFIGURED]        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Notice:  No RESEND_API_KEY or SMTP credentials found in .env.              │
+│          To receive REAL emails in your personal inbox:                     │
+│          Option A: Add RESEND_API_KEY="re_..." to .env                      │
+│          Option B: Add SMTP_USER and SMTP_PASS (Gmail App PW) to .env       │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ To:      ${params.toEmail.padEnd(58)}│
 │ Name:    ${params.memberName.padEnd(58)}│
@@ -298,7 +351,7 @@ export async function sendAcceptanceEmail(
 │ Subject: ${subject.slice(0, 58).padEnd(58)}│
 │ Portal:  ${(params.portalUrl || "https://asteria-club-esprit.vercel.app/login").padEnd(58)}│
 │ Temp PW: ${params.temporaryPassword.padEnd(58)}│
-│ Status:  DELIVERED (SIMULATED - No RESEND_API_KEY defined in .env)         │
+│ Status:  PRINTED TO CONSOLE (Configure RESEND_API_KEY or SMTP in .env)     │
 └─────────────────────────────────────────────────────────────────────────────┘
   `);
 
