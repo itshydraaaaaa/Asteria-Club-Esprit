@@ -17,8 +17,8 @@
 | `src/lib/supabase/client.ts` | 5 | `"sb_publishable_CslYLGLgxIk7b_UZEPasIA_iPquc6r9"` | **SECRET** | **HIGH** | Remove hardcoded fallback; read strictly from `process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY`. |
 | `.env` | 3, 4 | `"sb_publishable_CslYLGLgxIk7b_UZEPasIA_iPquc6r9"` | **CONFIG** | **MEDIUM** | Rotate and manage exclusively in production hosting environment variables. |
 | `.env.local` | 3, 4 | `"sb_publishable_CslYLGLgxIk7b_UZEPasIA_iPquc6r9"` | **CONFIG** | **MEDIUM** | Standardize variable names (remove redundant `PUBLISHABLE_KEY` vs `ANON_KEY`). |
-| `.env` | 5, 6 | `"sb_secret_VDupNWapqIUnqnC4zbiB8w_tBP4QDzj"` | **SECRET** | **HIGH** | Keep strictly uncommitted; rotate in Supabase console if ever exposed. |
-| `.env.local` | 5, 6 | `"sb_secret_VDupNWapqIUnqnC4zbiB8w_tBP4QDzj"` | **SECRET** | **HIGH** | Standardize variable name to `SUPABASE_SERVICE_ROLE_KEY`. |
+| `.env` | 5, 6 | `"sb_secret_[REDACTED_KEY]"` | **SECRET** | **HIGH** | Keep strictly uncommitted; rotate in Supabase console if ever exposed. |
+| `.env.local` | 5, 6 | `"sb_secret_[REDACTED_KEY]"` | **SECRET** | **HIGH** | Standardize variable name to `SUPABASE_SERVICE_ROLE_KEY`. |
 | `src/lib/supabase/client.ts` | 4 | `"https://asteria-club-esprit.supabase.co"` | **CONFIG** | **MEDIUM** | Require `process.env.NEXT_PUBLIC_SUPABASE_URL` without code fallback. |
 | `src/lib/supabase/server.ts` | 9, 41 | `"https://asteria-club-esprit.supabase.co"` | **CONFIG** | **MEDIUM** | Require `process.env.NEXT_PUBLIC_SUPABASE_URL` without code fallback. |
 | `src/lib/supabase/middleware.ts` | 11 | `"https://asteria-club-esprit.supabase.co"` | **CONFIG** | **MEDIUM** | Require `process.env.NEXT_PUBLIC_SUPABASE_URL` without code fallback. |
