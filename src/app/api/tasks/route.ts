@@ -78,36 +78,40 @@ export async function POST(req: Request) {
       );
     }
 
-    const task = await prisma.task.create({
-      data: {
-        title,
-        description: description || "",
-        departmentId,
-        assigneeId: assigneeId || null,
-        createdById: user.id,
-        status: status || "TODO",
-        priority: priority || "MEDIUM",
-        dueDate: dueDate ? new Date(dueDate) : null,
-      },
-      include: {
-        department: true,
-        assignee: { select: SAFE_USER_SELECT },
-        createdBy: { select: SAFE_USER_SELECT },
-        comments: {
-          include: {
-            user: { select: SAFE_USER_SELECT },
+    const task = await prisma.$transaction(async (tx) => {
+      const createdTask = await tx.task.create({
+        data: {
+          title,
+          description: description || "",
+          departmentId,
+          assigneeId: assigneeId || null,
+          createdById: user.id,
+          status: status || "TODO",
+          priority: priority || "MEDIUM",
+          dueDate: dueDate ? new Date(dueDate) : null,
+        },
+        include: {
+          department: true,
+          assignee: { select: SAFE_USER_SELECT },
+          createdBy: { select: SAFE_USER_SELECT },
+          comments: {
+            include: {
+              user: { select: SAFE_USER_SELECT },
+            },
           },
         },
-      },
-    });
+      });
 
-    // Create Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "TASK_CREATED",
-        details: `Created task "${task.title}" in ${task.department.name}`,
-      },
+      // Create Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "TASK_CREATED",
+          details: `Created task "${createdTask.title}" in ${createdTask.department.name}`,
+        },
+      });
+
+      return createdTask;
     });
 
     // Broadcast realtime event

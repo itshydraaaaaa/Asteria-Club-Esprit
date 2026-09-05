@@ -56,28 +56,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
     }
 
-    const announcement = await prisma.announcement.create({
-      data: {
-        title,
-        body: content,
-        scope,
-        departmentId: scope === "DEPARTMENT" ? departmentId : null,
-        authorId: user.id,
-        isPinned,
-      },
-      include: {
-        department: true,
-        author: { select: SAFE_USER_SELECT },
-      },
-    });
+    const announcement = await prisma.$transaction(async (tx) => {
+      const createdAnnouncement = await tx.announcement.create({
+        data: {
+          title,
+          body: content,
+          scope,
+          departmentId: scope === "DEPARTMENT" ? departmentId : null,
+          authorId: user.id,
+          isPinned,
+        },
+        include: {
+          department: true,
+          author: { select: SAFE_USER_SELECT },
+        },
+      });
 
-    // Create Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "ANNOUNCEMENT_POSTED",
-        details: `Published announcement: "${title}" (Scope: ${scope})`,
-      },
+      // Create Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "ANNOUNCEMENT_POSTED",
+          details: `Published announcement: "${title}" (Scope: ${scope})`,
+        },
+      });
+
+      return createdAnnouncement;
     });
 
     await broadcastRealtime("announcements_realtime", "announcement_updated", {

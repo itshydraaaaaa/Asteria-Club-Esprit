@@ -120,41 +120,45 @@ export async function POST(req: Request) {
       checkInCode ||
       `AST-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const event = await prisma.event.create({
-      data: {
-        title,
-        description: description || "",
-        startTime: start,
-        endTime: end,
-        location,
-        departmentId: departmentId || null,
-        recurrenceRule: recurrenceRule || null,
-        checkInCode: generatedCode,
-        createdById: user.id,
-      },
-      include: {
-        department: true,
-        createdBy: { select: SAFE_USER_SELECT },
-        rsvps: true,
-      },
-    });
+    const event = await prisma.$transaction(async (tx) => {
+      const createdEvent = await tx.event.create({
+        data: {
+          title,
+          description: description || "",
+          startTime: start,
+          endTime: end,
+          location,
+          departmentId: departmentId || null,
+          recurrenceRule: recurrenceRule || null,
+          checkInCode: generatedCode,
+          createdById: user.id,
+        },
+        include: {
+          department: true,
+          createdBy: { select: SAFE_USER_SELECT },
+          rsvps: true,
+        },
+      });
 
-    // Auto RSVP GOING for the creator
-    await prisma.rSVP.create({
-      data: {
-        eventId: event.id,
-        userId: user.id,
-        status: "GOING",
-      },
-    });
+      // Auto RSVP GOING for the creator
+      await tx.rSVP.create({
+        data: {
+          eventId: createdEvent.id,
+          userId: user.id,
+          status: "GOING",
+        },
+      });
 
-    // Create Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "EVENT_CREATED",
-        details: `Created event "${event.title}" scheduled for ${start.toLocaleDateString()}`,
-      },
+      // Create Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "EVENT_CREATED",
+          details: `Created event "${createdEvent.title}" scheduled for ${start.toLocaleDateString()}`,
+        },
+      });
+
+      return createdEvent;
     });
 
     return NextResponse.json({

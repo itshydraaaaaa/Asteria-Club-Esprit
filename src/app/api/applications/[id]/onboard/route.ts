@@ -74,46 +74,48 @@ export async function POST(
       console.warn("Supabase Auth admin user creation error:", sbErr);
     }
 
-    // 2. Create or update database member
-    const newUser = await prisma.user.upsert({
-      where: { email: cleanEmail },
-      update: {
-        role: "MEMBER",
-        status: "ACTIVE",
-        departmentId: department?.id || null,
-        bio: application.motivation,
-      },
-      create: {
-        name: application.name,
-        email: cleanEmail,
-        passwordHash,
-        role: "MEMBER",
-        status: "ACTIVE",
-        departmentId: department?.id || null,
-        bio: application.motivation,
-        skills: JSON.stringify(["Junior Recruit", application.departmentPreference]),
-        freelanceReady: false,
-      },
-    });
+    // 2. Atomic database transaction for user creation, application status, and audit log
+    const [newUser, updatedApp] = await prisma.$transaction(async (tx) => {
+      const userRecord = await tx.user.upsert({
+        where: { email: cleanEmail },
+        update: {
+          role: "MEMBER",
+          status: "ACTIVE",
+          departmentId: department?.id || null,
+          bio: application.motivation,
+        },
+        create: {
+          name: application.name,
+          email: cleanEmail,
+          passwordHash,
+          role: "MEMBER",
+          status: "ACTIVE",
+          departmentId: department?.id || null,
+          bio: application.motivation,
+          skills: JSON.stringify(["Junior Recruit", application.departmentPreference]),
+          freelanceReady: false,
+        },
+      });
 
-    // Mark application as accepted
-    const updatedApp = await prisma.application.update({
-      where: { id },
-      data: {
-        status: "ACCEPTED",
-        reviewerNotes:
-          (application.reviewerNotes ? application.reviewerNotes + " | " : "") +
-          `Auto-onboarded into ${department?.name || "General"} by ${user.name}`,
-      },
-    });
+      const appRecord = await tx.application.update({
+        where: { id },
+        data: {
+          status: "ACCEPTED",
+          reviewerNotes:
+            (application.reviewerNotes ? application.reviewerNotes + " | " : "") +
+            `Auto-onboarded into ${department?.name || "General"} by ${user.name}`,
+        },
+      });
 
-    // Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "MEMBER_ONBOARDED",
-        details: `Auto-onboarded applicant ${application.name} (${cleanEmail}) into ${department?.name || "Asteria Club"}`,
-      },
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          action: "MEMBER_ONBOARDED",
+          details: `Auto-onboarded applicant ${application.name} (${cleanEmail}) into ${department?.name || "Asteria Club"}`,
+        },
+      });
+
+      return [userRecord, appRecord];
     });
 
     return NextResponse.json({
