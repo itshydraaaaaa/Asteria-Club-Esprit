@@ -6,7 +6,12 @@ import { Badge, RoleBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
-import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
+import dynamic from "next/dynamic";
+
+const AmbientCanvas = dynamic(
+  () => import("@/components/ui/AmbientCanvas").then((m) => m.AmbientCanvas),
+  { ssr: false }
+);
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import Link from "next/link";

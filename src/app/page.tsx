@@ -2,9 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { Button } from "@/components/ui/Button";
-import { AmbientCanvas } from "@/components/ui/AmbientCanvas";
+
+const AmbientCanvas = dynamic(
+  () => import("@/components/ui/AmbientCanvas").then((m) => m.AmbientCanvas),
+  { ssr: false }
+);
 import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
