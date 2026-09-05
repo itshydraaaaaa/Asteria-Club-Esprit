@@ -72,7 +72,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== "BOARD" && user.role !== "HOD")) {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "BOARD" && user.role !== "HOD") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

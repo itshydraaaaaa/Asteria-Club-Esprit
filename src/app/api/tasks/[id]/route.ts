@@ -16,14 +16,45 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
+    const existingTask = await prisma.task.findUnique({ where: { id } });
+    if (!existingTask) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const isPrivileged = user.role === "BOARD" || user.role === "HOD";
+    const isAssignee = existingTask.assigneeId === user.id;
+
+    // Only assignee or BOARD/HOD can change status
+    if (body.status !== undefined && !isAssignee && !isPrivileged) {
+      return NextResponse.json(
+        { error: "Forbidden: Only the task assignee or leadership can update status" },
+        { status: 403 }
+      );
+    }
+
+    // Only BOARD or HOD can reassign, change department, or change priority/title/description
+    if (
+      (body.assigneeId !== undefined ||
+        body.departmentId !== undefined ||
+        body.title !== undefined ||
+        body.priority !== undefined ||
+        body.dueDate !== undefined) &&
+      !isPrivileged
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: Only Board and HoDs can modify task assignments or core details" },
+        { status: 403 }
+      );
+    }
+
     const updateData: any = {};
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
+    if (body.title !== undefined && isPrivileged) updateData.title = body.title;
+    if (body.description !== undefined && (isPrivileged || isAssignee)) updateData.description = body.description;
     if (body.status !== undefined) updateData.status = body.status;
-    if (body.priority !== undefined) updateData.priority = body.priority;
-    if (body.assigneeId !== undefined) updateData.assigneeId = body.assigneeId || null;
-    if (body.departmentId !== undefined) updateData.departmentId = body.departmentId;
-    if (body.dueDate !== undefined) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    if (body.priority !== undefined && isPrivileged) updateData.priority = body.priority;
+    if (body.assigneeId !== undefined && isPrivileged) updateData.assigneeId = body.assigneeId || null;
+    if (body.departmentId !== undefined && isPrivileged) updateData.departmentId = body.departmentId;
+    if (body.dueDate !== undefined && isPrivileged) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
 
     const task = await prisma.task.update({
       where: { id },
@@ -55,7 +86,10 @@ export async function DELETE(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== "BOARD" && user.role !== "HOD")) {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "BOARD" && user.role !== "HOD") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

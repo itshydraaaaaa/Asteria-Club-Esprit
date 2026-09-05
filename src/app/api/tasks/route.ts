@@ -70,6 +70,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Title and department are required" }, { status: 400 });
     }
 
+    // Department check: regular members can only create tasks in their own department
+    if (user.role === "MEMBER" && user.departmentId && departmentId !== user.departmentId) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only create tasks in your own department" },
+        { status: 403 }
+      );
+    }
+
     const task = await prisma.task.create({
       data: {
         title,

@@ -11,9 +11,12 @@ export async function POST(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "BOARD") {
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "BOARD" && user.role !== "HOD") {
       return NextResponse.json(
-        { error: "Only Board members can trigger member auto-onboarding" },
+        { error: "Forbidden: Only Board and HoD members can trigger member auto-onboarding" },
         { status: 403 }
       );
     }

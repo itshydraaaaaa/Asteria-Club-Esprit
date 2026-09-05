@@ -5,8 +5,11 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "BOARD") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "BOARD") {
+      return NextResponse.json({ error: "Forbidden: Board access required" }, { status: 403 });
     }
 
     const boardSeats = await prisma.boardSeat.findMany({
@@ -47,8 +50,11 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "BOARD") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (user.role !== "BOARD") {
+      return NextResponse.json({ error: "Forbidden: Board access required" }, { status: 403 });
     }
 
     const { action, payload } = await req.json();
