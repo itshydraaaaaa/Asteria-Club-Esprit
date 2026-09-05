@@ -302,7 +302,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                   className="text-xs font-bold"
                   onClick={() => handleSimulateQrScan(selectedEvent.checkInCode)}
                 >
-                  ⚡ Simulate Member Camera Scan
+                  {isFr ? "⚡ Tester l'Émargement Immédiat (Démo QR)" : "⚡ Quick Test Check-In (Demo QR)"}
                 </Button>
               </div>
             ) : (
