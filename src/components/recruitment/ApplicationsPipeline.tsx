@@ -19,6 +19,8 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
+  Copy,
+  Check,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { formatDate } from "@/lib/utils";
@@ -40,6 +42,14 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [onboardingSuccess, setOnboardingSuccess] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    name: string;
+    email: string;
+    department: string;
+    temporaryPassword: string;
+    emailDelivery?: any;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -69,7 +79,27 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, reviewerNotes }),
       });
+      const data = await res.json();
       if (res.ok) {
+        if (status === "ACCEPTED" && data.temporaryPassword) {
+          const app = selectedApp || applications.find((a) => a.id === id);
+          setOnboardingSuccess(
+            data.message || `Candidature acceptée ! Email avec accès envoyé à ${app?.email}.`
+          );
+          setCreatedCredentials({
+            name: app?.name || data.application?.name || "Nouveau Membre",
+            email: app?.email || data.application?.email,
+            department: app?.departmentPreference || data.application?.departmentPreference || "Asteria Club",
+            temporaryPassword: data.temporaryPassword,
+            emailDelivery: data.emailDelivery,
+          });
+          confetti({
+            particleCount: 100,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ["#11606E", "#60C8D4", "#0B4A55"],
+          });
+        }
         setSelectedApp(null);
         fetchApplications();
       }
@@ -78,7 +108,7 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     }
   };
 
-  const handleAutoOnboard = async (id: string) => {
+  const handleAutoOnboard = async (id: string, targetApp?: any) => {
     try {
       const res = await fetch(`/api/applications/${id}/onboard`, {
         method: "POST",
@@ -86,6 +116,16 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
       const data = await res.json();
       if (res.ok) {
         setOnboardingSuccess(data.message);
+        if (data.temporaryPassword) {
+          const app = targetApp || selectedApp || applications.find((a) => a.id === id);
+          setCreatedCredentials({
+            name: app?.name || data.user?.name || "Nouveau Membre",
+            email: app?.email || data.user?.email,
+            department: app?.departmentPreference || "Asteria Club",
+            temporaryPassword: data.temporaryPassword,
+            emailDelivery: data.emailDelivery,
+          });
+        }
         confetti({
           particleCount: 100,
           spread: 80,
@@ -98,6 +138,15 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleCopyCredentials = () => {
+    if (!createdCredentials) return;
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://asteria-club-esprit.vercel.app/login";
+    const text = `Asteria Club Esprit — Vos Identifiants Membre\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nBienvenue dans le pôle ${createdCredentials.department} !`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   return (
@@ -256,9 +305,9 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                     size="sm"
                     variant="accent"
                     className="text-xs font-bold"
-                    onClick={() => handleAutoOnboard(app.id)}
+                    onClick={() => handleAutoOnboard(app.id, app)}
                   >
-                    ★ 1-Click Onboard
+                    ★ {isFr ? "1-Click Onboard & Mail" : "1-Click Onboard"}
                   </Button>
                 )}
               </div>
@@ -331,19 +380,100 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                   size="sm"
                   onClick={() => handleUpdateStatus(selectedApp.id, "ACCEPTED")}
                 >
-                  Mark Accepted
+                  {isFr ? "Accepter & Envoyer Mail" : "Accept & Send Credentials"}
                 </Button>
                 {currentUser?.role === "BOARD" && (
                   <Button
                     variant="accent"
                     size="sm"
                     className="font-bold"
-                    onClick={() => handleAutoOnboard(selectedApp.id)}
+                    onClick={() => handleAutoOnboard(selectedApp.id, selectedApp)}
                   >
-                    Accept & Auto-Onboard Account
+                    ★ {isFr ? "Auto-Onboard & Email" : "1-Click Onboard & Mail"}
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Generated Credentials & Email Confirmation Modal */}
+      {createdCredentials && (
+        <Modal
+          isOpen={!!createdCredentials}
+          onClose={() => setCreatedCredentials(null)}
+          title={isFr ? "Candidat Accepté · Accès Membre Créé" : "Applicant Accepted · Member Access Created"}
+          maxWidth="md"
+        >
+          <div className="space-y-4 font-body">
+            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs">
+                <h5 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm font-display uppercase tracking-wide">
+                  {isFr ? "Email d'Acceptation Envoyé !" : "Acceptance Email Dispatched!"}
+                </h5>
+                <p className="text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
+                  {isFr
+                    ? `Un email avec les instructions et les identifiants de connexion a été envoyé à ${createdCredentials.email}.`
+                    : `An acceptance email with portal instructions and login credentials was successfully dispatched to ${createdCredentials.email}.`}
+                </p>
+                {createdCredentials.emailDelivery?.provider && (
+                  <span className="inline-block mt-1 font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
+                    Service: {createdCredentials.emailDelivery.provider.toUpperCase()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Credentials Card */}
+            <div className="p-4 rounded-2xl bg-[#0A3A40] text-white border border-teal-700/60 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between border-b border-teal-700/50 pb-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-ast-light">
+                  {isFr ? "Dossier de Connexion" : "Portal Login Credentials"}
+                </span>
+                <span className="text-[10px] font-mono bg-ast-light/20 text-ast-light px-2 py-0.5 rounded-full">
+                  {createdCredentials.department}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-teal-200/70 font-semibold">{isFr ? "Candidat :" : "Member Name:"}</span>
+                  <span className="font-bold text-white">{createdCredentials.name}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-teal-200/70 font-semibold">{isFr ? "Email de Connexion :" : "Login Email:"}</span>
+                  <span className="font-mono text-white bg-teal-900/50 px-2 py-0.5 rounded border border-teal-800">
+                    {createdCredentials.email}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-teal-200/70 font-semibold">{isFr ? "Mot de Passe Provisoire :" : "Temporary Password:"}</span>
+                  <span className="font-mono text-ast-accent font-bold bg-black/40 px-2 py-1 rounded border border-amber-500/40 text-sm select-all">
+                    {createdCredentials.temporaryPassword}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-3">
+              <Button
+                variant="primary"
+                size="sm"
+                className="flex-1 font-bold flex items-center justify-center gap-2"
+                onClick={handleCopyCredentials}
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                {copied ? (isFr ? "Copié !" : "Copied to Clipboard!") : (isFr ? "Copier les Identifiants" : "Copy Login Details")}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setCreatedCredentials(null)}
+              >
+                {isFr ? "Terminer" : "Done"}
+              </Button>
             </div>
           </div>
         </Modal>

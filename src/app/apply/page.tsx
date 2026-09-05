@@ -176,8 +176,8 @@ export default function ApplyPage() {
               </h2>
               <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed max-w-lg mx-auto">
                 {isFr
-                  ? `Votre candidature pour le pôle ${selectedTrack} a été enregistrée avec succès. Le Bureau Exécutif et les Chefs de Pôle examinent les dossiers chaque semaine.`
-                  : `Your application for the ${selectedTrack} track has been securely recorded in our database. The Executive Board and Department Heads review submissions weekly.`}
+                  ? `Votre candidature pour le pôle ${selectedTrack} a été enregistrée avec succès. Le Bureau Exécutif examine les dossiers sous 48h. Dès acceptation, vous recevrez automatiquement un email avec vos identifiants de connexion au portail membre.`
+                  : `Your application for the ${selectedTrack} track has been securely recorded in our database. The Executive Board reviews submissions within 48 hours. Once accepted, you will automatically receive an acceptance email with your member portal credentials.`}
               </p>
             </div>
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import { sendAcceptanceEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -118,9 +119,27 @@ export async function POST(
       return [userRecord, appRecord];
     });
 
+    // 3. Dispatch automated branded acceptance email with portal login credentials
+    const targetDeptName = department?.name || application.departmentPreference || "Asteria Club";
+    const emailResult = await sendAcceptanceEmail({
+      toEmail: cleanEmail,
+      memberName: application.name,
+      departmentName: targetDeptName,
+      temporaryPassword: secureTemporaryPassword,
+    });
+
+    // Record email dispatch in audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: "MEMBER_ACCEPTANCE_EMAIL_SENT",
+        details: `Dispatched acceptance email to ${cleanEmail} for department ${targetDeptName} (provider: ${emailResult.provider})`,
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      message: `Applicant ${application.name} successfully onboarded into ${department?.name || "Asteria Club"}!`,
+      message: `Applicant ${application.name} successfully onboarded into ${targetDeptName}! Acceptance email with portal login details sent to ${cleanEmail}.`,
       user: {
         id: newUser.id,
         name: newUser.name,
@@ -129,6 +148,8 @@ export async function POST(
         departmentId: newUser.departmentId,
       },
       application: updatedApp,
+      temporaryPassword: secureTemporaryPassword,
+      emailDelivery: emailResult,
     });
   } catch (error) {
     console.error("Error onboarding applicant:", error);
