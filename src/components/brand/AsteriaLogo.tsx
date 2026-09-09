@@ -87,7 +87,7 @@ export function AsteriaLogo({
                 : isAuto
                 ? "dark:text-teal-200/80 text-ink-soft"
                 : "text-ink-soft"
-            }`}
+            } hidden sm:block`}
           >
             Management Platform
           </span>

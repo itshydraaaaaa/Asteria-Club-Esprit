@@ -171,7 +171,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
             <Select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value)}
-              className="w-48 text-xs py-1.5"
+              className="w-full sm:w-48 text-xs py-1.5"
             >
               <option value="all">{isFr ? "Filtrer par pôle..." : "Filter Department..."}</option>
               {departments.map((d) => (
@@ -188,6 +188,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
               variant="primary"
               leftIcon={<Plus className="w-4 h-4" />}
               onClick={() => setIsNewEventOpen(true)}
+              className="w-full sm:w-auto"
             >
               {isFr ? "Planifier un Événement" : "Schedule Event"}
             </Button>

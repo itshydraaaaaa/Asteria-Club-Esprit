@@ -223,7 +223,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           <Select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="w-48 text-xs py-2"
+            className="w-full sm:w-48 text-xs py-2"
           >
             <option value="all">{isFr ? "Tous les Pôles Techniques" : "All Technical Tracks"}</option>
             {departments.map((d) => (
@@ -237,7 +237,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             disabled={myTasksOnly}
-            className="w-48 text-xs py-2"
+            className="w-full sm:w-48 text-xs py-2"
           >
             <option value="all">{isFr ? "Tous les Membres" : "All Members"}</option>
             {members.map((m) => (
@@ -253,6 +253,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           variant="primary"
           leftIcon={<Plus className="w-4 h-4" />}
           onClick={() => setIsNewTaskOpen(true)}
+          className="w-full sm:w-auto"
         >
           {t("tasks.add", "Create Sprint Task")}
         </Button>
@@ -265,7 +266,7 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
           return (
             <div
               key={col.id}
-              className={`bg-surface-alt/80 backdrop-blur-sm border border-line rounded-2xl p-4 space-y-3.5 min-h-[520px] border-t-4 ${col.borderTop}`}
+              className={`bg-surface-alt/80 backdrop-blur-sm border border-line rounded-2xl p-4 space-y-3.5 min-h-[220px] md:min-h-[520px] border-t-4 ${col.borderTop}`}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-1">

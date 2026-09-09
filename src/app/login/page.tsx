@@ -57,25 +57,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-body relative overflow-hidden selection:bg-teal-400 selection:text-ink transition-colors duration-300">
+    <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col justify-center py-16 sm:py-12 px-4 sm:px-6 lg:px-8 font-body relative overflow-hidden selection:bg-teal-400 selection:text-ink transition-colors duration-300">
       <AmbientCanvas particleCount={45} className="absolute inset-0 pointer-events-none opacity-50 z-0" />
 
-      {/* Floating Controls */}
-      <div className="absolute top-6 left-6 z-20">
+      {/* Top Responsive Controls Header */}
+      <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 z-20 flex items-center justify-between">
         <Link href="/">
-          <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white glass-nav flex items-center gap-2 transition-all shadow-sm">
-            <ArrowLeft className="w-3.5 h-3.5" /> {isFr ? "Accueil" : "Return to Home"}
+          <button className="px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white glass-nav flex items-center gap-1.5 sm:gap-2 transition-all shadow-sm">
+            <ArrowLeft className="w-3.5 h-3.5" /> <span>{isFr ? "Accueil" : "Home"}</span>
           </button>
         </Link>
+
+        <div className="flex items-center gap-2">
+          <LanguageToggle variant="pill" />
+          <ThemeToggle />
+        </div>
       </div>
 
-      <div className="absolute top-6 right-6 z-20 flex items-center gap-2.5">
-        <LanguageToggle variant="pill" />
-        <ThemeToggle />
-      </div>
-
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10 animate-vague-in">
-        <AsteriaLogo variant="auto" size="lg" href="/" className="justify-center" />
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-3 relative z-10 animate-vague-in mt-6 sm:mt-0">
+        <AsteriaLogo variant="auto" size="md" href="/" className="justify-center" />
         <p className="font-body text-xs text-ink-soft dark:text-teal-200/80 font-medium">
           {isFr
             ? "Système d'Exploitation Asteria Club Esprit · Console de Gestion"
@@ -83,8 +83,8 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-vague-in">
-        <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-6">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 animate-vague-in">
+        <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-500/50 text-red-700 dark:text-red-200 text-xs font-body flex items-center gap-2">

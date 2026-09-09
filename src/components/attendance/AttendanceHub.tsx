@@ -385,7 +385,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
           <CardContent className="divide-y divide-line/60">
             {records.length > 0 ? (
               records.map((rec) => (
-                <div key={rec.id} className="py-4 flex items-center justify-between gap-4">
+                <div key={rec.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-3.5">
                     <Avatar name={rec.user?.name} src={rec.user?.avatarUrl} size="md" />
                     <div>
@@ -406,8 +406,8 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0">
-                    <div className="flex items-center gap-2 justify-end">
+                  <div className="text-left sm:text-right flex-shrink-0">
+                    <div className="flex items-center gap-2 justify-start sm:justify-end">
                       <span className="text-[10px] font-mono font-bold bg-surface-alt px-2 py-0.5 rounded border border-line">
                         Method: {rec.method}
                       </span>

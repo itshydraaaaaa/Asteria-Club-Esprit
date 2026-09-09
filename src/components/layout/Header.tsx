@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { UserSession } from "@/lib/types";
-import { Bell, Plus, Sparkles, Check, ChevronRight, HelpCircle, BookOpen } from "lucide-react";
+import { Bell, Plus, Sparkles, Check, ChevronRight, HelpCircle, BookOpen, Menu } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useMobileNav } from "@/components/providers/MobileNavProvider";
 import { PlatformGuideModal } from "@/components/dashboard/PlatformGuideModal";
 import Link from "next/link";
 
@@ -19,6 +20,7 @@ interface HeaderProps {
 export function Header({ user = null, title, subtitle }: HeaderProps) {
   const { language, t } = useLanguage();
   const isFr = language === "fr";
+  const { toggle: toggleMobileNav } = useMobileNav();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -46,31 +48,51 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
   }, []);
 
   return (
-    <header className="bg-white/85 dark:bg-[#052024]/90 backdrop-blur-md border-b border-line dark:border-teal-900/80 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
-      <div>
-        {title ? (
-          <div>
-            <h1 className="font-display font-bold text-lg md:text-xl uppercase tracking-wider text-ink dark:text-white">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="font-body text-xs text-ink-soft dark:text-teal-200/70 mt-0.5">{subtitle}</p>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-xs uppercase tracking-wider text-ast-primary dark:text-ast-light bg-teal-50 dark:bg-teal-950/80 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800">
-              {isFr
-                ? "Système d'Exploitation Asteria · Base de Données Directe"
-                : "Asteria Operating System · Live Database"}
-            </span>
-          </div>
-        )}
+    <header className="bg-white/85 dark:bg-[#052024]/90 backdrop-blur-md border-b border-line dark:border-teal-900/80 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        {/* Mobile Hamburger Drawer Toggle */}
+        <button
+          onClick={toggleMobileNav}
+          className="md:hidden p-2 rounded-xl bg-surface-alt dark:bg-[#08262b] border border-line dark:border-teal-900 text-ink dark:text-white hover:text-ast-primary dark:hover:text-ast-light transition-colors flex-shrink-0"
+          aria-label="Toggle navigation drawer"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="min-w-0">
+          {title ? (
+            <div className="min-w-0">
+              <h1 className="font-display font-bold text-base sm:text-lg md:text-xl uppercase tracking-wider text-ink dark:text-white truncate">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="font-body text-[11px] sm:text-xs text-ink-soft dark:text-teal-200/70 mt-0.5 line-clamp-1">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-mono font-bold text-[11px] sm:text-xs uppercase tracking-wider text-ast-primary dark:text-ast-light bg-teal-50 dark:bg-teal-950/80 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 truncate">
+                <span className="hidden sm:inline">
+                  {isFr
+                    ? "Système d'Exploitation Asteria · Base de Données Directe"
+                    : "Asteria Operating System · Live Database"}
+                </span>
+                <span className="sm:hidden">
+                  Asteria OS · Live
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-2.5 sm:gap-3">
-        {/* Language Switcher */}
-        <LanguageToggle variant="pill" />
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+        {/* Language Switcher - available on desktop or mobile drawer */}
+        <div className="hidden sm:block">
+          <LanguageToggle variant="pill" />
+        </div>
 
         {/* Theme Toggle Button */}
         <ThemeToggle />
@@ -78,7 +100,7 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
         {/* Quick Task/Event Trigger */}
         {(user?.role === "BOARD" || user?.role === "HOD") && (
           <Link href="/tasks">
-            <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+            <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />} className="px-2.5 sm:px-3">
               <span className="hidden sm:inline">
                 {isFr ? "Nouveau Ticket" : "New Sprint Ticket"}
               </span>
@@ -90,7 +112,7 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
         <button
           onClick={() => setIsGuideOpen(true)}
           title={isFr ? "Guide de la Plateforme" : "Platform Guide & Help"}
-          className="p-2 rounded-xl bg-surface-alt dark:bg-[#08262b] border border-line dark:border-teal-900 text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:border-ast-primary dark:hover:border-ast-light relative transition-all"
+          className="hidden sm:flex p-2 rounded-xl bg-surface-alt dark:bg-[#08262b] border border-line dark:border-teal-900 text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:border-ast-primary dark:hover:border-ast-light relative transition-all"
         >
           <HelpCircle className="w-4 h-4" />
         </button>

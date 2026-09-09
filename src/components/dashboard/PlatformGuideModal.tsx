@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -232,9 +232,9 @@ export function PlatformGuideModal({ user, isOpen, onClose }: PlatformGuideModal
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-[#08262b] border border-teal-900/20 dark:border-teal-500/30 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden relative animate-vague-in flex flex-col">
+      <div className="bg-white dark:bg-[#08262b] border border-teal-900/20 dark:border-teal-500/30 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden relative animate-vague-in flex flex-col max-h-[90dvh]">
         {/* Header Ribbon */}
-        <div className="px-6 pt-6 pb-4 border-b border-line dark:border-teal-900/80 flex items-center justify-between">
+        <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-3.5 sm:pb-4 border-b border-line dark:border-teal-900/80 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="p-2 rounded-xl bg-ast-light/20 text-ast-primary dark:text-teal-300 border border-ast-light/30">
               <BookOpen className="w-4 h-4" />
@@ -243,27 +243,27 @@ export function PlatformGuideModal({ user, isOpen, onClose }: PlatformGuideModal
               <span className="text-[10px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 {current.badge}
               </span>
-              <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink dark:text-white">
+              <h3 className="font-display font-bold text-sm sm:text-base uppercase tracking-wider text-ink dark:text-white">
                 {current.title}
               </h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:bg-teal-50 dark:hover:bg-teal-900/50 transition-colors"
+            className="p-2 rounded-xl text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:bg-teal-50 dark:hover:bg-teal-900/50 transition-colors flex-shrink-0 ml-2"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body Content */}
-        <div className="p-6 space-y-4 flex-1">
+        <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
           <p className="text-xs font-medium text-ink-soft dark:text-teal-200/80">{current.subtitle}</p>
           {current.content}
         </div>
 
         {/* Footer Navigation */}
-        <div className="px-6 py-4 border-t border-line dark:border-teal-900/80 bg-surface-alt/50 dark:bg-[#052024]/60 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-line dark:border-teal-900/80 bg-surface-alt/50 dark:bg-[#052024]/60 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-1.5">
             {steps.map((_, idx) => (
               <button

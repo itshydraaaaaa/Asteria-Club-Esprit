@@ -288,11 +288,11 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
               </div>
 
               {/* Action Bar */}
-              <div className="pt-4 border-t border-line/60 flex items-center justify-between gap-2">
+              <div className="pt-4 border-t border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-xs"
+                  className="text-xs w-full sm:w-auto"
                   onClick={() => {
                     setSelectedApp(app);
                     setReviewerNotes(app.reviewerNotes || "");
@@ -305,7 +305,7 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                   <Button
                     size="sm"
                     variant="accent"
-                    className="text-xs font-bold"
+                    className="text-xs font-bold w-full sm:w-auto"
                     onClick={() => handleAutoOnboard(app.id, app)}
                   >
                     ★ {isFr ? "1-Click Onboard & Mail" : "1-Click Onboard"}

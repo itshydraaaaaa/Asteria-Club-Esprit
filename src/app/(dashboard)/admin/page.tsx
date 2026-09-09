@@ -302,7 +302,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="divide-y divide-line/60">
             {data?.auditLogs?.map((log: any) => (
-              <div key={log.id} className="py-3.5 flex items-center justify-between gap-4">
+              <div key={log.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                 <div className="flex items-center gap-3">
                   <Avatar name={log.user?.name || "System"} src={log.user?.avatarUrl} size="sm" />
                   <div>
@@ -315,7 +315,7 @@ export default function AdminPage() {
                     <p className="font-body text-xs text-ink-soft mt-0.5">{log.details}</p>
                   </div>
                 </div>
-                <span className="text-[11px] text-ink-faint font-body whitespace-nowrap">
+                <span className="text-[11px] text-ink-faint font-body whitespace-nowrap pl-10 sm:pl-0">
                   {formatDateTime(log.createdAt)}
                 </span>
               </div>

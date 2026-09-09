@@ -60,16 +60,16 @@ export function Modal({
       {/* Modal Dialog with "Vague" entrance curve */}
       <div
         className={cn(
-          "relative w-full bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden z-10 animate-vague-in my-8",
+          "relative w-full bg-surface border border-line rounded-2xl shadow-2xl overflow-hidden z-10 animate-vague-in my-auto max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] flex flex-col",
           maxWidthStyles[maxWidth]
         )}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="px-6 py-5 border-b border-line/80 flex items-start justify-between bg-surface">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-line/80 flex items-start justify-between bg-surface flex-shrink-0">
             <div>
               {title && (
-                <h3 className="font-display font-bold uppercase text-base tracking-wider text-ink">
+                <h3 className="font-display font-bold uppercase text-sm sm:text-base tracking-wider text-ink">
                   {title}
                 </h3>
               )}
@@ -81,7 +81,7 @@ export function Modal({
             </div>
             <button
               onClick={onClose}
-              className="text-ink-faint hover:text-ink hover:bg-surface-alt p-1.5 rounded-lg transition-colors"
+              className="text-ink-faint hover:text-ink hover:bg-surface-alt p-1.5 rounded-lg transition-colors flex-shrink-0 ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -89,7 +89,7 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

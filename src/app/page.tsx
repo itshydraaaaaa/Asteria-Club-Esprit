@@ -33,6 +33,8 @@ import {
   ChevronDown,
   ExternalLink,
   ChevronRight,
+  Menu,
+  X,
   Instagram,
   Linkedin,
   Github,
@@ -42,6 +44,7 @@ import {
 
 export default function HomePage() {
   const { language, t } = useLanguage();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [stats, setStats] = useState<{
     totalMembers: number;
@@ -196,7 +199,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col font-body selection:bg-teal-400 selection:text-ink transition-colors duration-300">
       {/* Floating Glass Navbar */}
       <header className="sticky top-4 z-50 px-4 sm:px-8 max-w-7xl w-full mx-auto">
-        <div className="glass-nav rounded-2xl px-5 py-3 flex items-center justify-between shadow-2xl transition-all duration-300">
+        <div className="glass-nav rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between shadow-2xl transition-all duration-300">
           <AsteriaLogo variant="auto" size="md" href="/" />
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-100/80 font-display">
@@ -214,7 +217,8 @@ export default function HomePage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center gap-3">
             <LanguageToggle variant="pill" />
             <ThemeToggle />
 
@@ -229,16 +233,82 @@ export default function HomePage() {
               </button>
             </Link>
           </div>
+
+          {/* Mobile Right Controls: Language + Theme + Hamburger Toggle */}
+          <div className="flex md:hidden items-center gap-2">
+            <LanguageToggle variant="pill" />
+            <ThemeToggle />
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-xl bg-surface-alt dark:bg-teal-950/80 border border-line dark:border-teal-800 text-ink dark:text-white hover:text-ast-primary dark:hover:text-ast-light transition-colors"
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-2 glass-nav rounded-2xl p-4 border border-line dark:border-teal-800 shadow-2xl space-y-3 animate-vague-in">
+            <nav className="flex flex-col space-y-1 text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-100/90 font-display">
+              <a
+                href="#about"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 hover:text-ast-primary dark:hover:text-teal-300 transition-colors flex items-center justify-between"
+              >
+                <span>{isFr ? "Le Studio" : "About Club"}</span>
+                <ChevronRight className="w-4 h-4 text-ink-faint" />
+              </a>
+              <a
+                href="#tracks"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 hover:text-ast-primary dark:hover:text-teal-300 transition-colors flex items-center justify-between"
+              >
+                <span>{isFr ? "Pôles Techniques" : "Tracks"}</span>
+                <ChevronRight className="w-4 h-4 text-ink-faint" />
+              </a>
+              <a
+                href="#pipeline"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 hover:text-ast-primary dark:hover:text-teal-300 transition-colors flex items-center justify-between"
+              >
+                <span>{isFr ? "Passerelle Freelance" : "Freelance Pipeline"}</span>
+                <ChevronRight className="w-4 h-4 text-ink-faint" />
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 hover:text-ast-primary dark:hover:text-teal-300 transition-colors flex items-center justify-between"
+              >
+                <span>FAQ</span>
+                <ChevronRight className="w-4 h-4 text-ink-faint" />
+              </a>
+            </nav>
+
+            <div className="pt-3 border-t border-line/80 dark:border-teal-900/80 flex flex-col gap-2">
+              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                <button className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink dark:text-white bg-surface dark:bg-teal-950/60 border border-line dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900 transition-colors shadow-sm">
+                  {t("nav.portal", "Member Login")}
+                </button>
+              </Link>
+              <Link href="/apply" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                <button className="w-full py-3 px-4 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button shadow-md">
+                  {t("nav.apply", "Apply to Join")} ★
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section with 3D Ambient Canvas */}
-      <section className="relative pt-20 pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative pt-16 sm:pt-20 pb-20 sm:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <AmbientCanvas particleCount={55} className="absolute inset-0 pointer-events-none opacity-60 z-0" />
 
-        <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10 animate-vague-in">
+        <div className="max-w-5xl mx-auto text-center space-y-6 sm:space-y-8 relative z-10 animate-vague-in">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/60 border border-teal-200 dark:border-teal-500/40 text-ast-primary dark:text-teal-300 text-xs font-semibold uppercase tracking-wider font-mono shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/60 border border-teal-200 dark:border-teal-500/40 text-ast-primary dark:text-teal-300 text-[11px] sm:text-xs font-semibold uppercase tracking-wider font-mono shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400 animate-pulse" />
             {isFr
               ? "Incubateur Officiel de Talents Asteria Freelance PreLaunch · Esprit"
@@ -246,7 +316,7 @@ export default function HomePage() {
           </div>
 
           {/* Display Heading */}
-          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tight text-ink dark:text-white leading-none">
+          <h1 className="font-display font-black text-3xl sm:text-6xl lg:text-7xl uppercase tracking-tight text-ink dark:text-white leading-tight sm:leading-none">
             {isFr ? (
               <>
                 LÀ OÙ LES MEILLEURS <br />
@@ -261,7 +331,7 @@ export default function HomePage() {
           </h1>
 
           {/* Subheading */}
-          <p className="font-body text-base sm:text-xl text-ink-soft dark:text-teal-100/90 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-body text-sm sm:text-xl text-ink-soft dark:text-teal-100/90 max-w-3xl mx-auto leading-relaxed">
             {isFr ? (
               <>
                 Asteria Club Esprit forme les étudiants en <strong>Développement Web</strong>, <strong>Design Graphique</strong>, <strong>Montage Vidéo</strong> et <strong>Photographie</strong>, puis oriente les talents certifiés vers des contrats rémunérés chez <strong>Asteria Freelance PreLaunch</strong>.
@@ -274,7 +344,7 @@ export default function HomePage() {
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4">
             <Link href="/apply" className="w-full sm:w-auto">
               <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group shadow-lg">
                 {t("hero.cta.apply", "Apply for Membership")}
@@ -290,51 +360,51 @@ export default function HomePage() {
           </div>
 
           {/* Live Stats Ribbon */}
-          <div className="pt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
-              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
+          <div className="pt-8 sm:pt-12 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto text-left">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 {t("hero.stat.hubs", "Technical Tracks")}
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
+              <h3 className="font-display font-black text-xl sm:text-3xl text-ink dark:text-white mt-1">
                 <AnimatedCounter value={stats?.totalDepartments ?? 4} />
               </h3>
-              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[10px] sm:text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 {isFr ? "Web, Design, Vidéo, Photo" : "Web, Design, Video, Photo"}
               </p>
             </div>
 
-            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
-              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 {t("hero.stat.pipeline", "Sprint Velocity")}
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
+              <h3 className="font-display font-black text-xl sm:text-3xl text-ink dark:text-white mt-1">
                 <AnimatedCounter value={stats?.sprintVelocity ?? 94} suffix="%" />
               </h3>
-              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[10px] sm:text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 {isFr ? "Taux d'achèvement" : "Deliverables completion"}
               </p>
             </div>
 
-            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
-              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 {t("hero.stat.growth", "Incubator Pipeline")}
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
+              <h3 className="font-display font-black text-xl sm:text-3xl text-ink dark:text-white mt-1">
                 100%
               </h3>
-              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[10px] sm:text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 {isFr ? "Gouvernance étudiante" : "Student-governed"}
               </p>
             </div>
 
-            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
-              <span className="text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
+            <div className="bg-white/80 dark:bg-[#08262b]/85 backdrop-blur-xl p-3.5 sm:p-5 rounded-2xl border border-teal-900/10 dark:border-teal-500/20 shadow-sm dark:shadow-2xl">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-ast-primary dark:text-teal-400 block">
                 {t("hero.stat.work", "Freelance Bridge")}
               </span>
-              <h3 className="font-display font-black text-2xl sm:text-3xl text-ink dark:text-white mt-1">
+              <h3 className="font-display font-black text-xl sm:text-3xl text-ink dark:text-white mt-1">
                 {isFr ? "Rémunéré ★" : "Paid ★"}
               </h3>
-              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
+              <p className="text-[10px] sm:text-[11px] text-ink-soft dark:text-teal-200/70 mt-0.5 font-body">
                 {isFr ? "Projets professionnels" : "Client contract readiness"}
               </p>
             </div>

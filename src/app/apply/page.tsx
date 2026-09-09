@@ -138,21 +138,22 @@ export default function ApplyPage() {
 
       {/* Floating Header */}
       <header className="sticky top-4 z-50 px-4 sm:px-8 max-w-5xl w-full mx-auto">
-        <div className="glass-nav rounded-2xl px-5 py-3 flex items-center justify-between shadow-2xl transition-all duration-300">
+        <div className="glass-nav rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between shadow-2xl transition-all duration-300">
           <AsteriaLogo variant="auto" size="md" href="/" />
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <LanguageToggle variant="pill" />
             <ThemeToggle />
 
-            <Link href="/">
+            <Link href="/" className="hidden sm:inline-block">
               <button className="px-3.5 py-1.5 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white flex items-center gap-1.5 transition-colors">
                 <ArrowLeft className="w-3.5 h-3.5" /> {isFr ? "Accueil" : "Home"}
               </button>
             </Link>
             <Link href="/login">
-              <button className="px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white dark:bg-teal-900/80 hover:bg-teal-50 dark:hover:bg-teal-800 text-ink dark:text-teal-200 border border-teal-200 dark:border-teal-700/60 hover:text-ast-primary dark:hover:text-white transition-all shadow-sm">
-                {t("nav.portal", "Member Login")}
+              <button className="px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider bg-white dark:bg-teal-900/80 hover:bg-teal-50 dark:hover:bg-teal-800 text-ink dark:text-teal-200 border border-teal-200 dark:border-teal-700/60 hover:text-ast-primary dark:hover:text-white transition-all shadow-sm">
+                <span className="hidden sm:inline">{t("nav.portal", "Member Login")}</span>
+                <span className="sm:hidden">{isFr ? "Connexion" : "Login"}</span>
               </button>
             </Link>
           </div>
@@ -160,7 +161,7 @@ export default function ApplyPage() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-12 relative z-10 flex flex-col justify-center animate-vague-in">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 sm:py-12 relative z-10 flex flex-col justify-center animate-vague-in">
         {submitted ? (
           <div className="bg-white/90 dark:bg-[#08262b]/85 backdrop-blur-xl p-8 sm:p-14 rounded-3xl border border-teal-900/10 dark:border-teal-500/40 text-center space-y-6 max-w-2xl mx-auto shadow-2xl">
             <div className="w-20 h-20 rounded-full bg-teal-50 dark:bg-teal-900/80 border-2 border-ast-light text-ast-primary dark:text-ast-light flex items-center justify-center mx-auto shadow-inner glow-teal">
@@ -222,7 +223,7 @@ export default function ApplyPage() {
             </div>
 
             {/* Application Card */}
-            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-6 sm:p-10 rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-8">
+            <div className="bg-white/85 dark:bg-[#08262b]/85 backdrop-blur-xl p-5 sm:p-10 rounded-2xl sm:rounded-3xl border border-teal-900/10 dark:border-teal-500/30 shadow-2xl space-y-6 sm:space-y-8">
               {/* Step 1: Select Track */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-ast-primary dark:text-teal-400">
