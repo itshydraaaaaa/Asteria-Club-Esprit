@@ -45,9 +45,11 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [checkInCodeInput, setCheckInCodeInput] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [memberQrDataUrl, setMemberQrDataUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [checkInStatus, setCheckInStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedMemberId, setCopiedMemberId] = useState(false);
 
   // Justification Modal
   const [isJustifyOpen, setIsJustifyOpen] = useState(false);
@@ -100,9 +102,29 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
     }
   };
 
+  const generateMemberQr = async (memberIdentifier: string) => {
+    if (!memberIdentifier) return;
+    try {
+      const url = await QRCode.toDataURL(memberIdentifier, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: BRAND_COLORS.primary,
+          light: BRAND_COLORS.surface,
+        },
+      });
+      setMemberQrDataUrl(url);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchData();
-  }, []);
+    if (currentUser?.id || currentUser?.email) {
+      generateMemberQr(currentUser?.id || currentUser?.email);
+    }
+  }, [currentUser?.id, currentUser?.email]);
 
   useRealtimeSubscription({
     channelName: "attendance_realtime",
@@ -173,30 +195,6 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
     }
   };
 
-  const handleSimulateQrScan = async (code: string) => {
-    try {
-      const res = await fetch("/api/attendance/check-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, method: "QR" }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCheckInStatus({ type: "success", message: data.message });
-        confetti({
-          particleCount: 100,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0A3A40"],
-        });
-        fetchData();
-      } else {
-        setCheckInStatus({ type: "error", message: data.error });
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleSubmitJustification = async () => {
     if (!justifyEventId || !justificationNote) return;
@@ -223,6 +221,15 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   const eventAttendanceRecords = records.filter(
     (r) => (r.eventId || r.event_id) === selectedEventId
   );
+
+  const isHost =
+    currentUser?.role === "BOARD" ||
+    currentUser?.role === "HOD" ||
+    events.some(
+      (e) =>
+        (e.createdById || e.created_by_id) === currentUser?.id ||
+        (e.departmentId && e.departmentId === currentUser?.departmentId)
+    );
 
   return (
     <div className="space-y-6">
@@ -275,127 +282,197 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
       {/* Tab 1: Check-in Portal */}
       {activeTab === "checkin" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Host Console with QR Generator */}
-          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="primary" size="sm">
-                  Host Console
-                </Badge>
-                <span className="text-xs text-ink-soft font-body">Real-Time Event Pass</span>
+          {/* 1. Host Console (Visible to Event Hosts / Board / HOD) */}
+          {isHost && (
+            <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md border-teal-900/20 shadow-md">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="primary" size="sm">
+                    {isFr ? "Console de l'Organisateur" : "Event Host Console"}
+                  </Badge>
+                  <span className="text-xs text-ink-soft font-body">
+                    {isFr ? "Pass Numérique & QR de la Session" : "Live Session Attendance Pass"}
+                  </span>
+                </div>
+                <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
+                  {isFr ? "Code de Présence de la Session" : "Event Attendance Screen Pass"}
+                </h3>
+                <p className="font-body text-xs text-ink-soft">
+                  {isFr
+                    ? "Projetez ce code et ce QR sur écran lors de l'atelier ou réunion pour que les membres valident leur présence."
+                    : "Project this QR code and numeric passcode on screen during your workshop or assembly so members can check in."}
+                </p>
               </div>
-              <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                Dynamic QR Attendance Code
-              </h3>
-              <p className="font-body text-xs text-ink-soft">
-                Project this QR code on screen during workshops or club assemblies for instant check-in.
-              </p>
-            </div>
 
-            {/* Event Selector */}
-            <Select
-              label="Active Session"
-              value={selectedEventId}
-              onChange={(e) => handleEventSelect(e.target.value)}
-            >
-              {events.map((evt) => (
-                <option key={evt.id} value={evt.id}>
-                  {evt.title} ({evt.department ? evt.department.name : "Club-Wide"})
-                </option>
-              ))}
-            </Select>
+              {/* Event Selector */}
+              <Select
+                label={isFr ? "Session Active" : "Active Session"}
+                value={selectedEventId}
+                onChange={(e) => handleEventSelect(e.target.value)}
+              >
+                {events.map((evt) => (
+                  <option key={evt.id} value={evt.id}>
+                    {evt.title} ({evt.department ? evt.department.name : "Club-Wide"})
+                  </option>
+                ))}
+              </Select>
 
-            {/* QR Card Visual */}
-            {selectedEvent ? (
-              <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
-                {qrDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={qrDataUrl}
-                    alt="Event QR Code"
-                    className="w-56 h-56 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
-                  />
-                ) : (
-                  <div className="w-56 h-56 flex items-center justify-center bg-line/20 rounded-2xl">
-                    <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
-                  </div>
-                )}
-
-                <div className="text-center space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-ink-faint font-display">
-                    Numeric Passcode
-                  </span>
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200">
-                      {selectedEvent.checkInCode || selectedEvent.check_in_code}
-                    </p>
-                    <button
-                      onClick={() => handleCopyCode(selectedEvent.checkInCode || selectedEvent.check_in_code)}
-                      className="p-2 rounded-xl border border-line bg-surface hover:bg-surface-alt text-ink transition-colors"
-                      title="Copy Code"
-                    >
-                      {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-ink-soft" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-xs text-ink-soft font-body flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-ast-primary" />
-                  <span>
-                    <strong>{eventAttendanceRecords.length}</strong> Attendees Checked In Live
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
-                  {qrDataUrl && (
-                    <a
-                      href={qrDataUrl}
-                      download={`Asteria_QR_${selectedEvent.checkInCode || "Event"}.png`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Download QR
-                    </a>
+              {/* QR Card Visual */}
+              {selectedEvent ? (
+                <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={qrDataUrl}
+                      alt="Event QR Code"
+                      className="w-56 h-56 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
+                    />
+                  ) : (
+                    <div className="w-56 h-56 flex items-center justify-center bg-line/20 rounded-2xl">
+                      <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
+                    </div>
                   )}
 
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    className="text-xs font-bold"
-                    onClick={() => handleSimulateQrScan(selectedEvent.checkInCode || selectedEvent.check_in_code)}
-                  >
-                    {isFr ? "⚡ Tester Émargement QR" : "⚡ Quick Test QR Check-In"}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <EmptyState
-                icon={CalendarCheck}
-                title="No Active Events"
-                description="Schedule a workshop or general assembly from the calendar to generate dynamic check-in codes."
-              />
-            )}
-          </Card>
+                  <div className="text-center space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-ink-faint font-display">
+                      {isFr ? "Code Numérique de la Session" : "Numeric Passcode"}
+                    </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200">
+                        {selectedEvent.checkInCode || selectedEvent.check_in_code}
+                      </p>
+                      <button
+                        onClick={() => handleCopyCode(selectedEvent.checkInCode || selectedEvent.check_in_code)}
+                        className="p-2 rounded-xl border border-line bg-surface hover:bg-surface-alt text-ink transition-colors"
+                        title="Copy Code"
+                      >
+                        {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-ink-soft" />}
+                      </button>
+                    </div>
+                  </div>
 
-          {/* Member Manual Passcode Entry */}
+                  <div className="text-xs text-ink-soft font-body flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-ast-primary" />
+                    <span>
+                      <strong>{eventAttendanceRecords.length}</strong> {isFr ? "Membres Émargés en Direct" : "Attendees Checked In Live"}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
+                    {qrDataUrl && (
+                      <a
+                        href={qrDataUrl}
+                        download={`Asteria_QR_${selectedEvent.checkInCode || "Event"}.png`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+                      >
+                        <Download className="w-3.5 h-3.5" /> {isFr ? "Télécharger le QR" : "Download Session QR"}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={CalendarCheck}
+                  title={isFr ? "Aucune Session Active" : "No Active Events"}
+                  description={isFr ? "Planifiez un atelier depuis le calendrier pour générer les codes." : "Schedule a workshop or general assembly from the calendar to generate dynamic check-in codes."}
+                />
+              )}
+            </Card>
+          )}
+
+          {/* 2. Member Personal Account Attendance QR Pass */}
           <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="accent" size="sm">
-                  Member Portal
+                  {isFr ? "Pass Personnel" : "Member Pass"}
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">Manual Verification</span>
+                <span className="text-xs text-ink-soft font-body">
+                  {isFr ? "Identifiant Numérique Club" : "Personal Account QR Badge"}
+                </span>
               </div>
               <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                Enter 6-Digit Passcode
+                {isFr ? "Votre Badge QR Personnel" : "Your Account Attendance QR"}
               </h3>
               <p className="font-body text-xs text-ink-soft">
-                Enter the passcode displayed on the presentation screen or provided by your department lead.
+                {isFr
+                  ? "Présentez ce QR code à l'accueil de l'événement ou saisissez le code de session ci-dessous pour confirmer votre présence."
+                  : "Show this permanent QR badge to the event host at the door or enter the session code to verify attendance."}
+              </p>
+            </div>
+
+            <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
+              {memberQrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={memberQrDataUrl}
+                  alt="Member Attendance Badge QR"
+                  className="w-52 h-52 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
+                />
+              ) : (
+                <div className="w-52 h-52 flex items-center justify-center bg-line/20 rounded-2xl">
+                  <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
+                </div>
+              )}
+
+              <div className="text-center space-y-1">
+                <h4 className="font-body font-bold text-sm text-ink">
+                  {currentUser?.name || "Asteria Member"}
+                </h4>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-[11px] bg-surface px-2.5 py-1 rounded border border-line text-ink-soft">
+                    {currentUser?.email || currentUser?.id}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentUser?.id || currentUser?.email || "");
+                      setCopiedMemberId(true);
+                      setTimeout(() => setCopiedMemberId(false), 2000);
+                    }}
+                    className="p-1 rounded border border-line bg-surface text-ink-soft hover:text-ink"
+                    title="Copy Member ID"
+                  >
+                    {copiedMemberId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {memberQrDataUrl && (
+                <a
+                  href={memberQrDataUrl}
+                  download={`Asteria_Pass_${currentUser?.name?.replace(/\s+/g, "_") || "Member"}.png`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" /> {isFr ? "Télécharger mon Pass QR" : "Download My Pass QR"}
+                </a>
+              )}
+            </div>
+          </Card>
+
+          {/* 3. Member Manual Passcode Entry */}
+          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="primary" size="sm">
+                  {isFr ? "Émargement Manuel" : "Self Check-In"}
+                </Badge>
+                <span className="text-xs text-ink-soft font-body">
+                  {isFr ? "Validation par Code" : "Passcode Confirmation"}
+                </span>
+              </div>
+              <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
+                {isFr ? "Saisir le Code de l'Événement" : "Enter Event Passcode"}
+              </h3>
+              <p className="font-body text-xs text-ink-soft">
+                {isFr
+                  ? "Saisissez le code affiché sur l'écran de présentation lors de l'événement pour confirmer votre présence."
+                  : "When attending the event, enter the passcode displayed on screen by the host to confirm your attendance."}
               </p>
             </div>
 
             <div className="p-6 bg-surface-alt border border-line rounded-2xl space-y-4 shadow-sm">
               <Input
-                label="Enter Event Passcode"
+                label={isFr ? "Code de Présence de l'Événement *" : "Event Check-In Passcode *"}
                 placeholder="e.g. AST-2026 / WEB-DEV26"
                 value={checkInCodeInput}
                 onChange={(e) => setCheckInCodeInput(e.target.value.toUpperCase())}
@@ -409,35 +486,9 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                 onClick={() => handleCodeCheckIn()}
                 disabled={!checkInCodeInput.trim()}
               >
-                Confirm Attendance Check-In
+                {isFr ? "Valider ma Présence" : "Confirm Attendance Check-In"}
               </Button>
             </div>
-
-            {/* Available Codes Shortcut */}
-            {events.length > 0 && (
-              <div className="pt-2">
-                <span className="text-[11px] font-semibold uppercase text-ink-faint font-display block mb-2">
-                  Active Session Codes:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {events.slice(0, 4).map((evt) => {
-                    const code = evt.checkInCode || evt.check_in_code;
-                    return (
-                      <button
-                        key={evt.id}
-                        onClick={() => handleCodeCheckIn(code)}
-                        className="text-xs font-mono bg-surface border border-line hover:border-ast-light px-2.5 py-1 rounded-lg text-ast-primary transition-colors flex items-center gap-1.5"
-                      >
-                        <strong>{code}</strong>
-                        <span className="text-[10px] text-ink-faint">
-                          ({evt.department ? evt.department.name.slice(0, 4) : "Club"})
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </Card>
         </div>
       )}
