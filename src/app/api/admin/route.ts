@@ -19,10 +19,32 @@ export async function GET() {
       getRecentAuditLogs(20),
     ]);
 
+    const normalizedBoardSeats = (boardSeats || []).map((seat: any) => ({
+      ...seat,
+      user: seat.user
+        ? {
+            ...seat.user,
+            avatarUrl: seat.user.avatar_url || seat.user.avatarUrl,
+          }
+        : null,
+    }));
+
+    const normalizedAuditLogs = (auditLogs || []).map((log: any) => ({
+      ...log,
+      createdAt: log.created_at || log.createdAt,
+      userId: log.user_id || log.userId,
+      user: log.user
+        ? {
+            ...log.user,
+            avatarUrl: log.user.avatar_url || log.user.avatarUrl,
+          }
+        : null,
+    }));
+
     return NextResponse.json({
-      boardSeats,
+      boardSeats: normalizedBoardSeats,
       departments,
-      auditLogs,
+      auditLogs: normalizedAuditLogs,
       currentCycle: DEFAULT_ACADEMIC_CYCLE,
     });
   } catch (error) {

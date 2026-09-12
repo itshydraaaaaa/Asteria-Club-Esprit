@@ -196,7 +196,10 @@ export async function getDepartmentsWithCounts(): Promise<any[]> {
   const admin = getAdminClient();
   const { data: depts, error } = await (admin as any)
     .from("departments")
-    .select("*")
+    .select(`
+      *,
+      hod:hod_user_id (id, name, email, avatar_url)
+    `)
     .order("name", { ascending: true });
   if (error) throw error;
 
