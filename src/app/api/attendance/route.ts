@@ -23,8 +23,16 @@ export async function GET(req: Request) {
       .select("*", { count: "exact", head: true })
       .eq("status", "PRESENT");
 
+    const mappedRecords = records.map((r: any) => ({
+      ...r,
+      eventId: r.event_id || r.eventId,
+      userId: r.user_id || r.userId,
+      checkedInAt: r.checked_in_at || r.checkedInAt,
+      event: r.events || r.event,
+    }));
+
     return NextResponse.json({
-      records,
+      records: mappedRecords,
       stats: {
         totalPastEvents: totalPastEvents || 0,
         totalAttendanceCount: totalAttendanceCount || 0,

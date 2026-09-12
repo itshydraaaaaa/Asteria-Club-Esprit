@@ -10,7 +10,6 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { createClient } from "@/lib/supabase/client";
 import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
@@ -24,6 +23,8 @@ import {
   Sparkles,
   Download,
   CalendarCheck,
+  Copy,
+  Check,
 } from "lucide-react";
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
@@ -46,6 +47,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [checkInStatus, setCheckInStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Justification Modal
   const [isJustifyOpen, setIsJustifyOpen] = useState(false);
@@ -60,13 +62,36 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         fetch("/api/attendance").then((r) => r.json()),
       ]);
 
-      const evts = evtRes.events || [];
+      const rawEvents = evtRes.events || [];
+      const evts = rawEvents.map((e: any) => ({
+        ...e,
+        checkInCode: e.checkInCode || e.check_in_code || "",
+        startTime: e.startTime || e.start_time,
+        endTime: e.endTime || e.end_time,
+        department: e.department || e.departments,
+      }));
+
+      const rawRecords = recRes.records || [];
+      const recs = rawRecords.map((r: any) => ({
+        ...r,
+        eventId: r.eventId || r.event_id,
+        userId: r.userId || r.user_id,
+        checkedInAt: r.checkedInAt || r.checked_in_at,
+        event: r.event || r.events,
+        user: r.user || r.profiles,
+      }));
+
       setEvents(evts);
-      setRecords(recRes.records || []);
+      setRecords(recs);
 
       if (evts.length > 0) {
-        setSelectedEventId((prev) => prev || evts[0].id);
-        generateQr(evts[0].checkInCode);
+        const initialEvtId = selectedEventId || evts[0].id;
+        setSelectedEventId(initialEvtId);
+        const currentEvt = evts.find((e: any) => e.id === initialEvtId) || evts[0];
+        const code = currentEvt?.checkInCode || currentEvt?.check_in_code;
+        if (code) {
+          generateQr(code);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -87,12 +112,13 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   });
 
   const generateQr = async (code: string) => {
+    if (!code) return;
     try {
       const url = await QRCode.toDataURL(code, {
-        width: 260,
+        width: 280,
         margin: 2,
         color: {
-          dark: BRAND_COLORS.primary, // ast-primary brand color
+          dark: BRAND_COLORS.primary,
           light: BRAND_COLORS.surface,
         },
       });
@@ -104,10 +130,18 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
 
   const handleEventSelect = (evtId: string) => {
     setSelectedEventId(evtId);
+    setCopiedCode(false);
     const evt = events.find((e) => e.id === evtId);
     if (evt) {
-      generateQr(evt.checkInCode);
+      const code = evt.checkInCode || evt.check_in_code;
+      if (code) generateQr(code);
     }
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   const handleCodeCheckIn = async (codeToUse?: string) => {
@@ -186,7 +220,9 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   };
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
-  const eventAttendanceRecords = records.filter((r) => r.eventId === selectedEventId);
+  const eventAttendanceRecords = records.filter(
+    (r) => (r.eventId || r.event_id) === selectedEventId
+  );
 
   return (
     <div className="space-y-6">
@@ -272,22 +308,35 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
             {/* QR Card Visual */}
             {selectedEvent ? (
               <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
-                {qrDataUrl && (
+                {qrDataUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={qrDataUrl}
                     alt="Event QR Code"
-                    className="w-52 h-52 rounded-2xl shadow-md border-4 border-surface"
+                    className="w-56 h-56 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
                   />
+                ) : (
+                  <div className="w-56 h-56 flex items-center justify-center bg-line/20 rounded-2xl">
+                    <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
+                  </div>
                 )}
 
                 <div className="text-center space-y-1">
                   <span className="text-[10px] uppercase font-bold text-ink-faint font-display">
                     Numeric Passcode
                   </span>
-                  <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200 inline-block">
-                    {selectedEvent.checkInCode}
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200">
+                      {selectedEvent.checkInCode || selectedEvent.check_in_code}
+                    </p>
+                    <button
+                      onClick={() => handleCopyCode(selectedEvent.checkInCode || selectedEvent.check_in_code)}
+                      className="p-2 rounded-xl border border-line bg-surface hover:bg-surface-alt text-ink transition-colors"
+                      title="Copy Code"
+                    >
+                      {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-ink-soft" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-xs text-ink-soft font-body flex items-center gap-1.5">
@@ -297,14 +346,26 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                   </span>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="accent"
-                  className="text-xs font-bold"
-                  onClick={() => handleSimulateQrScan(selectedEvent.checkInCode)}
-                >
-                  {isFr ? "⚡ Tester l'Émargement Immédiat (Démo QR)" : "⚡ Quick Test Check-In (Demo QR)"}
-                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
+                  {qrDataUrl && (
+                    <a
+                      href={qrDataUrl}
+                      download={`Asteria_QR_${selectedEvent.checkInCode || "Event"}.png`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download QR
+                    </a>
+                  )}
+
+                  <Button
+                    size="sm"
+                    variant="accent"
+                    className="text-xs font-bold"
+                    onClick={() => handleSimulateQrScan(selectedEvent.checkInCode || selectedEvent.check_in_code)}
+                  >
+                    {isFr ? "⚡ Tester Émargement QR" : "⚡ Quick Test QR Check-In"}
+                  </Button>
+                </div>
               </div>
             ) : (
               <EmptyState
@@ -359,15 +420,21 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                   Active Session Codes:
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {events.slice(0, 3).map((evt) => (
-                    <button
-                      key={evt.id}
-                      onClick={() => handleCodeCheckIn(evt.checkInCode)}
-                      className="text-xs font-mono bg-surface border border-line hover:border-ast-light px-2.5 py-1 rounded-lg text-ast-primary transition-colors"
-                    >
-                      {evt.checkInCode} ({evt.department ? evt.department.name.slice(0, 3) : "Club"})
-                    </button>
-                  ))}
+                  {events.slice(0, 4).map((evt) => {
+                    const code = evt.checkInCode || evt.check_in_code;
+                    return (
+                      <button
+                        key={evt.id}
+                        onClick={() => handleCodeCheckIn(code)}
+                        className="text-xs font-mono bg-surface border border-line hover:border-ast-light px-2.5 py-1 rounded-lg text-ast-primary transition-colors flex items-center gap-1.5"
+                      >
+                        <strong>{code}</strong>
+                        <span className="text-[10px] text-ink-faint">
+                          ({evt.department ? evt.department.name.slice(0, 4) : "Club"})
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -390,13 +457,13 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                     <Avatar name={rec.user?.name} src={rec.user?.avatarUrl} size="md" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-body font-bold text-sm text-ink">{rec.user?.name}</h4>
+                        <h4 className="font-body font-bold text-sm text-ink">{rec.user?.name || "Member"}</h4>
                         <Badge variant="primary" size="sm">
-                          {rec.user?.role}
+                          {rec.user?.role || "MEMBER"}
                         </Badge>
                       </div>
                       <p className="text-xs text-ink-soft font-body mt-0.5">
-                        Session: <strong>{rec.event?.title}</strong>
+                        Session: <strong>{rec.event?.title || "Asteria Session"}</strong>
                       </p>
                       {rec.justification && (
                         <p className="text-[11px] text-amber-800 font-body italic mt-0.5">
@@ -416,7 +483,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                       </Badge>
                     </div>
                     <span className="text-[10px] text-ink-faint font-mono mt-1 block">
-                      {formatDateTime(rec.checkedInAt)}
+                      {formatDateTime(rec.checkedInAt || rec.checked_in_at)}
                     </span>
                   </div>
                 </div>
@@ -448,7 +515,7 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
             <option value="">Select missed workshop/event...</option>
             {events.map((evt) => (
               <option key={evt.id} value={evt.id}>
-                {evt.title} ({formatDate(evt.startTime)})
+                {evt.title} ({formatDate(evt.startTime || evt.start_time)})
               </option>
             ))}
           </Select>
