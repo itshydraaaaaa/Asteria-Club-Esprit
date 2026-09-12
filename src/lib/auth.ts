@@ -1,129 +1,64 @@
-import jwt from "jsonwebtoken";
+/**
+ * Asteria Club Esprit — Auth Utilities
+ * Pure Supabase Auth — no custom JWT, no Prisma fallback.
+ */
 import { cookies } from "next/headers";
-import { prisma } from "./db";
 import { UserRole, UserSession } from "./types";
 import { createClient } from "./supabase/server";
-import { SESSION_CONFIG } from "./constants";
+import { getAdminClient } from "./supabase/admin";
+import { parseSkills } from "./supabase/queries";
 
-const JWT_SECRET = process.env.JWT_SECRET || "asteria-super-secret-jwt-key-2026";
-export const COOKIE_NAME = SESSION_CONFIG.cookieName;
-
-export interface JwtPayload {
-  userId: string;
-  email: string;
-  role: UserRole;
-}
-
-export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: SESSION_CONFIG.tokenExpiry });
-}
-
-export function verifyToken(token: string): JwtPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
+// ---------------------------------------------------------------------------
+// Session retrieval — Supabase Auth only
+// ---------------------------------------------------------------------------
 
 export async function getCurrentUser(): Promise<UserSession | null> {
-  // 1. Attempt Supabase Auth session first
   try {
     const supabase = await createClient();
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
 
-    if (authUser) {
-      const user = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { id: authUser.id },
-            { email: authUser.email?.toLowerCase().trim() || "" },
-          ],
-        },
-        include: {
-          department: true,
-          boardSeat: true,
-        },
-      });
+    if (!authUser) return null;
 
-      if (user) {
-        let skills: string[] = [];
-        try {
-          skills = JSON.parse(user.skills || "[]");
-        } catch {
-          skills = [];
-        }
+    // Fetch profile with department and board seat
+    const admin = getAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select(`
+        *,
+        departments:department_id (id, name, slug),
+        board_seats!board_seats_user_id_fkey (id, title, order)
+      `)
+      .eq("id", authUser.id)
+      .single();
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role as UserRole,
-          departmentId: user.departmentId,
-          departmentName: user.department?.name,
-          boardTitle: user.boardSeat?.title,
-          avatarUrl: user.avatarUrl,
-          bio: user.bio,
-          skills,
-          status: user.status as any,
-          freelanceReady: user.freelanceReady,
-        };
-      }
-    }
+    if (!profile) return null;
+
+    const p = profile as any;
+
+    return {
+      id: p.id,
+      name: p.name,
+      email: p.email,
+      role: p.role as UserRole,
+      departmentId: p.department_id,
+      departmentName: p.departments?.name ?? null,
+      boardTitle: p.board_seats?.title ?? null,
+      avatarUrl: p.avatar_url ?? null,
+      bio: p.bio ?? null,
+      skills: parseSkills(p.skills),
+      status: p.status,
+      freelanceReady: p.freelance_ready,
+    };
   } catch {
-    // Continue to local session token check
-  }
-
-  // 2. Local JWT session token fallback
-  let token: string | undefined;
-  try {
-    const cookieStore = await cookies();
-    token = cookieStore.get(COOKIE_NAME)?.value;
-  } catch {
-    token = undefined;
-  }
-
-  if (!token) {
     return null;
   }
-
-  const payload = verifyToken(token);
-  if (!payload?.userId) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    include: {
-      department: true,
-      boardSeat: true,
-    },
-  });
-
-  if (!user) return null;
-
-  let skills: string[] = [];
-  try {
-    skills = JSON.parse(user.skills || "[]");
-  } catch {
-    skills = [];
-  }
-
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role as UserRole,
-    departmentId: user.departmentId,
-    departmentName: user.department?.name,
-    boardTitle: user.boardSeat?.title,
-    avatarUrl: user.avatarUrl,
-    bio: user.bio,
-    skills,
-    status: user.status as any,
-    freelanceReady: user.freelanceReady,
-  };
 }
+
+// ---------------------------------------------------------------------------
+// Role permission check
+// ---------------------------------------------------------------------------
 
 export function hasPermission(
   userRole: UserRole,

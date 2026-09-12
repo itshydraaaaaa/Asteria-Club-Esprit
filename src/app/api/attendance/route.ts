@@ -1,60 +1,33 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getAttendanceRecords, countEvents } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
+import { getAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const eventId = searchParams.get("eventId");
-    const departmentId = searchParams.get("departmentId");
-    const userId = searchParams.get("userId");
-    const user = await getCurrentUser();
+    const eventId = searchParams.get("eventId") || undefined;
+    const userId = searchParams.get("userId") || undefined;
 
-    const where: any = {};
-    if (eventId) where.eventId = eventId;
-    if (userId) where.userId = userId;
+    const records = await getAttendanceRecords({ event_id: eventId, user_id: userId });
 
-    const records = await prisma.attendanceRecord.findMany({
-      where,
-      include: {
-        event: {
-          include: {
-            department: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            departmentId: true,
-            avatarUrl: true,
-            department: true,
-          },
-        },
-      },
-      orderBy: { checkedInAt: "desc" },
-    });
+    // Aggregate: count past events and total attendance
+    const admin = getAdminClient();
+    const { count: totalPastEvents } = await admin
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .lte("start_time", new Date().toISOString());
 
-    // Calculate aggregated metrics
-    const totalPastEvents = await prisma.event.count({
-      where: {
-        startTime: { lte: new Date() },
-      },
-    });
-
-    const totalAttendanceCount = await prisma.attendanceRecord.count({
-      where: {
-        status: "PRESENT",
-      },
-    });
+    const { count: totalAttendanceCount } = await admin
+      .from("attendance_records")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "PRESENT");
 
     return NextResponse.json({
       records,
       stats: {
-        totalPastEvents,
-        totalAttendanceCount,
+        totalPastEvents: totalPastEvents || 0,
+        totalAttendanceCount: totalAttendanceCount || 0,
       },
     });
   } catch (error) {

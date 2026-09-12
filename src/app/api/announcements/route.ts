@@ -1,37 +1,15 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { getAnnouncements, createAnnouncement, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const departmentId = searchParams.get("departmentId");
-    const scope = searchParams.get("scope");
+    const departmentId = searchParams.get("departmentId") || undefined;
+    const scope = searchParams.get("scope") || undefined;
 
-    const where: any = {};
-    if (scope === "CLUB") {
-      where.scope = "CLUB";
-    } else if (departmentId && departmentId !== "all") {
-      where.OR = [{ scope: "CLUB" }, { departmentId }];
-    }
-
-    const announcements = await prisma.announcement.findMany({
-      where,
-      include: {
-        department: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
-            avatarUrl: true,
-          },
-        },
-      },
-      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-    });
-
+    const announcements = await getAnnouncements({ scope, department_id: departmentId });
     return NextResponse.json({ announcements });
   } catch (error) {
     console.error("Error in GET /api/announcements:", error);
@@ -56,32 +34,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
     }
 
-    const announcement = await prisma.$transaction(async (tx) => {
-      const createdAnnouncement = await tx.announcement.create({
-        data: {
-          title,
-          body: content,
-          scope,
-          departmentId: scope === "DEPARTMENT" ? departmentId : null,
-          authorId: user.id,
-          isPinned,
-        },
-        include: {
-          department: true,
-          author: { select: SAFE_USER_SELECT },
-        },
-      });
+    const announcement = await createAnnouncement({
+      title,
+      body: content,
+      scope,
+      department_id: scope === "DEPARTMENT" ? departmentId : null,
+      author_id: user.id,
+      is_pinned: isPinned,
+    });
 
-      // Create Audit Log
-      await tx.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "ANNOUNCEMENT_POSTED",
-          details: `Published announcement: "${title}" (Scope: ${scope})`,
-        },
-      });
-
-      return createdAnnouncement;
+    await createAuditLog({
+      user_id: user.id,
+      action: "ANNOUNCEMENT_POSTED",
+      details: `Published announcement: "${title}" (Scope: ${scope})`,
     });
 
     await broadcastRealtime("announcements_realtime", "announcement_updated", {
@@ -89,10 +54,10 @@ export async function POST(req: Request) {
       scope,
     });
 
-    return NextResponse.json({
-      announcement,
-      discordSynced: syncDiscord,
-    }, { status: 201 });
+    return NextResponse.json(
+      { announcement, discordSynced: syncDiscord },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error in POST /api/announcements:", error);
     return NextResponse.json({ error: "Failed to create announcement" }, { status: 500 });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getMemberById, updateProfile, getAttendanceRecords, countEvents, parseSkills } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
@@ -8,75 +8,49 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const user = await prisma.user.findUnique({
-      where: { id },
-      include: {
-        department: true,
-        boardSeat: true,
-        tasksAssigned: {
-          include: { department: true },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        },
-        attendanceRecords: {
-          include: { event: true },
-          orderBy: { checkedInAt: "desc" },
-          take: 10,
-        },
-        rsvps: {
-          include: { event: true },
-        },
-      },
-    });
+    const member = await getMemberById(id);
 
-    if (!user) {
+    if (!member) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    let skills: string[] = [];
-    try {
-      skills = JSON.parse(user.skills || "[]");
-    } catch {
-      skills = [];
-    }
+    // Fetch recent attendance records for this member
+    const attendanceRecords = await getAttendanceRecords({ user_id: id });
 
-    // Calculate attendance statistics
-    const totalEvents = await prisma.event.count({
-      where: {
-        startTime: { lte: new Date() },
-        OR: [
-          { departmentId: null },
-          ...(user.departmentId ? [{ departmentId: user.departmentId }] : []),
-        ],
-      },
-    });
+    // Count events relevant to this member's scope (club-wide + their dept)
+    const totalEvents = await countEvents({ after: new Date() }); // past events only: lte now
+    const adminClient = (await import("@/lib/supabase/admin")).getAdminClient();
+    const { count: pastCount } = await adminClient
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .lte("start_time", new Date().toISOString());
 
-    const attendedEvents = user.attendanceRecords.filter(
-      (a) => a.status === "PRESENT" || a.status === "EXCUSED"
+    const attendedEvents = attendanceRecords.filter(
+      (a: any) => a.status === "PRESENT" || a.status === "EXCUSED"
     ).length;
 
-    const attendanceRate = totalEvents > 0 ? Math.round((attendedEvents / totalEvents) * 100) : 100;
+    const totalPast = pastCount || 0;
+    const attendanceRate = totalPast > 0 ? Math.round((attendedEvents / totalPast) * 100) : 100;
 
     return NextResponse.json({
       member: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        departmentId: user.departmentId,
-        department: user.department,
-        boardSeat: user.boardSeat,
-        avatarUrl: user.avatarUrl,
-        bio: user.bio,
-        skills,
-        status: user.status,
-        freelanceReady: user.freelanceReady,
-        joinDate: user.joinDate,
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        role: member.role,
+        departmentId: member.department_id,
+        department: member.departments,
+        boardSeat: member.board_seats,
+        avatarUrl: member.avatar_url,
+        bio: member.bio,
+        skills: parseSkills(member.skills),
+        status: member.status,
+        freelanceReady: member.freelance_ready,
+        joinDate: member.join_date,
         attendanceRate,
-        totalEvents,
+        totalEvents: totalPast,
         attendedEvents,
-        tasks: user.tasksAssigned,
-        recentAttendance: user.attendanceRecords,
+        recentAttendance: attendanceRecords.slice(0, 10),
       },
     });
   } catch (error) {
@@ -98,7 +72,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
-    // Only BOARD can change role, status, or departmentId
+    // Only BOARD can change role, status, or department_id
     if (
       (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) &&
       currentUser.role !== "BOARD"
@@ -122,20 +96,15 @@ export async function PATCH(
     if (body.bio !== undefined) updateData.bio = body.bio;
     if (body.status !== undefined && currentUser.role === "BOARD") updateData.status = body.status;
     if (body.role !== undefined && currentUser.role === "BOARD") updateData.role = body.role;
-    if (body.departmentId !== undefined && currentUser.role === "BOARD") updateData.departmentId = body.departmentId;
-    if (body.freelanceReady !== undefined) updateData.freelanceReady = body.freelanceReady;
+    if (body.departmentId !== undefined && currentUser.role === "BOARD") updateData.department_id = body.departmentId;
+    if (body.freelanceReady !== undefined) updateData.freelance_ready = body.freelanceReady;
     if (body.skills !== undefined) {
-      updateData.skills = Array.isArray(body.skills) ? JSON.stringify(body.skills) : body.skills;
+      updateData.skills = Array.isArray(body.skills) ? body.skills : body.skills;
     }
+    if (body.avatarUrl !== undefined) updateData.avatar_url = body.avatarUrl;
 
-    const updated = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      include: { department: true, boardSeat: true },
-    });
-
-    const { passwordHash: _, ...safeMember } = updated;
-    return NextResponse.json({ member: safeMember });
+    const updated = await updateProfile(id, updateData);
+    return NextResponse.json({ member: updated });
   } catch (error) {
     console.error("Error updating member:", error);
     return NextResponse.json({ error: "Failed to update member" }, { status: 500 });

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getApplicationById, updateApplication, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendAcceptanceEmail } from "@/lib/email";
-import bcrypt from "bcryptjs";
+import { getAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
 
 export async function POST(
@@ -23,27 +23,24 @@ export async function POST(
     }
 
     const { id } = await params;
-    const application = await prisma.application.findUnique({
-      where: { id },
-    });
-
+    const application: any = await getApplicationById(id);
     if (!application) {
       return NextResponse.json({ error: "Application not found" }, { status: 404 });
     }
 
-    // Match department by preference
-    const department = await prisma.department.findFirst({
-      where: {
-        name: { contains: application.departmentPreference },
-      },
-    });
+    const admin = getAdminClient();
+    const { data: dept } = await (admin as any)
+      .from("departments")
+      .select("id, name")
+      .ilike("name", `%${application.department_preference}%`)
+      .single();
 
-    // Generate cryptographically random secure temporary password
-    const secureTemporaryPassword = `Ast_${crypto.randomBytes(12).toString("base64url")}!`;
-    const passwordHash = await bcrypt.hash(secureTemporaryPassword, 12);
+    const matchedDept = dept as any;
     const cleanEmail = application.email.toLowerCase().trim();
+    const secureTemporaryPassword = `Ast_${crypto.randomBytes(12).toString("base64url")}!`;
 
-    // 1. Create / Provision real Supabase Auth user via admin client
+    // 1. Create Supabase Auth user via admin client
+    let supabaseUserId: string | null = null;
     try {
       const supabaseAdmin = await createAdminClient();
       const { data: authUser, error: authError } =
@@ -54,73 +51,44 @@ export async function POST(
           user_metadata: {
             name: application.name,
             role: "MEMBER",
-            department_id: department?.id,
+            department_id: matchedDept?.id,
           },
         });
 
       if (!authError && authUser?.user) {
-        // Upsert Supabase Profile
-        await supabaseAdmin.from("profiles").upsert({
+        supabaseUserId = authUser.user.id;
+        await (admin as any).from("profiles").upsert({
           id: authUser.user.id,
           name: application.name,
           email: cleanEmail,
           role: "MEMBER",
-          department_id: department?.id,
+          department_id: matchedDept?.id ?? null,
           bio: application.motivation,
           status: "ACTIVE",
           freelance_ready: false,
-        } as any);
+          skills: ["Junior Recruit", application.department_preference],
+        });
       }
     } catch (sbErr) {
       console.warn("Supabase Auth admin user creation error:", sbErr);
     }
 
-    // 2. Atomic database transaction for user creation, application status, and audit log
-    const [newUser, updatedApp] = await prisma.$transaction(async (tx) => {
-      const userRecord = await tx.user.upsert({
-        where: { email: cleanEmail },
-        update: {
-          role: "MEMBER",
-          status: "ACTIVE",
-          departmentId: department?.id || null,
-          bio: application.motivation,
-        },
-        create: {
-          name: application.name,
-          email: cleanEmail,
-          passwordHash,
-          role: "MEMBER",
-          status: "ACTIVE",
-          departmentId: department?.id || null,
-          bio: application.motivation,
-          skills: JSON.stringify(["Junior Recruit", application.departmentPreference]),
-          freelanceReady: false,
-        },
-      });
-
-      const appRecord = await tx.application.update({
-        where: { id },
-        data: {
-          status: "ACCEPTED",
-          reviewerNotes:
-            (application.reviewerNotes ? application.reviewerNotes + " | " : "") +
-            `Auto-onboarded into ${department?.name || "General"} by ${user.name}`,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "MEMBER_ONBOARDED",
-          details: `Auto-onboarded applicant ${application.name} (${cleanEmail}) into ${department?.name || "Asteria Club"}`,
-        },
-      });
-
-      return [userRecord, appRecord];
+    // 2. Update application status
+    const updatedApp = await updateApplication(id, {
+      status: "ACCEPTED",
+      reviewer_notes:
+        (application.reviewer_notes ? application.reviewer_notes + " | " : "") +
+        `Auto-onboarded into ${matchedDept?.name || "General"} by ${user.name}`,
     });
 
-    // 3. Dispatch automated branded acceptance email with portal login credentials
-    const targetDeptName = department?.name || application.departmentPreference || "Asteria Club";
+    await createAuditLog({
+      user_id: user.id,
+      action: "MEMBER_ONBOARDED",
+      details: `Auto-onboarded applicant ${application.name} (${cleanEmail}) into ${matchedDept?.name || "Asteria Club"}`,
+    });
+
+    // 3. Dispatch acceptance email
+    const targetDeptName = matchedDept?.name || application.department_preference || "Asteria Club";
     const emailResult = await sendAcceptanceEmail({
       toEmail: cleanEmail,
       memberName: application.name,
@@ -128,27 +96,17 @@ export async function POST(
       temporaryPassword: secureTemporaryPassword,
     });
 
-    // Record email dispatch in audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: "MEMBER_ACCEPTANCE_EMAIL_SENT",
-        details: `Dispatched acceptance email to ${cleanEmail} for department ${targetDeptName} (provider: ${emailResult.provider})`,
-      },
+    await createAuditLog({
+      user_id: user.id,
+      action: "MEMBER_ACCEPTANCE_EMAIL_SENT",
+      details: `Dispatched acceptance email to ${cleanEmail} for department ${targetDeptName} (provider: ${emailResult.provider})`,
     });
 
+    // NOTE: temporaryPassword is NOT returned in the response — only sent to the applicant's email
     return NextResponse.json({
       success: true,
-      message: `Applicant ${application.name} successfully onboarded into ${targetDeptName}! Acceptance email with portal login details sent to ${cleanEmail}.`,
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        departmentId: newUser.departmentId,
-      },
+      message: `Applicant ${application.name} successfully onboarded into ${targetDeptName}! Acceptance email sent to ${cleanEmail}.`,
       application: updatedApp,
-      temporaryPassword: secureTemporaryPassword,
       emailDelivery: emailResult,
     });
   } catch (error) {

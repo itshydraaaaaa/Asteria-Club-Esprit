@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { getTaskById, updateTask, deleteTask, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { broadcastRealtime } from "@/lib/supabase/realtime";
 
@@ -16,13 +16,13 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
-    const existingTask = await prisma.task.findUnique({ where: { id } });
+    const existingTask = await getTaskById(id);
     if (!existingTask) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     const isPrivileged = user.role === "BOARD" || user.role === "HOD";
-    const isAssignee = existingTask.assigneeId === user.id;
+    const isAssignee = existingTask.assignee_id === user.id;
 
     // Only assignee or BOARD/HOD can change status
     if (body.status !== undefined && !isAssignee && !isPrivileged) {
@@ -52,24 +52,13 @@ export async function PATCH(
     if (body.description !== undefined && (isPrivileged || isAssignee)) updateData.description = body.description;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.priority !== undefined && isPrivileged) updateData.priority = body.priority;
-    if (body.assigneeId !== undefined && isPrivileged) updateData.assigneeId = body.assigneeId || null;
-    if (body.departmentId !== undefined && isPrivileged) updateData.departmentId = body.departmentId;
-    if (body.dueDate !== undefined && isPrivileged) updateData.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    if (body.assigneeId !== undefined && isPrivileged) updateData.assignee_id = body.assigneeId || null;
+    if (body.departmentId !== undefined && isPrivileged) updateData.department_id = body.departmentId;
+    if (body.dueDate !== undefined && isPrivileged) {
+      updateData.due_date = body.dueDate ? new Date(body.dueDate).toISOString() : null;
+    }
 
-    const task = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: {
-        department: true,
-        assignee: { select: SAFE_USER_SELECT },
-        createdBy: { select: SAFE_USER_SELECT },
-        comments: {
-          include: {
-            user: { select: SAFE_USER_SELECT },
-          },
-        },
-      },
-    });
+    const task = await updateTask(id, updateData);
 
     await broadcastRealtime("tasks_realtime", "task_updated", { taskId: id, action: "UPDATED" });
 
@@ -94,7 +83,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await prisma.task.delete({ where: { id } });
+    await deleteTask(id);
 
     await broadcastRealtime("tasks_realtime", "task_updated", { taskId: id, action: "DELETED" });
 

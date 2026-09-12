@@ -1,54 +1,16 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { getTasks, createTask, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const departmentId = searchParams.get("departmentId");
-    const assigneeId = searchParams.get("assigneeId");
-    const status = searchParams.get("status");
+    const department_id = searchParams.get("departmentId") ?? undefined;
+    const assignee_id = searchParams.get("assigneeId") ?? undefined;
+    const status = searchParams.get("status") ?? undefined;
 
-    const where: any = {};
-    if (departmentId && departmentId !== "all") where.departmentId = departmentId;
-    if (assigneeId && assigneeId !== "all") where.assigneeId = assigneeId;
-    if (status && status !== "all") where.status = status;
-
-    const tasks = await prisma.task.findMany({
-      where,
-      include: {
-        department: true,
-        assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        comments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                avatarUrl: true,
-              },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-        },
-      },
-      orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-    });
-
+    const tasks = await getTasks({ department_id, assignee_id, status });
     return NextResponse.json({ tasks });
   } catch (error) {
     console.error("Error in GET /api/tasks:", error);
@@ -78,43 +40,25 @@ export async function POST(req: Request) {
       );
     }
 
-    const task = await prisma.$transaction(async (tx) => {
-      const createdTask = await tx.task.create({
-        data: {
-          title,
-          description: description || "",
-          departmentId,
-          assigneeId: assigneeId || null,
-          createdById: user.id,
-          status: status || "TODO",
-          priority: priority || "MEDIUM",
-          dueDate: dueDate ? new Date(dueDate) : null,
-        },
-        include: {
-          department: true,
-          assignee: { select: SAFE_USER_SELECT },
-          createdBy: { select: SAFE_USER_SELECT },
-          comments: {
-            include: {
-              user: { select: SAFE_USER_SELECT },
-            },
-          },
-        },
-      });
-
-      // Create Audit Log
-      await tx.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "TASK_CREATED",
-          details: `Created task "${createdTask.title}" in ${createdTask.department.name}`,
-        },
-      });
-
-      return createdTask;
+    const task = await createTask({
+      title,
+      description: description || "",
+      department_id: departmentId,
+      assignee_id: assigneeId || null,
+      created_by_id: user.id,
+      status: status || "TODO",
+      priority: priority || "MEDIUM",
+      due_date: dueDate ? new Date(dueDate).toISOString() : null,
     });
 
-    // Broadcast realtime event
+    // Fetch department name for audit log
+    const deptName = (task as any).departments?.name ?? departmentId;
+    await createAuditLog({
+      user_id: user.id,
+      action: "TASK_CREATED",
+      details: `Created task "${title}" in ${deptName}`,
+    });
+
     await broadcastRealtime("tasks_realtime", "task_updated", { taskId: task.id, action: "CREATED" });
 
     return NextResponse.json({ task }, { status: 201 });

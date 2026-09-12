@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { findEventByCheckInCode, upsertAttendance } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { broadcastRealtime } from "@/lib/supabase/realtime";
+import { getAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: Request) {
   try {
@@ -17,17 +18,13 @@ export async function POST(req: Request) {
     }
 
     // Find the target event
-    let event;
+    let event: any = null;
     if (code) {
-      event = await prisma.event.findFirst({
-        where: {
-          checkInCode: { equals: code.trim().toUpperCase() },
-        },
-      });
+      event = await findEventByCheckInCode(code);
     } else if (eventId) {
-      event = await prisma.event.findUnique({
-        where: { id: eventId },
-      });
+      const admin = getAdminClient();
+      const { data } = await admin.from("events").select("*").eq("id", eventId).single();
+      event = data;
     }
 
     if (!event) {
@@ -37,30 +34,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Register check-in
-    const record = await prisma.attendanceRecord.upsert({
-      where: {
-        eventId_userId: {
-          eventId: event.id,
-          userId: user.id,
-        },
-      },
-      update: {
-        status: "PRESENT",
-        method,
-        checkedInAt: new Date(),
-      },
-      create: {
-        eventId: event.id,
-        userId: user.id,
-        status: "PRESENT",
-        method,
-        checkedInAt: new Date(),
-      },
-      include: {
-        event: true,
-        user: { select: SAFE_USER_SELECT },
-      },
+    const record = await upsertAttendance({
+      event_id: event.id,
+      user_id: user.id,
+      status: "PRESENT",
+      method,
+      checked_in_at: new Date().toISOString(),
     });
 
     await broadcastRealtime("attendance_realtime", "attendance_updated", {

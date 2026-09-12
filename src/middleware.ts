@@ -4,13 +4,13 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
-  const asteriaToken = req.cookies.get("asteria_session_token")?.value;
+  // Check for Supabase Auth session cookie only (sb-*-auth-token)
   const allCookies = req.cookies.getAll();
   const hasSupabaseToken = allCookies.some(
     (c) => c.name.startsWith("sb-") && c.name.includes("-auth-token")
   );
 
-  const isAuthenticated = Boolean(asteriaToken || hasSupabaseToken);
+  const isAuthenticated = hasSupabaseToken;
 
   // 1. Unauthenticated gate
   if (!isAuthenticated) {
@@ -26,45 +26,28 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     let isBoard = false;
 
-    if (asteriaToken) {
-      try {
-        const parts = asteriaToken.split(".");
-        if (parts.length === 3) {
-          const payload = JSON.parse(
-            Buffer.from(parts[1], "base64").toString("utf-8")
-          );
-          if (payload.role === "BOARD") {
-            isBoard = true;
-          }
-        }
-      } catch {
-        isBoard = false;
-      }
-    }
-
-    if (!isBoard && hasSupabaseToken) {
-      for (const c of allCookies) {
-        if (c.name.startsWith("sb-") && c.name.includes("-auth-token")) {
-          try {
-            const raw = c.value.startsWith("base64-")
-              ? Buffer.from(c.value.replace("base64-", ""), "base64").toString("utf-8")
-              : c.value;
-            const parsed = JSON.parse(raw);
-            const accessToken = parsed.access_token || parsed[0];
-            if (accessToken) {
-              const payload = JSON.parse(
-                Buffer.from(accessToken.split(".")[1], "base64").toString("utf-8")
-              );
-              if (
-                payload.user_metadata?.role === "BOARD" ||
-                payload.app_metadata?.role === "BOARD"
-              ) {
-                isBoard = true;
-                break;
-              }
+    // Decode BOARD role from the Supabase JWT access token in the cookie
+    for (const c of allCookies) {
+      if (c.name.startsWith("sb-") && c.name.includes("-auth-token")) {
+        try {
+          const raw = c.value.startsWith("base64-")
+            ? Buffer.from(c.value.replace("base64-", ""), "base64").toString("utf-8")
+            : c.value;
+          const parsed = JSON.parse(raw);
+          const accessToken = parsed.access_token || parsed[0];
+          if (accessToken) {
+            const payload = JSON.parse(
+              Buffer.from(accessToken.split(".")[1], "base64").toString("utf-8")
+            );
+            if (
+              payload.user_metadata?.role === "BOARD" ||
+              payload.app_metadata?.role === "BOARD"
+            ) {
+              isBoard = true;
+              break;
             }
-          } catch {}
-        }
+          }
+        } catch {}
       }
     }
 

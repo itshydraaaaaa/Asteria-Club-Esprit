@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { upsertRSVP } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(
@@ -19,26 +19,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid RSVP status" }, { status: 400 });
     }
 
-    const rsvp = await prisma.rSVP.upsert({
-      where: {
-        eventId_userId: {
-          eventId: id,
-          userId: user.id,
-        },
-      },
-      update: {
-        status,
-      },
-      create: {
-        eventId: id,
-        userId: user.id,
-        status,
-      },
-      include: {
-        user: { select: SAFE_USER_SELECT },
-      },
-    });
-
+    const rsvp = await upsertRSVP({ event_id: id, user_id: user.id, status });
     return NextResponse.json({ rsvp });
   } catch (error) {
     console.error("Error in RSVP:", error);

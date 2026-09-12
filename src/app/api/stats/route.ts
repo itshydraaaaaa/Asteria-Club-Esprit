@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { countActiveMembers, countDepartments, countTasks, getDepartmentsWithCounts } from "@/lib/supabase/queries";
 
 export async function GET() {
   try {
-    const [totalMembers, departments, totalTasks, completedTasks] = await Promise.all([
-      prisma.user.count({ where: { status: "ACTIVE" } }),
-      prisma.department.findMany({
-        include: {
-          _count: {
-            select: { members: true, tasks: true, events: true },
-          },
-        },
-      }),
-      prisma.task.count(),
-      prisma.task.count({ where: { status: "DONE" } }),
+    const [totalMembers, totalDepartments, totalTasks, completedTasks, departments] = await Promise.all([
+      countActiveMembers(),
+      countDepartments(),
+      countTasks(),
+      countTasks({ status: "DONE" }),
+      getDepartmentsWithCounts(),
     ]);
 
     const sprintVelocity =
@@ -21,7 +16,7 @@ export async function GET() {
 
     return NextResponse.json({
       totalMembers,
-      totalDepartments: departments.length,
+      totalDepartments,
       sprintVelocity,
       totalTasks,
       completedTasks,
@@ -31,8 +26,8 @@ export async function GET() {
     console.error("Error fetching public stats:", error);
     return NextResponse.json({
       totalMembers: 0,
-      totalDepartments: 4,
-      sprintVelocity: 100,
+      totalDepartments: 0,
+      sprintVelocity: 0,
       totalTasks: 0,
       completedTasks: 0,
       departments: [],

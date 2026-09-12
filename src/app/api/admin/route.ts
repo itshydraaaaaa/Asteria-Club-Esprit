@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { getBoardSeats, getDepartmentsWithCounts, getRecentAuditLogs, createAuditLog, createDepartment } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_ACADEMIC_CYCLE } from "@/lib/constants";
 
@@ -13,23 +13,11 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden: Board access required" }, { status: 403 });
     }
 
-    const boardSeats = await prisma.boardSeat.findMany({
-      include: { user: { select: SAFE_USER_SELECT } },
-      orderBy: { order: "asc" },
-    });
-
-    const departments = await prisma.department.findMany({
-      include: {
-        hod: { select: SAFE_USER_SELECT },
-        _count: { select: { members: true, tasks: true } },
-      },
-    });
-
-    const auditLogs = await prisma.auditLog.findMany({
-      include: { user: { select: SAFE_USER_SELECT } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
+    const [boardSeats, departments, auditLogs] = await Promise.all([
+      getBoardSeats(),
+      getDepartmentsWithCounts(),
+      getRecentAuditLogs(20),
+    ]);
 
     return NextResponse.json({
       boardSeats,
@@ -58,29 +46,22 @@ export async function POST(req: Request) {
     if (action === "CREATE_DEPARTMENT") {
       const { name, description, icon } = payload;
       const slug = name.toLowerCase().replace(/\s+/g, "-");
-      const dept = await prisma.department.create({
-        data: { name, slug, description, icon },
-      });
+      const dept = await createDepartment({ name, slug, description, icon });
 
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "DEPARTMENT_CREATED",
-          details: `Created new department: ${name}`,
-        },
+      await createAuditLog({
+        user_id: user.id,
+        action: "DEPARTMENT_CREATED",
+        details: `Created new department: ${name}`,
       });
 
       return NextResponse.json({ success: true, department: dept });
     }
 
     if (action === "ROLLOVER_CYCLE") {
-      // Archive / create cycle audit record
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "CYCLE_ROLLOVER",
-          details: `Initiated academic cycle rollover for: ${payload.cycleName}`,
-        },
+      await createAuditLog({
+        user_id: user.id,
+        action: "CYCLE_ROLLOVER",
+        details: `Initiated academic cycle rollover for: ${payload.cycleName}`,
       });
 
       return NextResponse.json({

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { COOKIE_NAME } from "@/lib/auth";
 
 export async function POST() {
   try {
@@ -11,6 +10,6 @@ export async function POST() {
   }
 
   const response = NextResponse.json({ success: true });
-  response.cookies.delete(COOKIE_NAME);
+  response.cookies.delete("asteria_session_token");
   return response;
 }

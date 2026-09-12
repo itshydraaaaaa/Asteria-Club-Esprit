@@ -1,7 +1,6 @@
 import React from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { RoleSwitcherBar } from "@/components/layout/RoleSwitcherBar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { MobileDrawer } from "@/components/layout/MobileDrawer";
 import { MobileNavProvider } from "@/components/providers/MobileNavProvider";
@@ -16,9 +15,6 @@ export default async function DashboardLayout({
   return (
     <MobileNavProvider>
       <div className="min-h-screen flex flex-col bg-surface-alt font-body">
-        {/* Demo Persona Switcher Bar at the very top */}
-        <RoleSwitcherBar currentUser={user} />
-
         <div className="flex-1 flex w-full">
           {/* Desktop Sidebar */}
           <div className="hidden md:block">

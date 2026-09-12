@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { upsertAttendance } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -18,24 +18,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const record = await prisma.attendanceRecord.upsert({
-      where: {
-        eventId_userId: {
-          eventId,
-          userId: user.id,
-        },
-      },
-      update: {
-        status: "EXCUSED",
-        justification,
-      },
-      create: {
-        eventId,
-        userId: user.id,
-        status: "EXCUSED",
-        method: "MANUAL",
-        justification,
-      },
+    const record = await upsertAttendance({
+      event_id: eventId,
+      user_id: user.id,
+      status: "EXCUSED",
+      method: "MANUAL",
+      justification,
     });
 
     return NextResponse.json({ success: true, record });

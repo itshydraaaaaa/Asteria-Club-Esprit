@@ -7,80 +7,43 @@ import { MemberDashboard } from "@/components/dashboard/MemberDashboard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { Sparkles, CheckCircle2, Clock, FileText } from "lucide-react";
+import { Clock } from "lucide-react";
+import {
+  getDashboardOverview,
+  getRecentAuditLogs,
+  getUpcomingEvents,
+  getDepartmentsWithCounts,
+  getTasksByAssignee,
+  getTasksByDepartment,
+  getAttendanceByUser,
+} from "@/lib/supabase/queries";
 
 async function getDashboardData() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  // Internal API fetch simulation via database direct query for fast SSR
-  const { prisma } = await import("@/lib/db");
-
-  const totalMembers = await prisma.user.count({ where: { status: "ACTIVE" } });
-  const totalDepartments = await prisma.department.count();
-  const pendingApplications = await prisma.application.count({ where: { status: "PENDING" } });
-
-  const totalTasks = await prisma.task.count();
-  const completedTasks = await prisma.task.count({ where: { status: "DONE" } });
-  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  const totalEvents = await prisma.event.count();
-  const totalAttendance = await prisma.attendanceRecord.count({ where: { status: "PRESENT" } });
-
+  const overview = await getDashboardOverview();
   let roleData: any = {};
 
   if (user.role === "BOARD") {
-    const recentAuditLogs = await prisma.auditLog.findMany({
-      include: { user: true },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    });
-
-    const upcomingEvents = await prisma.event.findMany({
-      where: { startTime: { gte: new Date() } },
-      include: { department: true, rsvps: true },
-      orderBy: { startTime: "asc" },
-      take: 4,
-    });
-
-    const departmentBreakdown = await prisma.department.findMany({
-      include: {
-        _count: {
-          select: { members: true, tasks: true },
-        },
-      },
-    });
-
-    roleData = {
-      recentAuditLogs,
-      upcomingEvents,
-      departmentBreakdown,
-    };
+    const [recentAuditLogs, upcomingEvents, departmentBreakdown] = await Promise.all([
+      getRecentAuditLogs(5),
+      getUpcomingEvents(4),
+      getDepartmentsWithCounts(),
+    ]);
+    roleData = { recentAuditLogs, upcomingEvents, departmentBreakdown };
   } else if (user.role === "HOD" && user.departmentId) {
-    const dept = await prisma.department.findUnique({
-      where: { id: user.departmentId },
-      include: {
-        members: { where: { status: "ACTIVE" } },
-        tasks: {
-          include: { assignee: true },
-          orderBy: { createdAt: "desc" },
-        },
-        events: {
-          where: { startTime: { gte: new Date() } },
-          orderBy: { startTime: "asc" },
-          take: 4,
-        },
-      },
-    });
+    const [deptTasks, upcomingDeptEvents] = await Promise.all([
+      getTasksByDepartment(user.departmentId),
+      getUpcomingEvents(4, user.departmentId),
+    ]);
 
-    const deptTasks = dept?.tasks || [];
-    const deptTasksDone = deptTasks.filter((t) => t.status === "DONE").length;
-    const deptTasksInProgress = deptTasks.filter((t) => t.status === "IN_PROGRESS").length;
-    const deptTasksReview = deptTasks.filter((t) => t.status === "REVIEW").length;
-    const deptTasksTodo = deptTasks.filter((t) => t.status === "TODO").length;
+    const deptTasksDone = deptTasks.filter((t: any) => t.status === "DONE").length;
+    const deptTasksInProgress = deptTasks.filter((t: any) => t.status === "IN_PROGRESS").length;
+    const deptTasksReview = deptTasks.filter((t: any) => t.status === "REVIEW").length;
+    const deptTasksTodo = deptTasks.filter((t: any) => t.status === "TODO").length;
 
     roleData = {
-      department: dept,
       deptTaskStats: {
         total: deptTasks.length,
         done: deptTasksDone,
@@ -88,58 +51,19 @@ async function getDashboardData() {
         review: deptTasksReview,
         todo: deptTasksTodo,
       },
-      deptMembersCount: dept?.members.length || 0,
-      upcomingDeptEvents: dept?.events || [],
+      upcomingDeptEvents,
+      deptMembersCount: 0,
     };
   } else {
-    const myTasks = await prisma.task.findMany({
-      where: { assigneeId: user.id },
-      include: { department: true },
-      orderBy: [{ status: "asc" }, { dueDate: "asc" }],
-    });
-
-    const myNextEvents = await prisma.event.findMany({
-      where: {
-        startTime: { gte: new Date() },
-        OR: [
-          { departmentId: null },
-          ...(user.departmentId ? [{ departmentId: user.departmentId }] : []),
-        ],
-      },
-      include: {
-        department: true,
-        rsvps: { where: { userId: user.id } },
-      },
-      orderBy: { startTime: "asc" },
-      take: 4,
-    });
-
-    const myAttendanceRecords = await prisma.attendanceRecord.findMany({
-      where: { userId: user.id },
-      include: { event: true },
-      orderBy: { checkedInAt: "desc" },
-    });
-
-    roleData = {
-      myTasks,
-      myNextEvents,
-      myAttendanceRecords,
-    };
+    const [myTasks, myAttendanceRecords, myNextEvents] = await Promise.all([
+      getTasksByAssignee(user.id),
+      getAttendanceByUser(user.id),
+      getUpcomingEvents(4, user.departmentId ?? undefined),
+    ]);
+    roleData = { myTasks, myAttendanceRecords, myNextEvents };
   }
 
-  return {
-    overview: {
-      totalMembers,
-      totalDepartments,
-      pendingApplications,
-      taskCompletionRate,
-      totalTasks,
-      completedTasks,
-      totalEvents,
-      totalAttendance,
-    },
-    roleData,
-  };
+  return { overview, roleData };
 }
 
 export default async function DashboardPage() {

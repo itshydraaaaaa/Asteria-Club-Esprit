@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma, SAFE_USER_SELECT } from "@/lib/db";
+import { getDepartmentById, parseSkills } from "@/lib/supabase/queries";
+import { getAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(
   req: Request,
@@ -7,43 +8,63 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const department = await prisma.department.findFirst({
-      where: {
-        OR: [{ id }, { slug: id }],
-      },
-      include: {
-        hod: { select: SAFE_USER_SELECT },
-        members: {
-          select: SAFE_USER_SELECT,
-          orderBy: [{ role: "asc" }, { name: "asc" }],
-        },
-        tasks: {
-          include: {
-            assignee: { select: SAFE_USER_SELECT },
-            createdBy: { select: SAFE_USER_SELECT },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        events: {
-          where: {
-            startTime: { gte: new Date(Date.now() - 86400000) },
-          },
-          orderBy: { startTime: "asc" },
-        },
-        announcements: {
-          include: {
-            author: { select: SAFE_USER_SELECT },
-          },
-          orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-        },
-      },
-    });
+    const dept = await getDepartmentById(id);
 
-    if (!department) {
+    if (!dept) {
       return NextResponse.json({ error: "Department not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ department });
+    const admin = getAdminClient();
+
+    // Fetch members, tasks, events, announcements in parallel
+    const [membersRes, tasksRes, eventsRes, announcementsRes] = await Promise.all([
+      admin
+        .from("profiles")
+        .select("id, name, email, role, avatar_url, bio, skills, status, freelance_ready, join_date, department_id")
+        .eq("department_id", id)
+        .order("role", { ascending: true })
+        .order("name", { ascending: true }),
+      admin
+        .from("tasks")
+        .select(`
+          *,
+          assignee:assignee_id (id, name, email, avatar_url),
+          created_by:created_by_id (id, name)
+        `)
+        .eq("department_id", id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("events")
+        .select("*")
+        .eq("department_id", id)
+        .gte("start_time", new Date(Date.now() - 86400000).toISOString())
+        .order("start_time", { ascending: true }),
+      admin
+        .from("announcements")
+        .select(`
+          *,
+          author:author_id (id, name, role, avatar_url)
+        `)
+        .eq("department_id", id)
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const members = (membersRes.data || []).map((m: any) => ({
+      ...m,
+      skills: parseSkills(m.skills),
+    }));
+
+    return NextResponse.json({
+      department: {
+        ...dept,
+        hod: dept.hod ? { ...dept.hod, skills: parseSkills(dept.hod.skills) } : null,
+        members,
+        tasks: tasksRes.data || [],
+        events: eventsRes.data || [],
+        announcements: announcementsRes.data || [],
+      },
+    });
   } catch (error) {
     console.error("Error in /api/departments/[id]:", error);
     return NextResponse.json({ error: "Failed to fetch department" }, { status: 500 });

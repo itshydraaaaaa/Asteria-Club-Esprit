@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getApplications, getApplicationByEmail, createApplication, countApplications } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
@@ -10,18 +10,10 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const department = searchParams.get("department");
-    const status = searchParams.get("status");
+    const department = searchParams.get("department") || undefined;
+    const status = searchParams.get("status") || undefined;
 
-    const where: any = {};
-    if (department && department !== "all") where.departmentPreference = department;
-    if (status && status !== "all") where.status = status;
-
-    const applications = await prisma.application.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
-
+    const applications = await getApplications({ department, status });
     return NextResponse.json({ applications });
   } catch (error) {
     console.error("Error in GET /api/applications:", error);
@@ -42,10 +34,7 @@ export async function POST(req: Request) {
     }
 
     // Check if an application already exists for this email
-    const existing = await prisma.application.findFirst({
-      where: { email: email.toLowerCase().trim() },
-    });
-
+    const existing = await getApplicationByEmail(email.toLowerCase().trim());
     if (existing) {
       return NextResponse.json(
         { error: "An application with this email address is already in our review pipeline." },
@@ -53,23 +42,24 @@ export async function POST(req: Request) {
       );
     }
 
-    const application = await prisma.application.create({
-      data: {
-        name,
-        email: email.toLowerCase().trim(),
-        phone: phone || null,
-        departmentPreference,
-        motivation,
-        portfolioLink: portfolioLink || null,
-        status: "PENDING",
-      },
+    const application = await createApplication({
+      name,
+      email: email.toLowerCase().trim(),
+      phone: phone || null,
+      department_preference: departmentPreference,
+      motivation,
+      portfolio_link: portfolioLink || null,
+      status: "PENDING",
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Application submitted successfully! Our Board and Heads of Department will review your profile.",
-      application,
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Application submitted successfully! Our Board and Heads of Department will review your profile.",
+        application,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error submitting application:", error);
     return NextResponse.json({ error: "Application submission failed" }, { status: 500 });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
   const startTime = Date.now();
@@ -9,8 +9,14 @@ export async function GET() {
 
   try {
     const startPing = Date.now();
-    await prisma.$queryRaw`SELECT 1`;
+    const admin = getAdminClient();
+    // Lightweight ping: select count from a small table
+    const { error } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .limit(1);
     latencyMs = Date.now() - startPing;
+    if (error) throw error;
     dbConnected = true;
   } catch (err: any) {
     dbConnected = false;
@@ -23,7 +29,12 @@ export async function GET() {
   );
   const supabaseConfigured = Boolean(supabaseUrl && hasServiceKey);
 
-  const status = dbConnected && supabaseConfigured ? "healthy" : dbConnected ? "degraded" : "unhealthy";
+  const status =
+    dbConnected && supabaseConfigured
+      ? "healthy"
+      : dbConnected
+      ? "degraded"
+      : "unhealthy";
 
   return NextResponse.json({
     status,
@@ -31,7 +42,7 @@ export async function GET() {
     database: {
       connected: dbConnected,
       latencyMs,
-      provider: "postgresql",
+      provider: "supabase-postgres",
       error: dbError,
     },
     supabase: {

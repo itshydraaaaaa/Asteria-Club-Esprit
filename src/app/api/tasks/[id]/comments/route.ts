@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { createTaskComment } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(
@@ -19,21 +19,10 @@ export async function POST(
       return NextResponse.json({ error: "Comment body cannot be empty" }, { status: 400 });
     }
 
-    const comment = await prisma.taskComment.create({
-      data: {
-        taskId: id,
-        userId: user.id,
-        body: body.trim(),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true,
-          },
-        },
-      },
+    const comment = await createTaskComment({
+      task_id: id,
+      user_id: user.id,
+      body: body.trim(),
     });
 
     return NextResponse.json({ comment }, { status: 201 });
