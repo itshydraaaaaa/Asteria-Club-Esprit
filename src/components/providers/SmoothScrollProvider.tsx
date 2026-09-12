@@ -1,11 +1,20 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 
 export function SmoothScrollProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   useEffect(() => {
-    // Check if user prefers reduced motion
+    // Only enable Lenis smooth scrolling on public marketing pages (/ and /apply)
+    // Avoid running on dashboard, calendar, kanban, or admin pages where it interferes with sticky sidebars and modals
+    const isPublicPage = pathname === "/" || pathname === "/apply";
+    if (!isPublicPage) {
+      return;
+    }
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -34,7 +43,7 @@ export function SmoothScrollProvider({ children }: { children: React.ReactNode }
       cancelAnimationFrame(animationFrameId);
       lenis.destroy();
     };
-  }, []);
+  }, [pathname]);
 
   return <>{children}</>;
 }
