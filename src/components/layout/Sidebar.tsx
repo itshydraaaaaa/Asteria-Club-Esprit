@@ -45,61 +45,63 @@ export function Sidebar({ user }: SidebarProps) {
       label: isFr ? "Tableau de bord" : "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
-      roles: ["BOARD", "HOD", "MEMBER", "APPLICANT"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER", "WAITING_FOR_INTERVIEW", "DECLINED", "APPLICANT"],
     },
     {
       label: isFr ? "Annuaire des Membres" : "Members Directory",
       href: "/members",
       icon: Users,
-      roles: ["BOARD", "HOD", "MEMBER"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
       label: isFr ? "Pôles & Organigramme" : "Departments & Org",
       href: "/departments",
       icon: Network,
-      roles: ["BOARD", "HOD", "MEMBER"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
       label: isFr ? "Calendrier & Événements" : "Calendar & Events",
       href: "/calendar",
       icon: Calendar,
-      roles: ["BOARD", "HOD", "MEMBER"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
       label: isFr ? "Tableau Kanban" : "Task Kanban",
       href: "/tasks",
       icon: KanbanSquare,
-      roles: ["BOARD", "HOD", "MEMBER"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
       label: isFr ? "Présence & QR" : "Attendance & QR",
       href: "/attendance",
       icon: QrCode,
-      roles: ["BOARD", "HOD", "MEMBER"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
       label: isFr ? "Annonces & Bulletins" : "Announcements",
       href: "/announcements",
       icon: Megaphone,
-      roles: ["BOARD", "HOD", "MEMBER", "APPLICANT"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER", "WAITING_FOR_INTERVIEW", "APPLICANT"],
     },
     {
       label: isFr ? "Candidatures" : "Recruitment Pipeline",
       href: "/applications",
       icon: UserPlus,
-      roles: ["BOARD", "HOD"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD"],
     },
     {
       label: isFr ? "Administration & Audit" : "Admin & Governance",
       href: "/admin",
       icon: Settings,
-      roles: ["BOARD"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD"],
     },
   ];
 
-  const allowedNav = navItems.filter(
-    (item) => !user || item.roles.includes(user.role)
-  );
+  const allowedNav = navItems.filter((item) => {
+    if (!user) return true;
+    if (user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT") return true;
+    return item.roles.includes(user.role);
+  });
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });

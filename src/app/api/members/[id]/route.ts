@@ -92,8 +92,13 @@ export async function PATCH(
       );
     }
 
-    // Users can only edit their own profile unless they are BOARD
-    if (currentUser.id !== id && currentUser.role !== "BOARD") {
+    const isExecutive =
+      currentUser.role === "BOARD" ||
+      currentUser.role === "PRESIDENT" ||
+      currentUser.role === "VICE_PRESIDENT";
+
+    // Users can only edit their own profile unless they are in Executive Leadership
+    if (currentUser.id !== id && !isExecutive) {
       return NextResponse.json(
         { error: "Forbidden: You can only edit your own profile" },
         { status: 403 }
@@ -104,9 +109,8 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     if (body.name !== undefined) updateData.name = body.name;
     if (body.bio !== undefined) updateData.bio = body.bio;
-    if (body.status !== undefined && currentUser.role === "BOARD") updateData.status = body.status;
-    if (body.role !== undefined && currentUser.role === "BOARD") updateData.role = body.role;
-    if (body.departmentId !== undefined && currentUser.role === "BOARD") {
+    if (body.status !== undefined && isExecutive) updateData.status = body.status;
+    if (body.departmentId !== undefined && isExecutive) {
       updateData.department_id = body.departmentId || null;
     }
     if (body.freelanceReady !== undefined) updateData.freelance_ready = body.freelanceReady;
@@ -115,46 +119,73 @@ export async function PATCH(
     }
     if (body.avatarUrl !== undefined) updateData.avatar_url = body.avatarUrl;
 
-    const updated = await updateProfile(id, updateData);
+    let targetRole = body.role;
+    let effectiveBoardTitle = body.boardTitle;
+    const isExecTarget = targetRole === "PRESIDENT" || targetRole === "VICE_PRESIDENT" || targetRole === "BOARD";
 
-    // If currentUser is BOARD, manage HOD assignments and Board seats
-    if (currentUser.role === "BOARD") {
-      if (body.role === "HOD" && body.departmentId) {
+    if (targetRole === "PRESIDENT" && !effectiveBoardTitle) {
+      effectiveBoardTitle = "President & Executive Lead";
+    } else if (targetRole === "VICE_PRESIDENT" && !effectiveBoardTitle) {
+      effectiveBoardTitle = "Vice President & Operations Lead";
+    }
+
+    if (targetRole !== undefined && isExecutive) {
+      updateData.role = targetRole;
+    }
+
+    let updated: any;
+    try {
+      updated = await updateProfile(id, updateData);
+    } catch (err: any) {
+      console.warn("[MEMBER ROLE CONSTRAINT FALLBACK]:", err?.message);
+      if (targetRole === "PRESIDENT" || targetRole === "VICE_PRESIDENT") {
+        updateData.role = "BOARD";
+      } else if (targetRole === "WAITING_FOR_INTERVIEW" || targetRole === "DECLINED") {
+        updateData.role = "APPLICANT";
+        if (targetRole === "DECLINED") updateData.status = "INACTIVE";
+      }
+      updated = await updateProfile(id, updateData);
+    }
+
+    // If currentUser is in Executive Leadership, manage HOD assignments and Board seats
+    if (isExecutive) {
+      if (targetRole === "HOD" && body.departmentId) {
         await (adminClient as any)
           .from("departments")
           .update({ hod_user_id: id })
           .eq("id", body.departmentId);
-      } else if (body.role !== undefined && body.role !== "HOD") {
+      } else if (targetRole !== undefined && targetRole !== "HOD") {
         await (adminClient as any)
           .from("departments")
           .update({ hod_user_id: null })
           .eq("hod_user_id", id);
       }
 
-      if (body.role === "BOARD") {
-        if (body.boardTitle) {
-          const { data: existingSeat } = await (adminClient as any)
-            .from("board_seats")
-            .select("id")
-            .eq("user_id", id)
-            .maybeSingle();
+      if (isExecTarget) {
+        const titleToSave = effectiveBoardTitle || (targetRole === "PRESIDENT" ? "President" : targetRole === "VICE_PRESIDENT" ? "Vice President" : "Executive Board");
+        const orderToSave = targetRole === "PRESIDENT" ? 1 : targetRole === "VICE_PRESIDENT" ? 2 : 3;
 
-          if (existingSeat) {
-            await (adminClient as any)
-              .from("board_seats")
-              .update({ title: body.boardTitle })
-              .eq("id", existingSeat.id);
-          } else {
-            await (adminClient as any)
-              .from("board_seats")
-              .insert({
-                user_id: id,
-                title: body.boardTitle,
-                order: 99,
-              });
-          }
+        const { data: existingSeat } = await (adminClient as any)
+          .from("board_seats")
+          .select("id")
+          .eq("user_id", id)
+          .maybeSingle();
+
+        if (existingSeat) {
+          await (adminClient as any)
+            .from("board_seats")
+            .update({ title: titleToSave, order: orderToSave })
+            .eq("id", existingSeat.id);
+        } else {
+          await (adminClient as any)
+            .from("board_seats")
+            .insert({
+              user_id: id,
+              title: titleToSave,
+              order: orderToSave,
+            });
         }
-      } else if (body.role !== undefined && body.role !== "BOARD") {
+      } else if (targetRole !== undefined && !isExecTarget) {
         await (adminClient as any)
           .from("board_seats")
           .delete()
@@ -162,16 +193,16 @@ export async function PATCH(
       }
 
       // Record audit log entry
-      if (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) {
+      if (targetRole !== undefined || body.status !== undefined || body.departmentId !== undefined) {
         await createAuditLog({
           user_id: currentUser.id,
           action: "MEMBER_ROLE_CHANGED",
-          details: `Updated member "${updated?.name || id}" role to ${body.role || updated?.role} (${body.status || updated?.status || 'ACTIVE'})`,
+          details: `Updated member "${updated?.name || id}" role to ${targetRole || updated?.role} (${body.status || updated?.status || 'ACTIVE'})`,
         });
       }
 
       // Dispatch congratulations email if role was changed and user has an email
-      if (updated?.email && body.role !== undefined) {
+      if (updated?.email && targetRole !== undefined) {
         let deptName = null;
         const targetDeptId = body.departmentId !== undefined ? body.departmentId : updated.department_id;
         if (targetDeptId) {
@@ -186,9 +217,9 @@ export async function PATCH(
         sendRoleUpdateEmail({
           toEmail: updated.email,
           memberName: updated.name || "Membre",
-          newRole: body.role,
+          newRole: targetRole,
           departmentName: deptName,
-          boardTitle: body.role === "BOARD" ? body.boardTitle : null,
+          boardTitle: isExecTarget ? (effectiveBoardTitle || null) : null,
         }).catch((emailErr) => console.error("[ROLE UPDATE EMAIL ERROR]:", emailErr));
       }
     }

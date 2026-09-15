@@ -46,15 +46,27 @@ export function Badge({
 
 export function RoleBadge({ role }: { role: UserRole | string }) {
   switch (role) {
+    case "PRESIDENT":
+      return (
+        <Badge variant="warning" className="bg-amber-400/20 text-amber-900 border-amber-400/50 font-bold shadow-sm">
+          👑 President
+        </Badge>
+      );
+    case "VICE_PRESIDENT":
+      return (
+        <Badge variant="primary" className="bg-indigo-50 text-indigo-900 border-indigo-300 font-bold shadow-sm">
+          ⚜️ Vice-President
+        </Badge>
+      );
     case "BOARD":
       return (
-        <Badge variant="primary" className="bg-teal-900 text-white border-teal-900">
+        <Badge variant="primary" className="bg-teal-900 text-white border-teal-900 font-semibold shadow-sm">
           ★ Board
         </Badge>
       );
     case "HOD":
       return (
-        <Badge variant="accent" className="bg-teal-400 text-teal-900 font-bold border-teal-400">
+        <Badge variant="accent" className="bg-teal-400 text-teal-950 font-bold border-teal-400">
           ◆ Head of Dept
         </Badge>
       );
@@ -64,9 +76,21 @@ export function RoleBadge({ role }: { role: UserRole | string }) {
           ● Member
         </Badge>
       );
+    case "WAITING_FOR_INTERVIEW":
+      return (
+        <Badge variant="warning" className="bg-amber-50 text-amber-900 border-amber-300 font-medium">
+          ⏳ Waiting Interview
+        </Badge>
+      );
+    case "DECLINED":
+      return (
+        <Badge variant="danger" className="bg-rose-50 text-rose-800 border-rose-200 font-medium">
+          ✕ Declined
+        </Badge>
+      );
     case "APPLICANT":
       return (
-        <Badge variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
+        <Badge variant="neutral" className="bg-slate-100 text-slate-700 border-slate-300">
           ○ Applicant
         </Badge>
       );

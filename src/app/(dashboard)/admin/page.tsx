@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { BOARD_TRACK_LABELS, BoardTrack, UserRole } from "@/lib/types";
 
 export default function AdminPage() {
   const { language, t } = useLanguage();
@@ -125,8 +126,16 @@ export default function AdminPage() {
 
   const handleOpenEditRole = (member: any) => {
     setEditingMember(member);
+    let resolvedRole = member.role || "MEMBER";
+    if (member.role === "BOARD") {
+      if (member.boardTitle?.toLowerCase().includes("president") && !member.boardTitle?.toLowerCase().includes("vice")) {
+        resolvedRole = "PRESIDENT";
+      } else if (member.boardTitle?.toLowerCase().includes("vice")) {
+        resolvedRole = "VICE_PRESIDENT";
+      }
+    }
     setMemberRoleForm({
-      role: member.role || "MEMBER",
+      role: resolvedRole,
       departmentId: member.departmentId || "",
       status: member.status || "ACTIVE",
       boardTitle: member.boardTitle || "",
@@ -182,6 +191,11 @@ export default function AdminPage() {
 
   const handleQuickRoleChange = async (member: any, newRole: string) => {
     if (member.role === newRole) return;
+    let autoBoardTitle = member.boardTitle || "";
+    if (newRole === "PRESIDENT") autoBoardTitle = "President & Executive Lead";
+    if (newRole === "VICE_PRESIDENT") autoBoardTitle = "Vice President & Operations Lead";
+    if (newRole === "BOARD" && !autoBoardTitle) autoBoardTitle = "Executive Board Member";
+
     try {
       const res = await fetch("/api/admin", {
         method: "POST",
@@ -193,7 +207,7 @@ export default function AdminPage() {
             role: newRole,
             departmentId: member.departmentId || null,
             status: member.status || "ACTIVE",
-            boardTitle: member.boardTitle || "",
+            boardTitle: autoBoardTitle,
           },
         }),
       });
@@ -226,7 +240,20 @@ export default function AdminPage() {
       !memberSearch ||
       m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
       m.email?.toLowerCase().includes(memberSearch.toLowerCase());
-    const matchesRole = memberRoleFilter === "all" || m.role === memberRoleFilter;
+
+    let matchesRole = memberRoleFilter === "all";
+    if (memberRoleFilter !== "all") {
+      if (memberRoleFilter === "PRESIDENT") {
+        matchesRole = m.role === "PRESIDENT" || (m.role === "BOARD" && m.boardTitle?.toLowerCase().includes("president") && !m.boardTitle?.toLowerCase().includes("vice"));
+      } else if (memberRoleFilter === "VICE_PRESIDENT") {
+        matchesRole = m.role === "VICE_PRESIDENT" || (m.role === "BOARD" && m.boardTitle?.toLowerCase().includes("vice"));
+      } else if (memberRoleFilter === "BOARD") {
+        matchesRole = m.role === "BOARD" || m.role === "PRESIDENT" || m.role === "VICE_PRESIDENT";
+      } else {
+        matchesRole = m.role === memberRoleFilter;
+      }
+    }
+
     const matchesDept = memberDeptFilter === "all" || m.departmentId === memberDeptFilter;
     return matchesSearch && matchesRole && matchesDept;
   });
@@ -441,11 +468,23 @@ export default function AdminPage() {
               <span className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-900 font-bold border border-teal-200">
                 {data?.members?.length || 0} {isFr ? "Total Membres" : "Total Members"}
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                {data?.members?.filter((m: any) => m.role === "BOARD").length || 0} Board
+              <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 font-bold border border-amber-300">
+                {data?.members?.filter((m: any) => m.role === "PRESIDENT" || (m.role === "BOARD" && m.boardTitle?.toLowerCase().includes("president") && !m.boardTitle?.toLowerCase().includes("vice"))).length || 0} 👑 {isFr ? "Président" : "President"}
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 font-bold border border-sky-200">
-                {data?.members?.filter((m: any) => m.role === "HOD").length || 0} HOD
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-900 font-bold border border-indigo-200">
+                {data?.members?.filter((m: any) => m.role === "VICE_PRESIDENT" || (m.role === "BOARD" && m.boardTitle?.toLowerCase().includes("vice"))).length || 0} ⚜️ {isFr ? "Vice-Président" : "Vice President"}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                {data?.members?.filter((m: any) => m.role === "BOARD").length || 0} ★ Board
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-900 font-bold border border-cyan-200">
+                {data?.members?.filter((m: any) => m.role === "HOD").length || 0} ◆ HoD
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-teal-50/70 text-teal-800 font-semibold border border-teal-200">
+                {data?.members?.filter((m: any) => m.role === "MEMBER").length || 0} ● {isFr ? "Membres" : "Members"}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-semibold border border-amber-200">
+                {data?.members?.filter((m: any) => m.role === "WAITING_FOR_INTERVIEW").length || 0} ⏳ {isFr ? "En Entretien" : "Interview"}
               </span>
             </div>
           </div>
@@ -486,10 +525,14 @@ export default function AdminPage() {
               className="text-xs py-1.5"
             >
               <option value="all">{isFr ? "Tous les Rôles" : "All Roles"}</option>
-              <option value="BOARD">{isFr ? "Bureau Exécutif (BOARD)" : "Executive Board (BOARD)"}</option>
-              <option value="HOD">{isFr ? "Responsable de Pôle (HOD)" : "Head of Dept (HOD)"}</option>
-              <option value="MEMBER">{isFr ? "Membre Actif (MEMBER)" : "Active Member (MEMBER)"}</option>
-              <option value="APPLICANT">{isFr ? "Candidat (APPLICANT)" : "Applicant (APPLICANT)"}</option>
+              <option value="PRESIDENT">{isFr ? "👑 Président (PRESIDENT)" : "👑 President (PRESIDENT)"}</option>
+              <option value="VICE_PRESIDENT">{isFr ? "⚜️ Vice-Président (VICE_PRESIDENT)" : "⚜️ Vice President (VICE_PRESIDENT)"}</option>
+              <option value="BOARD">{isFr ? "★ Bureau Exécutif (BOARD - PR/HR/CM/CRD)" : "★ Executive Board (BOARD - PR/HR/CM/CRD)"}</option>
+              <option value="HOD">{isFr ? "◆ Responsable de Pôle (HOD)" : "◆ Head of Dept (HOD)"}</option>
+              <option value="MEMBER">{isFr ? "● Membre Actif (MEMBER)" : "● Active Member (MEMBER)"}</option>
+              <option value="WAITING_FOR_INTERVIEW">{isFr ? "⏳ En Attente d'Entretien (WAITING_FOR_INTERVIEW)" : "⏳ Waiting for Interview (WAITING_FOR_INTERVIEW)"}</option>
+              <option value="DECLINED">{isFr ? "✕ Candidature Refusée (DECLINED)" : "✕ Declined (DECLINED)"}</option>
+              <option value="APPLICANT">{isFr ? "○ Candidat Initial (APPLICANT)" : "○ Applicant (APPLICANT)"}</option>
             </Select>
 
             <Select
@@ -558,12 +601,16 @@ export default function AdminPage() {
                           <Select
                             value={m.role}
                             onChange={(e) => handleQuickRoleChange(m, e.target.value)}
-                            className="text-xs py-1 w-36"
+                            className="text-xs py-1 w-44"
                           >
-                            <option value="BOARD">BOARD</option>
-                            <option value="HOD">HOD</option>
-                            <option value="MEMBER">MEMBER</option>
-                            <option value="APPLICANT">APPLICANT</option>
+                            <option value="PRESIDENT">👑 PRESIDENT</option>
+                            <option value="VICE_PRESIDENT">⚜️ VICE_PRESIDENT</option>
+                            <option value="BOARD">★ BOARD</option>
+                            <option value="HOD">◆ HOD</option>
+                            <option value="MEMBER">● MEMBER</option>
+                            <option value="WAITING_FOR_INTERVIEW">⏳ WAITING_FOR_INTERVIEW</option>
+                            <option value="DECLINED">✕ DECLINED</option>
+                            <option value="APPLICANT">○ APPLICANT</option>
                           </Select>
                         </td>
 
@@ -711,13 +758,105 @@ export default function AdminPage() {
             <Select
               label={isFr ? "Nouveau Rôle *" : "New Role *"}
               value={memberRoleForm.role}
-              onChange={(e) => setMemberRoleForm({ ...memberRoleForm, role: e.target.value })}
+              onChange={(e) => {
+                const nextRole = e.target.value;
+                let nextTitle = memberRoleForm.boardTitle;
+                if (nextRole === "PRESIDENT" && !nextTitle) nextTitle = "President & Executive Lead";
+                if (nextRole === "VICE_PRESIDENT" && !nextTitle) nextTitle = "Vice President & Operations Lead";
+                if (nextRole === "BOARD" && !nextTitle) nextTitle = "Board Member — PR (Relations Publiques)";
+                setMemberRoleForm({
+                  ...memberRoleForm,
+                  role: nextRole,
+                  boardTitle: nextTitle,
+                });
+              }}
             >
-              <option value="BOARD">{isFr ? "Bureau Exécutif (BOARD) — Super-Admin" : "Executive Board (BOARD) — Full Admin"}</option>
-              <option value="HOD">{isFr ? "Responsable de Pôle (HOD) — Direction Technique" : "Head of Department (HOD) — Track Lead"}</option>
-              <option value="MEMBER">{isFr ? "Membre Actif (MEMBER) — Accès Standard" : "Active Member (MEMBER) — Standard Access"}</option>
-              <option value="APPLICANT">{isFr ? "Candidat (APPLICANT)" : "Applicant (APPLICANT)"}</option>
+              <option value="PRESIDENT">{isFr ? "👑 Président (PRESIDENT) — Direction Suprême" : "👑 President (PRESIDENT) — Executive Leadership"}</option>
+              <option value="VICE_PRESIDENT">{isFr ? "⚜️ Vice-Président (VICE_PRESIDENT) — Gouvernance" : "⚜️ Vice President (VICE_PRESIDENT) — Operations"}</option>
+              <option value="BOARD">{isFr ? "★ Bureau Exécutif (BOARD) — Pôles PR / HR / CM / CRD" : "★ Executive Board (BOARD) — PR / HR / CM / CRD"}</option>
+              <option value="HOD">{isFr ? "◆ Responsable de Pôle (HOD) — Direction Technique" : "◆ Head of Department (HOD) — Track Lead"}</option>
+              <option value="MEMBER">{isFr ? "● Membre Actif (MEMBER) — Accès Standard" : "● Active Member (MEMBER) — Standard Access"}</option>
+              <option value="WAITING_FOR_INTERVIEW">{isFr ? "⏳ En Attente d'Entretien (WAITING_FOR_INTERVIEW)" : "⏳ Waiting for Interview (WAITING_FOR_INTERVIEW)"}</option>
+              <option value="DECLINED">{isFr ? "✕ Candidature Refusée (DECLINED)" : "✕ Application Declined (DECLINED)"}</option>
+              <option value="APPLICANT">{isFr ? "○ Candidat Initial (APPLICANT)" : "○ Applicant (APPLICANT)"}</option>
             </Select>
+
+            {memberRoleForm.role === "BOARD" && (
+              <div className="space-y-2 p-3 bg-teal-900/5 rounded-xl border border-teal-900/15">
+                <label className="text-[11px] font-mono uppercase tracking-wider text-teal-900 font-bold block">
+                  {isFr ? "Pôle du Bureau Exécutif (Board Track) :" : "Executive Board Track :"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMemberRoleForm({ ...memberRoleForm, boardTitle: "Board Member — PR (Relations Publiques)" })}
+                    className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                      memberRoleForm.boardTitle?.includes("PR")
+                        ? "bg-teal-900 text-white border-teal-900 font-bold"
+                        : "bg-surface hover:bg-surface-alt border-line text-ink"
+                    }`}
+                  >
+                    <p className="font-bold">📢 PR</p>
+                    <p className="text-[10px] opacity-80">{isFr ? "Relations Publiques" : "Public Relations"}</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMemberRoleForm({ ...memberRoleForm, boardTitle: "Board Member — HR (Ressources Humaines)" })}
+                    className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                      memberRoleForm.boardTitle?.includes("HR")
+                        ? "bg-teal-900 text-white border-teal-900 font-bold"
+                        : "bg-surface hover:bg-surface-alt border-line text-ink"
+                    }`}
+                  >
+                    <p className="font-bold">🤝 HR</p>
+                    <p className="text-[10px] opacity-80">{isFr ? "Ressources Humaines" : "Human Resources"}</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMemberRoleForm({ ...memberRoleForm, boardTitle: "Board Member — CM (Community Management)" })}
+                    className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                      memberRoleForm.boardTitle?.includes("CM")
+                        ? "bg-teal-900 text-white border-teal-900 font-bold"
+                        : "bg-surface hover:bg-surface-alt border-line text-ink"
+                    }`}
+                  >
+                    <p className="font-bold">📱 CM</p>
+                    <p className="text-[10px] opacity-80">{isFr ? "Community Management" : "Social & Community"}</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMemberRoleForm({ ...memberRoleForm, boardTitle: "Board Member — CRD (Relations Entreprises & Sponsoring)" })}
+                    className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                      memberRoleForm.boardTitle?.includes("CRD")
+                        ? "bg-teal-900 text-white border-teal-900 font-bold"
+                        : "bg-surface hover:bg-surface-alt border-line text-ink"
+                    }`}
+                  >
+                    <p className="font-bold">💼 CRD</p>
+                    <p className="text-[10px] opacity-80">{isFr ? "Relations Entreprises" : "Corporate Relations"}</p>
+                  </button>
+                </div>
+
+                <Input
+                  label={isFr ? "Titre Officiel du Siège Exécutif" : "Executive Seat Title"}
+                  placeholder={isFr ? "Ex: Responsable Relations Publiques..." : "e.g. Head of Public Relations..."}
+                  value={memberRoleForm.boardTitle}
+                  onChange={(e) => setMemberRoleForm({ ...memberRoleForm, boardTitle: e.target.value })}
+                  className="mt-2"
+                />
+              </div>
+            )}
+
+            {(memberRoleForm.role === "PRESIDENT" || memberRoleForm.role === "VICE_PRESIDENT") && (
+              <Input
+                label={isFr ? "Titre Officiel (Optionnel)" : "Executive Title (Optional)"}
+                value={memberRoleForm.boardTitle}
+                onChange={(e) => setMemberRoleForm({ ...memberRoleForm, boardTitle: e.target.value })}
+              />
+            )}
 
             <Select
               label={isFr ? "Pôle Technique Affecté" : "Assigned Technical Department"}
@@ -731,15 +870,6 @@ export default function AdminPage() {
                 </option>
               ))}
             </Select>
-
-            {memberRoleForm.role === "BOARD" && (
-              <Input
-                label={isFr ? "Titre au Bureau Exécutif (Optionnel)" : "Board Seat Title (Optional)"}
-                placeholder={isFr ? "Ex: Président, Vice-Président, Trésorier..." : "e.g. Vice President, Treasurer, Head of Logistics..."}
-                value={memberRoleForm.boardTitle}
-                onChange={(e) => setMemberRoleForm({ ...memberRoleForm, boardTitle: e.target.value })}
-              />
-            )}
 
             <Select
               label={isFr ? "Statut du Membre" : "Membership Status"}

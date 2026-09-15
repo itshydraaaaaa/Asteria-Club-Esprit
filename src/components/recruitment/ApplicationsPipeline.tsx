@@ -301,14 +301,14 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                   Review Dossier
                 </Button>
 
-                {currentUser?.role === "BOARD" && app.status !== "ACCEPTED" && (
+                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && app.status !== "ACCEPTED" && (
                   <Button
                     size="sm"
                     variant="accent"
                     className="text-xs font-bold w-full sm:w-auto"
                     onClick={() => handleAutoOnboard(app.id, app)}
                   >
-                    ★ {isFr ? "1-Click Onboard & Mail" : "1-Click Onboard"}
+                    ★ {isFr ? "Entretien & Accès Portail" : "Interview & Portal Access"}
                   </Button>
                 )}
               </div>
@@ -383,14 +383,14 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                 >
                   {isFr ? "Accepter & Envoyer Mail" : "Accept & Send Credentials"}
                 </Button>
-                {currentUser?.role === "BOARD" && (
+                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && (
                   <Button
                     variant="accent"
                     size="sm"
                     className="font-bold"
                     onClick={() => handleAutoOnboard(selectedApp.id, selectedApp)}
                   >
-                    ★ {isFr ? "Auto-Onboard & Email" : "1-Click Onboard & Mail"}
+                    ★ {isFr ? "Entretien & Accès Portail" : "Interview & Portal Access"}
                   </Button>
                 )}
               </div>

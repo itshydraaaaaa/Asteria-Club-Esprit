@@ -360,11 +360,11 @@ export default function MemberProfilePage() {
             onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
           />
 
-          {currentUser?.role === "BOARD" && (
+          {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && (
             <div className="p-4 bg-teal-50/70 border border-teal-200/80 rounded-2xl space-y-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-teal-900 font-mono">
-                  ★ Board Governance Controls
+                  ★ Executive Governance Controls
                 </span>
                 <span className="text-[10px] bg-teal-900 text-white px-2 py-0.5 rounded font-bold">
                   ADMIN
@@ -375,12 +375,23 @@ export default function MemberProfilePage() {
                 <Select
                   label="Role"
                   value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  onChange={(e) => {
+                    const nextRole = e.target.value;
+                    let nextTitle = editForm.boardTitle;
+                    if (nextRole === "PRESIDENT" && !nextTitle) nextTitle = "President & Executive Lead";
+                    if (nextRole === "VICE_PRESIDENT" && !nextTitle) nextTitle = "Vice President & Operations Lead";
+                    if (nextRole === "BOARD" && !nextTitle) nextTitle = "Board Member — PR (Relations Publiques)";
+                    setEditForm({ ...editForm, role: nextRole, boardTitle: nextTitle });
+                  }}
                 >
-                  <option value="BOARD">Executive Board (BOARD)</option>
-                  <option value="HOD">Head of Department (HOD)</option>
-                  <option value="MEMBER">Active Member (MEMBER)</option>
-                  <option value="APPLICANT">Applicant (APPLICANT)</option>
+                  <option value="PRESIDENT">👑 President (PRESIDENT)</option>
+                  <option value="VICE_PRESIDENT">⚜️ Vice President (VICE_PRESIDENT)</option>
+                  <option value="BOARD">★ Executive Board (BOARD — PR/HR/CM/CRD)</option>
+                  <option value="HOD">◆ Head of Department (HOD)</option>
+                  <option value="MEMBER">● Active Member (MEMBER)</option>
+                  <option value="WAITING_FOR_INTERVIEW">⏳ Waiting for Interview</option>
+                  <option value="DECLINED">✕ Application Declined</option>
+                  <option value="APPLICANT">○ Applicant (APPLICANT)</option>
                 </Select>
 
                 <Select
@@ -398,9 +409,77 @@ export default function MemberProfilePage() {
               </div>
 
               {editForm.role === "BOARD" && (
+                <div className="space-y-2 p-3 bg-white/80 rounded-xl border border-teal-200">
+                  <label className="text-[11px] font-mono uppercase tracking-wider text-teal-900 font-bold block">
+                    Board Track Selection:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, boardTitle: "Board Member — PR (Relations Publiques)" })}
+                      className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                        editForm.boardTitle?.includes("PR")
+                          ? "bg-teal-900 text-white border-teal-900 font-bold"
+                          : "bg-surface hover:bg-surface-alt border-line text-ink"
+                      }`}
+                    >
+                      <p className="font-bold">📢 PR</p>
+                      <p className="text-[10px] opacity-80">Public Relations</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, boardTitle: "Board Member — HR (Ressources Humaines)" })}
+                      className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                        editForm.boardTitle?.includes("HR")
+                          ? "bg-teal-900 text-white border-teal-900 font-bold"
+                          : "bg-surface hover:bg-surface-alt border-line text-ink"
+                      }`}
+                    >
+                      <p className="font-bold">🤝 HR</p>
+                      <p className="text-[10px] opacity-80">Human Resources</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, boardTitle: "Board Member — CM (Community Management)" })}
+                      className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                        editForm.boardTitle?.includes("CM")
+                          ? "bg-teal-900 text-white border-teal-900 font-bold"
+                          : "bg-surface hover:bg-surface-alt border-line text-ink"
+                      }`}
+                    >
+                      <p className="font-bold">📱 CM</p>
+                      <p className="text-[10px] opacity-80">Community Management</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, boardTitle: "Board Member — CRD (Relations Entreprises & Sponsoring)" })}
+                      className={`p-2 rounded-lg text-left text-xs border transition-all ${
+                        editForm.boardTitle?.includes("CRD")
+                          ? "bg-teal-900 text-white border-teal-900 font-bold"
+                          : "bg-surface hover:bg-surface-alt border-line text-ink"
+                      }`}
+                    >
+                      <p className="font-bold">💼 CRD</p>
+                      <p className="text-[10px] opacity-80">Corporate Relations</p>
+                    </button>
+                  </div>
+
+                  <Input
+                    label="Board Seat Title"
+                    placeholder="e.g. Head of Public Relations..."
+                    value={editForm.boardTitle}
+                    onChange={(e) => setEditForm({ ...editForm, boardTitle: e.target.value })}
+                    className="mt-2"
+                  />
+                </div>
+              )}
+
+              {(editForm.role === "PRESIDENT" || editForm.role === "VICE_PRESIDENT") && (
                 <Input
-                  label="Board Seat Title (Optional)"
-                  placeholder="e.g. President, Vice President, Treasurer..."
+                  label="Executive Seat Title"
                   value={editForm.boardTitle}
                   onChange={(e) => setEditForm({ ...editForm, boardTitle: e.target.value })}
                 />

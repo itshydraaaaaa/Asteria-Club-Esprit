@@ -57,13 +57,32 @@ export async function getCurrentUser(): Promise<UserSession | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Role permission check
+// Role permission checks & helpers
 // ---------------------------------------------------------------------------
+
+export function isExecutiveRole(role?: UserRole | string | null): boolean {
+  if (!role) return false;
+  return role === "PRESIDENT" || role === "VICE_PRESIDENT" || role === "BOARD";
+}
+
+export function isManagementRole(role?: UserRole | string | null): boolean {
+  if (!role) return false;
+  return isExecutiveRole(role) || role === "HOD";
+}
 
 export function hasPermission(
   userRole: UserRole,
   allowedRoles: UserRole[]
 ): boolean {
-  if (userRole === "BOARD") return true; // Board has superuser access
-  return allowedRoles.includes(userRole);
+  // Executive Leadership (President, VP, Board) has superuser access
+  if (isExecutiveRole(userRole)) return true;
+
+  // Direct match
+  if (allowedRoles.includes(userRole)) return true;
+
+  // HoD inherits member permissions
+  if (userRole === "HOD" && allowedRoles.includes("MEMBER")) return true;
+
+  return false;
 }
+

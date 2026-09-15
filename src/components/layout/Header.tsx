@@ -98,7 +98,7 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
         <ThemeToggle />
 
         {/* Quick Task/Event Trigger */}
-        {(user?.role === "BOARD" || user?.role === "HOD") && (
+        {(user?.role === "BOARD" || user?.role === "PRESIDENT" || user?.role === "VICE_PRESIDENT" || user?.role === "HOD") && (
           <Link href="/tasks">
             <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />} className="px-2.5 sm:px-3">
               <span className="hidden sm:inline">

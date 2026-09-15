@@ -1,4 +1,43 @@
-export type UserRole = "BOARD" | "HOD" | "MEMBER" | "APPLICANT";
+export type UserRole =
+  | "PRESIDENT"
+  | "VICE_PRESIDENT"
+  | "BOARD"
+  | "HOD"
+  | "MEMBER"
+  | "WAITING_FOR_INTERVIEW"
+  | "DECLINED"
+  | "APPLICANT";
+
+export type BoardTrack = "PR" | "HR" | "CM" | "CRD" | "GENERAL";
+
+export const BOARD_TRACK_LABELS: Record<BoardTrack, { fr: string; en: string; description: string }> = {
+  PR: {
+    fr: "Relations Publiques (PR)",
+    en: "Public Relations (PR)",
+    description: "Partenariats institutionnels, presse et représentation officielle",
+  },
+  HR: {
+    fr: "Ressources Humaines (HR)",
+    en: "Human Resources (HR)",
+    description: "Recrutements, entretiens, intégration et cohésion d'équipe",
+  },
+  CM: {
+    fr: "Community Management (CM)",
+    en: "Community Management (CM)",
+    description: "Réseaux sociaux, couverture médiatique et engagement communautaire",
+  },
+  CRD: {
+    fr: "Corporate Relations & Dev (CRD)",
+    en: "Corporate Relations & Dev (CRD)",
+    description: "Sponsoring, relations entreprises, stages et opportunités de carrière",
+  },
+  GENERAL: {
+    fr: "Général / Coordination",
+    en: "General / Operations",
+    description: "Supervision exécutive et opérations générales du club",
+  },
+};
+
 export type UserStatus = "ACTIVE" | "INACTIVE" | "ALUMNI";
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";

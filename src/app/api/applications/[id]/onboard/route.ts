@@ -15,9 +15,15 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (user.role !== "BOARD" && user.role !== "HOD") {
+    const isAuthorized =
+      user.role === "BOARD" ||
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT" ||
+      user.role === "HOD";
+
+    if (!isAuthorized) {
       return NextResponse.json(
-        { error: "Forbidden: Only Board and HoD members can trigger member auto-onboarding" },
+        { error: "Forbidden: Executive Board or HoD access required to onboard applicants" },
         { status: 403 }
       );
     }
@@ -50,24 +56,38 @@ export async function POST(
           email_confirm: true,
           user_metadata: {
             name: application.name,
-            role: "MEMBER",
+            role: "WAITING_FOR_INTERVIEW",
             department_id: matchedDept?.id,
           },
         });
 
       if (!authError && authUser?.user) {
         supabaseUserId = authUser.user.id;
-        await (admin as any).from("profiles").upsert({
+        
+        // Attempt native WAITING_FOR_INTERVIEW role upsert
+        const profilePayload: any = {
           id: authUser.user.id,
           name: application.name,
           email: cleanEmail,
-          role: "MEMBER",
+          role: "WAITING_FOR_INTERVIEW",
           department_id: matchedDept?.id ?? null,
           bio: application.motivation,
           status: "ACTIVE",
           freelance_ready: false,
-          skills: ["Junior Recruit", application.department_preference],
-        });
+          skills: ["Applicant", application.department_preference || "Candidate"],
+        };
+
+        const { error: upsertErr } = await (admin as any)
+          .from("profiles")
+          .upsert(profilePayload);
+
+        // Fallback for when database check constraint has not yet been altered via migration script
+        if (upsertErr) {
+          console.warn("WAITING_FOR_INTERVIEW constraint fallback triggered:", upsertErr.message);
+          profilePayload.role = "APPLICANT";
+          profilePayload.bio = `[WAITING_FOR_INTERVIEW] ${application.motivation || ""}`;
+          await (admin as any).from("profiles").upsert(profilePayload);
+        }
       }
     } catch (sbErr) {
       console.warn("Supabase Auth admin user creation error:", sbErr);

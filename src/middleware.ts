@@ -60,9 +60,11 @@ export function middleware(req: NextRequest) {
               Buffer.from(parts[1], "base64").toString("utf-8")
             );
             decodedSuccessfully = true;
+            const role = payload.user_metadata?.role || payload.app_metadata?.role;
             if (
-              payload.user_metadata?.role === "BOARD" ||
-              payload.app_metadata?.role === "BOARD"
+              role === "BOARD" ||
+              role === "PRESIDENT" ||
+              role === "VICE_PRESIDENT"
             ) {
               isBoard = true;
             }

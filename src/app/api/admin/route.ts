@@ -19,8 +19,9 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (user.role !== "BOARD") {
-      return NextResponse.json({ error: "Forbidden: Board access required" }, { status: 403 });
+    const isExecutive = user.role === "BOARD" || user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT";
+    if (!isExecutive) {
+      return NextResponse.json({ error: "Forbidden: Executive Board access required" }, { status: 403 });
     }
 
     const [boardSeats, departments, auditLogs, members] = await Promise.all([
@@ -86,11 +87,13 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (user.role !== "BOARD") {
-      return NextResponse.json({ error: "Forbidden: Board access required" }, { status: 403 });
+    const isExecutive = user.role === "BOARD" || user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT";
+    if (!isExecutive) {
+      return NextResponse.json({ error: "Forbidden: Executive Board access required" }, { status: 403 });
     }
 
-    const { action, payload } = await req.json();
+    const body = await req.json();
+    const { action, payload } = body;
 
     if (action === "UPDATE_MEMBER_ROLE") {
       const { memberId, role, departmentId, status, boardTitle } = payload;
@@ -100,19 +103,43 @@ export async function POST(req: Request) {
 
       const adminClient = getAdminClient();
       const updateData: Record<string, unknown> = {};
-      if (role !== undefined) updateData.role = role;
       if (departmentId !== undefined) updateData.department_id = departmentId || null;
       if (status !== undefined) updateData.status = status;
 
-      const updated = await updateProfile(memberId, updateData);
+      let targetRole = role;
+      let effectiveBoardTitle = boardTitle;
+      const isExecTarget = targetRole === "PRESIDENT" || targetRole === "VICE_PRESIDENT" || targetRole === "BOARD";
+
+      if (targetRole === "PRESIDENT" && !effectiveBoardTitle) {
+        effectiveBoardTitle = "President & Executive Lead";
+      } else if (targetRole === "VICE_PRESIDENT" && !effectiveBoardTitle) {
+        effectiveBoardTitle = "Vice President & Operations Lead";
+      }
+
+      if (targetRole !== undefined) updateData.role = targetRole;
+
+      let updated: any;
+      try {
+        updated = await updateProfile(memberId, updateData);
+      } catch (err: any) {
+        // Resilient fallback if Supabase check constraint profiles_role_check hasn't been altered yet
+        console.warn("[ROLE CONSTRAINT FALLBACK]:", err?.message);
+        if (targetRole === "PRESIDENT" || targetRole === "VICE_PRESIDENT") {
+          updateData.role = "BOARD";
+        } else if (targetRole === "WAITING_FOR_INTERVIEW" || targetRole === "DECLINED") {
+          updateData.role = "APPLICANT";
+          if (targetRole === "DECLINED") updateData.status = "INACTIVE";
+        }
+        updated = await updateProfile(memberId, updateData);
+      }
 
       // Handle Head of Department (HOD) linking
-      if (role === "HOD" && departmentId) {
+      if (targetRole === "HOD" && departmentId) {
         await (adminClient as any)
           .from("departments")
           .update({ hod_user_id: memberId })
           .eq("id", departmentId);
-      } else if (role !== "HOD") {
+      } else if (targetRole !== "HOD") {
         // If they were previously marked as HOD of any department, clear it
         await (adminClient as any)
           .from("departments")
@@ -120,32 +147,33 @@ export async function POST(req: Request) {
           .eq("hod_user_id", memberId);
       }
 
-      // Handle Executive Board seats
-      if (role === "BOARD") {
-        if (boardTitle) {
-          const { data: existingSeat } = await (adminClient as any)
-            .from("board_seats")
-            .select("id")
-            .eq("user_id", memberId)
-            .maybeSingle();
+      // Handle Executive Board seats (President, Vice President, Board Tracks)
+      if (isExecTarget) {
+        const titleToSave = effectiveBoardTitle || (targetRole === "PRESIDENT" ? "President" : targetRole === "VICE_PRESIDENT" ? "Vice President" : "Executive Board");
+        const orderToSave = targetRole === "PRESIDENT" ? 1 : targetRole === "VICE_PRESIDENT" ? 2 : 3;
 
-          if (existingSeat) {
-            await (adminClient as any)
-              .from("board_seats")
-              .update({ title: boardTitle })
-              .eq("id", existingSeat.id);
-          } else {
-            await (adminClient as any)
-              .from("board_seats")
-              .insert({
-                user_id: memberId,
-                title: boardTitle,
-                order: 99,
-              });
-          }
+        const { data: existingSeat } = await (adminClient as any)
+          .from("board_seats")
+          .select("id")
+          .eq("user_id", memberId)
+          .maybeSingle();
+
+        if (existingSeat) {
+          await (adminClient as any)
+            .from("board_seats")
+            .update({ title: titleToSave, order: orderToSave })
+            .eq("id", existingSeat.id);
+        } else {
+          await (adminClient as any)
+            .from("board_seats")
+            .insert({
+              user_id: memberId,
+              title: titleToSave,
+              order: orderToSave,
+            });
         }
       } else {
-        // If no longer BOARD, remove from board_seats
+        // If no longer in Executive Leadership, remove from board_seats
         await (adminClient as any)
           .from("board_seats")
           .delete()
@@ -156,11 +184,11 @@ export async function POST(req: Request) {
       await createAuditLog({
         user_id: user.id,
         action: "MEMBER_ROLE_CHANGED",
-        details: `Updated role of "${updated?.name || memberId}" to ${role || updated?.role} (${status || updated?.status || 'ACTIVE'})`,
+        details: `Updated role of "${updated?.name || memberId}" to ${targetRole} (${status || updated?.status || 'ACTIVE'})`,
       });
 
       // Dispatch congratulations email if role is updated and user has an email
-      if (updated?.email && role) {
+      if (updated?.email && targetRole) {
         let deptName = null;
         const targetDeptId = departmentId !== undefined ? departmentId : updated.department_id;
         if (targetDeptId) {
@@ -172,13 +200,12 @@ export async function POST(req: Request) {
           if (d?.name) deptName = d.name;
         }
 
-        // Fire and don't block response if email provider takes a moment
         sendRoleUpdateEmail({
           toEmail: updated.email,
           memberName: updated.name || "Membre",
-          newRole: role,
+          newRole: targetRole,
           departmentName: deptName,
-          boardTitle: role === "BOARD" ? boardTitle : null,
+          boardTitle: isExecTarget ? (effectiveBoardTitle || null) : null,
         }).catch((emailErr) => console.error("[ROLE UPDATE EMAIL ERROR]:", emailErr));
       }
 

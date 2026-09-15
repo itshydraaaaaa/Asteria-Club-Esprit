@@ -378,16 +378,40 @@ export interface SendRoleUpdateEmailParams {
 
 function getRoleDisplayInfo(role: string, boardTitle?: string | null) {
   switch (role) {
+    case "PRESIDENT":
+      return {
+        badge: "👑 PRÉSIDENCE EXÉCUTIVE",
+        title: boardTitle ? `Président (${boardTitle})` : "Président d'Asteria Club Esprit",
+        englishTitle: boardTitle || "Executive President",
+        accent: "#E5A93C",
+        responsibilities: [
+          "Direction suprême, vision stratégique et représentation officielle d'Asteria Club Esprit.",
+          "Arbitrage institutionnel, relations avec l'administration ESPRIT et partenaires majeurs.",
+          "Supervision globale du bureau exécutif, des pôles et des grands événements de l'école.",
+        ],
+      };
+    case "VICE_PRESIDENT":
+      return {
+        badge: "⚜️ VICE-PRÉSIDENCE EXÉCUTIVE",
+        title: boardTitle ? `Vice-Président (${boardTitle})` : "Vice-Président d'Asteria Club Esprit",
+        englishTitle: boardTitle || "Executive Vice President",
+        accent: "#6366F1",
+        responsibilities: [
+          "Coordination opérationnelle de l'ensemble des pôles et du bureau exécutif.",
+          "Suivi des sprints, de la roadmap annuelle et de la gouvernance administrative.",
+          "Intérim de la présidence et représentation officielle du club.",
+        ],
+      };
     case "BOARD":
       return {
         badge: "★ BUREAU EXÉCUTIF",
-        title: boardTitle ? `Membre du Bureau Exécutif (${boardTitle})` : "Membre du Bureau Exécutif (Executive Board)",
+        title: boardTitle ? `Bureau Exécutif (${boardTitle})` : "Membre du Bureau Exécutif (Executive Board)",
         englishTitle: boardTitle ? `Executive Board Member (${boardTitle})` : "Executive Board Member",
         accent: "#60C8D4",
         responsibilities: [
-          "Gouvernance stratégique, supervision des pôles et gestion des cycles académiques.",
+          "Gouvernance stratégique et pilotage de votre division exécutive (PR, HR, CM, ou CRD).",
           "Accès Super-Admin complet à l'espace de contrôle, aux audits et aux admissions.",
-          "Représentation officielle du club et direction des grands projets de l'école.",
+          "Coordination des projets majeurs, événements et partenariats du club.",
         ],
       };
     case "HOD":
@@ -395,7 +419,7 @@ function getRoleDisplayInfo(role: string, boardTitle?: string | null) {
         badge: "◆ RESPONSABLE DE PÔLE",
         title: "Responsable de Pôle Technique (Head of Department)",
         englishTitle: "Head of Technical Department (HOD)",
-        accent: "#60C8D4",
+        accent: "#14B8A6",
         responsibilities: [
           "Direction technique, mentorship et encadrement des membres de votre division.",
           "Création, attribution et validation des tickets de sprint sur le tableau Kanban.",
@@ -414,12 +438,36 @@ function getRoleDisplayInfo(role: string, boardTitle?: string | null) {
           "Qualification progressive aux missions rémunérées Asteria Freelance.",
         ],
       };
+    case "WAITING_FOR_INTERVIEW":
+      return {
+        badge: "⏳ EN ATTENTE D'ENTRETIEN",
+        title: "Candidat Admissible — Convocation aux Entretiens",
+        englishTitle: "Applicant — Waiting for Interview",
+        accent: "#F59E0B",
+        responsibilities: [
+          "Votre compte portail a été créé avec succès pour suivre votre progression.",
+          "Préparation de votre dossier / portfolio pour l'entretien d'évaluation avec nos leads.",
+          "Suivi des annonces et rendez-vous du club directement depuis votre espace.",
+        ],
+      };
+    case "DECLINED":
+      return {
+        badge: "✕ CANDIDATURE DÉCLINÉE",
+        title: "Candidature Non Retenue (Declined)",
+        englishTitle: "Application Declined",
+        accent: "#F43F5E",
+        responsibilities: [
+          "Remerciements chaleureux pour votre intérêt envers Asteria Club Esprit.",
+          "Encouragement continu à développer vos projets et compétences techniques.",
+          "Opportunité de renouveler votre candidature au prochain cycle de recrutement.",
+        ],
+      };
     case "APPLICANT":
       return {
         badge: "○ CANDIDAT",
         title: "Statut Candidat (Applicant)",
         englishTitle: "Applicant",
-        accent: "#F59E0B",
+        accent: "#64748B",
         responsibilities: [
           "Finalisation du processus de recrutement et évaluation des compétences.",
         ],
@@ -613,12 +661,20 @@ export async function sendRoleUpdateEmail(
 ): Promise<EmailDeliveryResult> {
   const now = new Date().toISOString();
   let subject = `⭐ Asteria Club Esprit : Félicitations pour votre rôle (${params.newRole})`;
-  if (params.newRole === "BOARD") {
+  if (params.newRole === "PRESIDENT") {
+    subject = `👑 Félicitations ! Vous êtes nommé Président d'Asteria Club Esprit`;
+  } else if (params.newRole === "VICE_PRESIDENT") {
+    subject = `⚜️ Félicitations ! Vous êtes nommé Vice-Président d'Asteria Club Esprit`;
+  } else if (params.newRole === "BOARD") {
     subject = `🎉 Félicitations ! Vous rejoignez le Bureau Exécutif d'Asteria Club Esprit${params.boardTitle ? ` (${params.boardTitle})` : ""}`;
   } else if (params.newRole === "HOD") {
     subject = `⭐ Félicitations ! Vous êtes nommé Responsable de Pôle (${params.departmentName || "Asteria Club"})`;
   } else if (params.newRole === "MEMBER") {
     subject = `✨ Félicitations ! Votre statut de Membre Actif Asteria Club Esprit est confirmé`;
+  } else if (params.newRole === "WAITING_FOR_INTERVIEW") {
+    subject = `⏳ Asteria Club Esprit : Votre compte est prêt — Convocation aux Entretiens`;
+  } else if (params.newRole === "DECLINED") {
+    subject = `Asteria Club Esprit : Information concernant votre candidature`;
   }
 
   const html = buildRoleUpdateEmailHtml(params);
