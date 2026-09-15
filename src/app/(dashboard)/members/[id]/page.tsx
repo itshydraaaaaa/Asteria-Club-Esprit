@@ -28,12 +28,19 @@ export default function MemberProfilePage() {
   const params = useParams();
   const id = params?.id as string;
   const [member, setMember] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     bio: "",
     status: "ACTIVE",
+    role: "MEMBER",
+    departmentId: "",
+    boardTitle: "",
     freelanceReady: false,
   });
 
@@ -47,8 +54,11 @@ export default function MemberProfilePage() {
           setEditForm({
             name: res.member.name,
             bio: res.member.bio || "",
-            status: res.member.status,
-            freelanceReady: res.member.freelanceReady,
+            status: res.member.status || "ACTIVE",
+            role: res.member.role || "MEMBER",
+            departmentId: res.member.departmentId || res.member.department?.id || "",
+            boardTitle: res.member.boardSeat?.title || "",
+            freelanceReady: res.member.freelanceReady || false,
           });
         }
       })
@@ -57,21 +67,37 @@ export default function MemberProfilePage() {
 
   useEffect(() => {
     fetchMember();
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => setCurrentUser(data.user))
+      .catch(() => {});
+    fetch("/api/departments")
+      .then((r) => r.json())
+      .then((data) => setDepartments(data.departments || []))
+      .catch(() => {});
   }, [id]);
 
   const handleSaveProfile = async () => {
+    setIsSaving(true);
+    setEditError(null);
     try {
       const res = await fetch(`/api/members/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
       });
+      const data = await res.json();
       if (res.ok) {
         setIsEditOpen(false);
         fetchMember();
+      } else {
+        setEditError(data.error || "Failed to update member profile");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setEditError(e?.message || "Network error updating member");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -309,10 +335,19 @@ export default function MemberProfilePage() {
       {/* Edit Profile Modal */}
       <Modal
         isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        title="Edit Member Dossier"
+        onClose={() => {
+          setIsEditOpen(false);
+          setEditError(null);
+        }}
+        title="Edit Member Dossier & Governance"
       >
         <div className="space-y-4">
+          {editError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl">
+              {editError}
+            </div>
+          )}
+
           <Input
             label="Full Name"
             value={editForm.name}
@@ -324,6 +359,54 @@ export default function MemberProfilePage() {
             value={editForm.bio}
             onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
           />
+
+          {currentUser?.role === "BOARD" && (
+            <div className="p-4 bg-teal-50/70 border border-teal-200/80 rounded-2xl space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-teal-900 font-mono">
+                  ★ Board Governance Controls
+                </span>
+                <span className="text-[10px] bg-teal-900 text-white px-2 py-0.5 rounded font-bold">
+                  ADMIN
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Select
+                  label="Role"
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                >
+                  <option value="BOARD">Executive Board (BOARD)</option>
+                  <option value="HOD">Head of Department (HOD)</option>
+                  <option value="MEMBER">Active Member (MEMBER)</option>
+                  <option value="APPLICANT">Applicant (APPLICANT)</option>
+                </Select>
+
+                <Select
+                  label="Department Division"
+                  value={editForm.departmentId}
+                  onChange={(e) => setEditForm({ ...editForm, departmentId: e.target.value })}
+                >
+                  <option value="">Club-Wide / General</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              {editForm.role === "BOARD" && (
+                <Input
+                  label="Board Seat Title (Optional)"
+                  placeholder="e.g. President, Vice President, Treasurer..."
+                  value={editForm.boardTitle}
+                  onChange={(e) => setEditForm({ ...editForm, boardTitle: e.target.value })}
+                />
+              )}
+            </div>
+          )}
 
           <Select
             label="Club Status"
@@ -349,10 +432,24 @@ export default function MemberProfilePage() {
           </div>
 
           <div className="pt-4 border-t border-line flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(false)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsEditOpen(false);
+                setEditError(null);
+              }}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
-            <Button variant="primary" size="sm" onClick={handleSaveProfile}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveProfile}
+              isLoading={isSaving}
+              disabled={isSaving}
+            >
               Save Changes
             </Button>
           </div>

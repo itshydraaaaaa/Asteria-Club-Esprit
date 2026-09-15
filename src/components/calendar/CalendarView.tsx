@@ -55,6 +55,8 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
   // New Event Modal
   const [isNewEventOpen, setIsNewEventOpen] = useState(false);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newEventImageUrl, setNewEventImageUrl] = useState("");
   const [newEventForm, setNewEventForm] = useState({
@@ -161,15 +163,51 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
   };
 
   const handleCreateEvent = async () => {
-    if (!newEventForm.title || !newEventForm.startTime || !newEventForm.endTime || !newEventForm.location) {
+    setFormError(null);
+    setConflictWarning(null);
+
+    if (!newEventForm.title.trim()) {
+      setFormError(isFr ? "Veuillez saisir un titre d'événement." : "Please enter an event title.");
       return;
     }
+    if (!newEventForm.startTime) {
+      setFormError(isFr ? "Veuillez sélectionner la date et l'heure de début." : "Please select a start date and time.");
+      return;
+    }
+    if (!newEventForm.endTime) {
+      setFormError(isFr ? "Veuillez sélectionner la date et l'heure de fin." : "Please select an end date and time.");
+      return;
+    }
+    const startDate = new Date(newEventForm.startTime);
+    const endDate = new Date(newEventForm.endTime);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      setFormError(isFr ? "Format de date ou heure invalide." : "Invalid date or time format.");
+      return;
+    }
+    if (endDate <= startDate) {
+      setFormError(
+        isFr
+          ? "L'heure de fin doit être postérieure à l'heure de début."
+          : "Event end time must be after the start time."
+      );
+      return;
+    }
+    if (!newEventForm.location.trim()) {
+      setFormError(isFr ? "Veuillez indiquer un lieu ou une salle." : "Please specify a location or room.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...newEventForm,
+          title: newEventForm.title.trim(),
+          location: newEventForm.location.trim(),
+          startTime: startDate.toISOString(),
+          endTime: endDate.toISOString(),
           departmentId: newEventForm.departmentId || null,
           imageUrl: newEventImageUrl || null,
         }),
@@ -178,6 +216,7 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
       if (res.ok) {
         setIsNewEventOpen(false);
         setConflictWarning(null);
+        setFormError(null);
         setNewEventImageUrl("");
         setNewEventForm({
           title: "",
@@ -188,14 +227,26 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
           departmentId: "",
           checkInCode: "",
         });
-        fetchEvents();
-      } else if (data.conflictWarning) {
-        setConflictWarning(
-          `Schedule conflict detected with existing event in ${newEventForm.location}.`
+        await fetchEvents();
+      } else {
+        setFormError(
+          data.error ||
+            (isFr ? "Échec de la planification de l'événement." : "Failed to schedule event.")
         );
+        if (data.conflictWarning) {
+          setConflictWarning(
+            `Schedule conflict detected with existing event in ${newEventForm.location}.`
+          );
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setFormError(
+        e?.message ||
+          (isFr ? "Une erreur réseau est survenue." : "A network error occurred while scheduling event.")
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -661,11 +712,25 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
       {/* ========================================================================= */}
       <Modal
         isOpen={isNewEventOpen}
-        onClose={() => setIsNewEventOpen(false)}
+        onClose={() => {
+          setIsNewEventOpen(false);
+          setFormError(null);
+          setConflictWarning(null);
+        }}
         title="Schedule Club or Department Event"
         description="Check for classroom and schedule conflicts automatically"
       >
         <div className="space-y-4">
+          {formError && (
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-body flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold">{isFr ? "Erreur de validation" : "Unable to schedule event"}</p>
+                <p className="mt-0.5 text-red-700">{formError}</p>
+              </div>
+            </div>
+          )}
+
           {conflictWarning && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-body flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -780,11 +845,26 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
           />
 
           <div className="pt-4 border-t border-line flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setIsNewEventOpen(false)}>
-              Cancel
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsNewEventOpen(false);
+                setFormError(null);
+                setConflictWarning(null);
+              }}
+              disabled={isSubmitting}
+            >
+              {isFr ? "Annuler" : "Cancel"}
             </Button>
-            <Button variant="primary" size="sm" onClick={handleCreateEvent}>
-              Schedule Event
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCreateEvent}
+              isLoading={isSubmitting}
+              disabled={isSubmitting || uploadingImage}
+            >
+              {isSubmitting ? (isFr ? "Planification en cours..." : "Scheduling...") : (isFr ? "Planifier l'Événement" : "Schedule Event")}
             </Button>
           </div>
         </div>

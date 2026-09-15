@@ -203,25 +203,38 @@ export async function getDepartmentsWithCounts(): Promise<any[]> {
     .order("name", { ascending: true });
   if (error) throw error;
 
-  const deptsWithCounts = await Promise.all(
-    ((depts || []) as any[]).map(async (dept: any) => {
-      const [{ count: memberCount }, { count: taskCount }, { count: eventCount }] =
-        await Promise.all([
-          (admin as any).from("profiles").select("*", { count: "exact", head: true }).eq("department_id", dept.id).eq("status", "ACTIVE"),
-          (admin as any).from("tasks").select("*", { count: "exact", head: true }).eq("department_id", dept.id),
-          (admin as any).from("events").select("*", { count: "exact", head: true }).eq("department_id", dept.id),
-        ]);
-      return {
-        ...dept,
-        _count: {
-          members: memberCount || 0,
-          tasks: taskCount || 0,
-          events: eventCount || 0,
-        },
-      };
-    })
-  );
-  return deptsWithCounts;
+  if (!depts || depts.length === 0) return [];
+
+  // Batch query counts across all departments in 3 parallel queries instead of 3*N sequential queries
+  const [{ data: activeProfiles }, { data: tasks }, { data: events }] = await Promise.all([
+    (admin as any).from("profiles").select("department_id").eq("status", "ACTIVE").not("department_id", "is", null),
+    (admin as any).from("tasks").select("department_id").not("department_id", "is", null),
+    (admin as any).from("events").select("department_id").not("department_id", "is", null),
+  ]);
+
+  const memberCounts: Record<string, number> = {};
+  for (const p of activeProfiles || []) {
+    if (p.department_id) memberCounts[p.department_id] = (memberCounts[p.department_id] || 0) + 1;
+  }
+
+  const taskCounts: Record<string, number> = {};
+  for (const t of tasks || []) {
+    if (t.department_id) taskCounts[t.department_id] = (taskCounts[t.department_id] || 0) + 1;
+  }
+
+  const eventCounts: Record<string, number> = {};
+  for (const e of events || []) {
+    if (e.department_id) eventCounts[e.department_id] = (eventCounts[e.department_id] || 0) + 1;
+  }
+
+  return (depts as any[]).map((dept: any) => ({
+    ...dept,
+    _count: {
+      members: memberCounts[dept.id] || 0,
+      tasks: taskCounts[dept.id] || 0,
+      events: eventCounts[dept.id] || 0,
+    },
+  }));
 }
 
 export async function countDepartments(): Promise<number> {

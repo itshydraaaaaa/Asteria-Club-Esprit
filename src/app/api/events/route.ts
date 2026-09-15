@@ -68,26 +68,40 @@ export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: Please log in to schedule events." }, { status: 401 });
     }
     if (user.role !== "BOARD" && user.role !== "HOD") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden: Only Board members and Department Heads (HOD) can schedule events." },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
     const { title, description, startTime, endTime, location, departmentId, recurrenceRule, checkInCode, imageUrl } = body;
 
     if (!title || !startTime || !endTime || !location) {
-      return NextResponse.json({ error: "Missing required event fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required event fields: Title, Start Time, End Time, and Location are required." },
+        { status: 400 }
+      );
     }
 
     const start = new Date(startTime);
     const end = new Date(endTime);
 
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return NextResponse.json({ error: "Invalid date format provided for start or end time." }, { status: 400 });
+    }
+
+    if (end <= start) {
+      return NextResponse.json({ error: "Event end time must be after start time." }, { status: 400 });
+    }
+
     const conflictingEvents = await checkEventConflict(location, departmentId || null, start, end);
 
     const generatedCode =
-      checkInCode || `AST-${Math.floor(1000 + Math.random() * 9000)}`;
+      (checkInCode && checkInCode.trim()) || `AST-${Math.floor(1000 + Math.random() * 9000)}`;
 
     let fullDescription = description || "";
     if (imageUrl) {
@@ -95,11 +109,11 @@ export async function POST(req: Request) {
     }
 
     const event = await createEvent({
-      title,
+      title: title.trim(),
       description: fullDescription,
       start_time: start.toISOString(),
       end_time: end.toISOString(),
-      location,
+      location: location.trim(),
       department_id: departmentId || null,
       recurrence_rule: recurrenceRule || null,
       check_in_code: generatedCode,
@@ -112,7 +126,7 @@ export async function POST(req: Request) {
     await createAuditLog({
       user_id: user.id,
       action: "EVENT_CREATED",
-      details: `Created event "${title}" scheduled for ${start.toLocaleDateString()}`,
+      details: `Created event "${title.trim()}" scheduled for ${start.toLocaleDateString()}`,
     });
 
     return NextResponse.json(
@@ -128,8 +142,8 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in POST /api/events:", error);
-    return NextResponse.json({ error: "Failed to create event" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to create event" }, { status: 500 });
   }
 }

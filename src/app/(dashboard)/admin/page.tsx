@@ -4,10 +4,11 @@ import React, { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, RoleBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   Settings,
@@ -18,6 +19,12 @@ import {
   Activity,
   Award,
   CheckCircle,
+  Users,
+  Search,
+  UserCheck,
+  Shield,
+  Edit,
+  AlertCircle,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
@@ -37,6 +44,20 @@ export default function AdminPage() {
   const [cycleName, setCycleName] = useState(
     isFr ? "Année Universitaire 2026-2027 · Semestre 1" : "Academic Year 2026-2027 · Semester 1"
   );
+
+  // Member Governance State
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberRoleFilter, setMemberRoleFilter] = useState("all");
+  const [memberDeptFilter, setMemberDeptFilter] = useState("all");
+  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [memberRoleForm, setMemberRoleForm] = useState({
+    role: "MEMBER",
+    departmentId: "",
+    status: "ACTIVE",
+    boardTitle: "",
+  });
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+  const [roleFeedback, setRoleFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const [healthData, setHealthData] = useState<any>(null);
 
@@ -101,6 +122,114 @@ export default function AdminPage() {
       console.error(e);
     }
   };
+
+  const handleOpenEditRole = (member: any) => {
+    setEditingMember(member);
+    setMemberRoleForm({
+      role: member.role || "MEMBER",
+      departmentId: member.departmentId || "",
+      status: member.status || "ACTIVE",
+      boardTitle: member.boardTitle || "",
+    });
+    setRoleFeedback(null);
+  };
+
+  const handleSaveMemberRole = async () => {
+    if (!editingMember) return;
+    setIsUpdatingRole(true);
+    setRoleFeedback(null);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_MEMBER_ROLE",
+          payload: {
+            memberId: editingMember.id,
+            role: memberRoleForm.role,
+            departmentId: memberRoleForm.departmentId || null,
+            status: memberRoleForm.status,
+            boardTitle: memberRoleForm.boardTitle,
+          },
+        }),
+      });
+      const resJson = await res.json();
+      if (res.ok) {
+        setRoleFeedback({
+          type: "success",
+          message: isFr
+            ? `Rôle mis à jour pour ${editingMember.name} avec succès !`
+            : `Role updated for ${editingMember.name} successfully!`,
+        });
+        setEditingMember(null);
+        await fetchAdminData();
+      } else {
+        setRoleFeedback({
+          type: "error",
+          message: resJson.error || "Failed to update role",
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setRoleFeedback({
+        type: "error",
+        message: err?.message || "Network error updating role",
+      });
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
+
+  const handleQuickRoleChange = async (member: any, newRole: string) => {
+    if (member.role === newRole) return;
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_MEMBER_ROLE",
+          payload: {
+            memberId: member.id,
+            role: newRole,
+            departmentId: member.departmentId || null,
+            status: member.status || "ACTIVE",
+            boardTitle: member.boardTitle || "",
+          },
+        }),
+      });
+      if (res.ok) {
+        setRoleFeedback({
+          type: "success",
+          message: isFr
+            ? `${member.name} est maintenant : ${newRole}`
+            : `${member.name} is now: ${newRole}`,
+        });
+        await fetchAdminData();
+      } else {
+        const errJson = await res.json();
+        setRoleFeedback({
+          type: "error",
+          message: errJson.error || "Quick role update failed",
+        });
+      }
+    } catch (e: any) {
+      console.error(e);
+      setRoleFeedback({
+        type: "error",
+        message: e?.message || "Network error updating role",
+      });
+    }
+  };
+
+  const filteredMembers = (data?.members || []).filter((m: any) => {
+    const matchesSearch =
+      !memberSearch ||
+      m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+      m.email?.toLowerCase().includes(memberSearch.toLowerCase());
+    const matchesRole = memberRoleFilter === "all" || m.role === memberRoleFilter;
+    const matchesDept = memberDeptFilter === "all" || m.departmentId === memberDeptFilter;
+    return matchesSearch && matchesRole && matchesDept;
+  });
 
   if (loading) {
     return (
@@ -291,6 +420,173 @@ export default function AdminPage() {
           </Card>
         </div>
 
+        {/* Member Role Governance & Permissions Card */}
+        <Card className="p-6 bg-surface">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-line">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-teal-900" />
+                <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink">
+                  {isFr ? "Gestion des Membres & Attribution des Rôles" : "Member Role Governance & Assignments"}
+                </h3>
+              </div>
+              <p className="text-xs text-ink-soft font-body mt-0.5">
+                {isFr
+                  ? "Modifiez directement les rôles (Bureau, Responsable de pôle, Membre, Candidat), départements et statuts des comptes"
+                  : "Assign Board seats, promote members to Head of Department (HOD), or manage account permissions"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-900 font-bold border border-teal-200">
+                {data?.members?.length || 0} {isFr ? "Total Membres" : "Total Members"}
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                {data?.members?.filter((m: any) => m.role === "BOARD").length || 0} Board
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 font-bold border border-sky-200">
+                {data?.members?.filter((m: any) => m.role === "HOD").length || 0} HOD
+              </span>
+            </div>
+          </div>
+
+          {/* Feedback banner */}
+          {roleFeedback && (
+            <div
+              className={`mt-4 p-3 rounded-xl flex items-center justify-between text-xs font-body ${
+                roleFeedback.type === "success"
+                  ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                  : "bg-red-50 border border-red-200 text-red-800"
+              }`}
+            >
+              <span>{roleFeedback.message}</span>
+              <button
+                type="button"
+                onClick={() => setRoleFeedback(null)}
+                className="font-bold px-2 py-0.5 rounded hover:bg-black/5"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Filters Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+            <Input
+              placeholder={isFr ? "Rechercher un membre par nom ou email..." : "Search member by name or email..."}
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              leftIcon={<Search className="w-4 h-4 text-ink-soft" />}
+              className="text-xs py-1.5"
+            />
+
+            <Select
+              value={memberRoleFilter}
+              onChange={(e) => setMemberRoleFilter(e.target.value)}
+              className="text-xs py-1.5"
+            >
+              <option value="all">{isFr ? "Tous les Rôles" : "All Roles"}</option>
+              <option value="BOARD">{isFr ? "Bureau Exécutif (BOARD)" : "Executive Board (BOARD)"}</option>
+              <option value="HOD">{isFr ? "Responsable de Pôle (HOD)" : "Head of Dept (HOD)"}</option>
+              <option value="MEMBER">{isFr ? "Membre Actif (MEMBER)" : "Active Member (MEMBER)"}</option>
+              <option value="APPLICANT">{isFr ? "Candidat (APPLICANT)" : "Applicant (APPLICANT)"}</option>
+            </Select>
+
+            <Select
+              value={memberDeptFilter}
+              onChange={(e) => setMemberDeptFilter(e.target.value)}
+              className="text-xs py-1.5"
+            >
+              <option value="all">{isFr ? "Tous les Pôles" : "All Departments"}</option>
+              {data?.departments?.map((d: any) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Members Table */}
+          <div className="mt-4 border border-line rounded-xl overflow-hidden bg-surface">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface-alt/70 text-ink-soft uppercase text-[10px] tracking-wider font-mono border-b border-line">
+                  <tr>
+                    <th className="py-3 px-4">{isFr ? "Membre" : "Member"}</th>
+                    <th className="py-3 px-4">{isFr ? "Pôle / Division" : "Department"}</th>
+                    <th className="py-3 px-4">{isFr ? "Rôle Actuel" : "Current Role"}</th>
+                    <th className="py-3 px-4">{isFr ? "Changement Rapide" : "Quick Role Change"}</th>
+                    <th className="py-3 px-4 text-right">{isFr ? "Actions" : "Actions"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/60">
+                  {filteredMembers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-ink-faint">
+                        {isFr ? "Aucun membre ne correspond aux critères." : "No members match the selected filters."}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMembers.map((m: any) => (
+                      <tr key={m.id} className="hover:bg-surface-alt/40 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={m.name} src={m.avatarUrl} size="sm" />
+                            <div className="min-w-0">
+                              <p className="font-bold text-ink truncate">{m.name}</p>
+                              <p className="text-[11px] text-ink-soft truncate">{m.email}</p>
+                              {m.boardTitle && (
+                                <p className="text-[10px] text-teal-900 font-semibold font-mono">
+                                  ★ {m.boardTitle}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className="font-medium text-ink-soft">
+                            {m.departmentName || (isFr ? "Général / Non assigné" : "General / Club-wide")}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <RoleBadge role={m.role} />
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <Select
+                            value={m.role}
+                            onChange={(e) => handleQuickRoleChange(m, e.target.value)}
+                            className="text-xs py-1 w-36"
+                          >
+                            <option value="BOARD">BOARD</option>
+                            <option value="HOD">HOD</option>
+                            <option value="MEMBER">MEMBER</option>
+                            <option value="APPLICANT">APPLICANT</option>
+                          </Select>
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            leftIcon={<Edit className="w-3 h-3" />}
+                            onClick={() => handleOpenEditRole(m)}
+                            className="text-xs py-1"
+                          >
+                            {isFr ? "Modifier" : "Configure"}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+
         {/* Security & Action Audit Logs */}
         <Card>
           <CardHeader>
@@ -386,6 +682,99 @@ export default function AdminPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Member Role & Governance Modal */}
+      <Modal
+        isOpen={!!editingMember}
+        onClose={() => {
+          setEditingMember(null);
+          setRoleFeedback(null);
+        }}
+        title={isFr ? "Modifier le Rôle & les Permissions du Membre" : "Edit Member Role & Governance"}
+        description={editingMember ? `${editingMember.name} (${editingMember.email})` : ""}
+      >
+        {editingMember && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3.5 bg-surface-alt rounded-2xl border border-line">
+              <Avatar name={editingMember.name} src={editingMember.avatarUrl} size="md" />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-body font-bold text-xs text-ink">{editingMember.name}</h4>
+                <p className="text-[11px] text-ink-soft truncate">{editingMember.email}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[10px] text-ink-faint">{isFr ? "Rôle Actuel :" : "Current:"}</span>
+                  <RoleBadge role={editingMember.role} />
+                </div>
+              </div>
+            </div>
+
+            <Select
+              label={isFr ? "Nouveau Rôle *" : "New Role *"}
+              value={memberRoleForm.role}
+              onChange={(e) => setMemberRoleForm({ ...memberRoleForm, role: e.target.value })}
+            >
+              <option value="BOARD">{isFr ? "Bureau Exécutif (BOARD) — Super-Admin" : "Executive Board (BOARD) — Full Admin"}</option>
+              <option value="HOD">{isFr ? "Responsable de Pôle (HOD) — Direction Technique" : "Head of Department (HOD) — Track Lead"}</option>
+              <option value="MEMBER">{isFr ? "Membre Actif (MEMBER) — Accès Standard" : "Active Member (MEMBER) — Standard Access"}</option>
+              <option value="APPLICANT">{isFr ? "Candidat (APPLICANT)" : "Applicant (APPLICANT)"}</option>
+            </Select>
+
+            <Select
+              label={isFr ? "Pôle Technique Affecté" : "Assigned Technical Department"}
+              value={memberRoleForm.departmentId}
+              onChange={(e) => setMemberRoleForm({ ...memberRoleForm, departmentId: e.target.value })}
+            >
+              <option value="">{isFr ? "Général / Aucun pôle (Club-wide)" : "General / Club-Wide (No Department)"}</option>
+              {data?.departments?.map((d: any) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+
+            {memberRoleForm.role === "BOARD" && (
+              <Input
+                label={isFr ? "Titre au Bureau Exécutif (Optionnel)" : "Board Seat Title (Optional)"}
+                placeholder={isFr ? "Ex: Président, Vice-Président, Trésorier..." : "e.g. Vice President, Treasurer, Head of Logistics..."}
+                value={memberRoleForm.boardTitle}
+                onChange={(e) => setMemberRoleForm({ ...memberRoleForm, boardTitle: e.target.value })}
+              />
+            )}
+
+            <Select
+              label={isFr ? "Statut du Membre" : "Membership Status"}
+              value={memberRoleForm.status}
+              onChange={(e) => setMemberRoleForm({ ...memberRoleForm, status: e.target.value })}
+            >
+              <option value="ACTIVE">{isFr ? "Actif" : "Active"}</option>
+              <option value="INACTIVE">{isFr ? "Inactif" : "Inactive"}</option>
+              <option value="ALUMNI">{isFr ? "Ancien Membre (Alumni)" : "Alumni"}</option>
+            </Select>
+
+            <div className="pt-4 border-t border-line flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setEditingMember(null);
+                  setRoleFeedback(null);
+                }}
+                disabled={isUpdatingRole}
+              >
+                {isFr ? "Annuler" : "Cancel"}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSaveMemberRole}
+                isLoading={isUpdatingRole}
+                disabled={isUpdatingRole}
+              >
+                {isFr ? "Enregistrer les Permissions" : "Save Role & Permissions"}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

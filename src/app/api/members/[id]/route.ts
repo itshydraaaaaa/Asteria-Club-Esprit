@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
-import { getMemberById, updateProfile, getAttendanceRecords, countEvents, parseSkills } from "@/lib/supabase/queries";
+import {
+  getMemberById,
+  updateProfile,
+  getAttendanceRecords,
+  countEvents,
+  parseSkills,
+  createAuditLog,
+} from "@/lib/supabase/queries";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
+import { sendRoleUpdateEmail } from "@/lib/email";
 
 export async function GET(
   req: Request,
@@ -19,8 +28,8 @@ export async function GET(
 
     // Count events relevant to this member's scope (club-wide + their dept)
     const totalEvents = await countEvents({ after: new Date() }); // past events only: lte now
-    const adminClient = (await import("@/lib/supabase/admin")).getAdminClient();
-    const { count: pastCount } = await adminClient
+    const adminClient = getAdminClient();
+    const { count: pastCount } = await (adminClient as any)
       .from("events")
       .select("*", { count: "exact", head: true })
       .lte("start_time", new Date().toISOString());
@@ -91,12 +100,15 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = {};
+    const adminClient = getAdminClient();
+    const updateData: Record<string, unknown> = {};
     if (body.name !== undefined) updateData.name = body.name;
     if (body.bio !== undefined) updateData.bio = body.bio;
     if (body.status !== undefined && currentUser.role === "BOARD") updateData.status = body.status;
     if (body.role !== undefined && currentUser.role === "BOARD") updateData.role = body.role;
-    if (body.departmentId !== undefined && currentUser.role === "BOARD") updateData.department_id = body.departmentId;
+    if (body.departmentId !== undefined && currentUser.role === "BOARD") {
+      updateData.department_id = body.departmentId || null;
+    }
     if (body.freelanceReady !== undefined) updateData.freelance_ready = body.freelanceReady;
     if (body.skills !== undefined) {
       updateData.skills = Array.isArray(body.skills) ? body.skills : body.skills;
@@ -104,9 +116,86 @@ export async function PATCH(
     if (body.avatarUrl !== undefined) updateData.avatar_url = body.avatarUrl;
 
     const updated = await updateProfile(id, updateData);
-    return NextResponse.json({ member: updated });
-  } catch (error) {
+
+    // If currentUser is BOARD, manage HOD assignments and Board seats
+    if (currentUser.role === "BOARD") {
+      if (body.role === "HOD" && body.departmentId) {
+        await (adminClient as any)
+          .from("departments")
+          .update({ hod_user_id: id })
+          .eq("id", body.departmentId);
+      } else if (body.role !== undefined && body.role !== "HOD") {
+        await (adminClient as any)
+          .from("departments")
+          .update({ hod_user_id: null })
+          .eq("hod_user_id", id);
+      }
+
+      if (body.role === "BOARD") {
+        if (body.boardTitle) {
+          const { data: existingSeat } = await (adminClient as any)
+            .from("board_seats")
+            .select("id")
+            .eq("user_id", id)
+            .maybeSingle();
+
+          if (existingSeat) {
+            await (adminClient as any)
+              .from("board_seats")
+              .update({ title: body.boardTitle })
+              .eq("id", existingSeat.id);
+          } else {
+            await (adminClient as any)
+              .from("board_seats")
+              .insert({
+                user_id: id,
+                title: body.boardTitle,
+                order: 99,
+              });
+          }
+        }
+      } else if (body.role !== undefined && body.role !== "BOARD") {
+        await (adminClient as any)
+          .from("board_seats")
+          .delete()
+          .eq("user_id", id);
+      }
+
+      // Record audit log entry
+      if (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) {
+        await createAuditLog({
+          user_id: currentUser.id,
+          action: "MEMBER_ROLE_CHANGED",
+          details: `Updated member "${updated?.name || id}" role to ${body.role || updated?.role} (${body.status || updated?.status || 'ACTIVE'})`,
+        });
+      }
+
+      // Dispatch congratulations email if role was changed and user has an email
+      if (updated?.email && body.role !== undefined) {
+        let deptName = null;
+        const targetDeptId = body.departmentId !== undefined ? body.departmentId : updated.department_id;
+        if (targetDeptId) {
+          const { data: d } = await (adminClient as any)
+            .from("departments")
+            .select("name")
+            .eq("id", targetDeptId)
+            .maybeSingle();
+          if (d?.name) deptName = d.name;
+        }
+
+        sendRoleUpdateEmail({
+          toEmail: updated.email,
+          memberName: updated.name || "Membre",
+          newRole: body.role,
+          departmentName: deptName,
+          boardTitle: body.role === "BOARD" ? body.boardTitle : null,
+        }).catch((emailErr) => console.error("[ROLE UPDATE EMAIL ERROR]:", emailErr));
+      }
+    }
+
+    return NextResponse.json({ success: true, member: updated });
+  } catch (error: any) {
     console.error("Error updating member:", error);
-    return NextResponse.json({ error: "Failed to update member" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to update member" }, { status: 500 });
   }
 }
