@@ -230,3 +230,93 @@ export async function PATCH(
     return NextResponse.json({ error: error?.message || "Failed to update member" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isExecutive =
+      currentUser.role === "BOARD" ||
+      currentUser.role === "PRESIDENT" ||
+      currentUser.role === "VICE_PRESIDENT";
+
+    if (!isExecutive) {
+      return NextResponse.json(
+        { error: "Forbidden: Executive Board authorization required to delete accounts" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    if (id === currentUser.id) {
+      return NextResponse.json(
+        { error: "You cannot delete your own account" },
+        { status: 400 }
+      );
+    }
+
+    const adminClient = getAdminClient();
+    const { data: targetProfile } = await (adminClient as any)
+      .from("profiles")
+      .select("id, name, email, role")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    if (targetProfile.role === "PRESIDENT" && currentUser.role !== "PRESIDENT") {
+      return NextResponse.json(
+        { error: "Forbidden: Only the President can delete a presidential account" },
+        { status: 403 }
+      );
+    }
+
+    // 1. Unlink HoD
+    await (adminClient as any)
+      .from("departments")
+      .update({ hod_user_id: null })
+      .eq("hod_user_id", id);
+
+    // 2. Remove from board_seats
+    await (adminClient as any)
+      .from("board_seats")
+      .delete()
+      .eq("user_id", id);
+
+    // 3. Remove from profiles
+    await (adminClient as any)
+      .from("profiles")
+      .delete()
+      .eq("id", id);
+
+    // 4. Delete Supabase Auth user
+    try {
+      await adminClient.auth.admin.deleteUser(id);
+    } catch (sbErr) {
+      console.warn("Supabase Auth deleteUser notice:", sbErr);
+    }
+
+    // 5. Audit Log
+    await createAuditLog({
+      user_id: currentUser.id,
+      action: "MEMBER_DELETED",
+      details: `Permanently deleted member account "${targetProfile.name}" (${targetProfile.email})`,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Account for ${targetProfile.name} permanently deleted.`,
+    });
+  } catch (error: any) {
+    console.error("Error deleting member:", error);
+    return NextResponse.json({ error: error?.message || "Failed to delete member" }, { status: 500 });
+  }
+}

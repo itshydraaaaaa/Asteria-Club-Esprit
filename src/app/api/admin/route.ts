@@ -242,6 +242,136 @@ export async function POST(req: Request) {
       });
     }
 
+    if (action === "BAN_MEMBER") {
+      const { memberId, banned } = payload;
+      if (!memberId) {
+        return NextResponse.json({ error: "Missing memberId parameter" }, { status: 400 });
+      }
+      if (memberId === user.id) {
+        return NextResponse.json({ error: "You cannot ban or suspend your own account" }, { status: 400 });
+      }
+
+      const adminClient = getAdminClient();
+      const { data: targetProfile } = await (adminClient as any)
+        .from("profiles")
+        .select("id, name, email, role, bio, status")
+        .eq("id", memberId)
+        .maybeSingle();
+
+      if (!targetProfile) {
+        return NextResponse.json({ error: "Member profile not found" }, { status: 404 });
+      }
+
+      // Supabase Auth ban
+      try {
+        await adminClient.auth.admin.updateUserById(memberId, {
+          ban_duration: banned ? "876000h" : "none",
+        });
+      } catch (sbErr) {
+        console.warn("Supabase auth updateUserById notice:", sbErr);
+      }
+
+      // Update profile status & bio annotation
+      const targetStatus = banned ? "INACTIVE" : "ACTIVE";
+      let updatedBio = targetProfile.bio || "";
+      if (banned) {
+        if (!updatedBio.includes("[BANNED]")) {
+          updatedBio = `[BANNED] ${updatedBio}`.trim();
+        }
+      } else {
+        updatedBio = updatedBio.replace(/\[BANNED\]\s*/g, "").trim();
+      }
+
+      await (adminClient as any)
+        .from("profiles")
+        .update({
+          status: targetStatus,
+          bio: updatedBio,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", memberId);
+
+      await createAuditLog({
+        user_id: user.id,
+        action: banned ? "MEMBER_BANNED" : "MEMBER_UNBANNED",
+        details: `${banned ? "Suspended and banned" : "Unbanned and restored"} member "${targetProfile.name}" (${targetProfile.email})`,
+      });
+
+      return NextResponse.json({
+        success: true,
+        banned,
+        message: banned
+          ? `Member ${targetProfile.name} has been banned.`
+          : `Member ${targetProfile.name} has been unbanned.`,
+      });
+    }
+
+    if (action === "DELETE_MEMBER") {
+      const { memberId } = payload;
+      if (!memberId) {
+        return NextResponse.json({ error: "Missing memberId parameter" }, { status: 400 });
+      }
+      if (memberId === user.id) {
+        return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+      }
+
+      const adminClient = getAdminClient();
+      const { data: targetProfile } = await (adminClient as any)
+        .from("profiles")
+        .select("id, name, email, role")
+        .eq("id", memberId)
+        .maybeSingle();
+
+      if (!targetProfile) {
+        return NextResponse.json({ error: "Member profile not found" }, { status: 404 });
+      }
+
+      // If target is President and current user is not President, reject
+      if (targetProfile.role === "PRESIDENT" && user.role !== "PRESIDENT") {
+        return NextResponse.json(
+          { error: "Forbidden: Only the President can delete a presidential account" },
+          { status: 403 }
+        );
+      }
+
+      // 1. Unlink HoD from departments if applicable
+      await (adminClient as any)
+        .from("departments")
+        .update({ hod_user_id: null })
+        .eq("hod_user_id", memberId);
+
+      // 2. Remove from board_seats
+      await (adminClient as any)
+        .from("board_seats")
+        .delete()
+        .eq("user_id", memberId);
+
+      // 3. Remove from profiles (cascades or sets null related items)
+      await (adminClient as any)
+        .from("profiles")
+        .delete()
+        .eq("id", memberId);
+
+      // 4. Delete Supabase Auth user
+      try {
+        await adminClient.auth.admin.deleteUser(memberId);
+      } catch (sbErr) {
+        console.warn("Supabase Auth admin deleteUser notice:", sbErr);
+      }
+
+      // 5. Record Audit Log
+      await createAuditLog({
+        user_id: user.id,
+        action: "MEMBER_DELETED",
+        details: `Permanently deleted member account: "${targetProfile.name}" (${targetProfile.email})`,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Account for ${targetProfile.name} permanently deleted.`,
+      });
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error: any) {
     console.error("Admin POST error:", error);

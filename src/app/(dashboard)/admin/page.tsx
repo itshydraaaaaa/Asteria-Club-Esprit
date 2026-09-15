@@ -25,6 +25,9 @@ import {
   Shield,
   Edit,
   AlertCircle,
+  Trash2,
+  Ban,
+  UserX,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { BOARD_TRACK_LABELS, BoardTrack, UserRole } from "@/lib/types";
@@ -46,7 +49,7 @@ export default function AdminPage() {
     isFr ? "Année Universitaire 2026-2027 · Semestre 1" : "Academic Year 2026-2027 · Semester 1"
   );
 
-  // Member Governance State
+  // Member Role Governance & Moderation
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] = useState("all");
   const [memberDeptFilter, setMemberDeptFilter] = useState("all");
@@ -59,6 +62,11 @@ export default function AdminPage() {
   });
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [roleFeedback, setRoleFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Ban and Delete state
+  const [memberToDelete, setMemberToDelete] = useState<any | null>(null);
+  const [isDeletingMember, setIsDeletingMember] = useState(false);
+  const [isBanningMemberId, setIsBanningMemberId] = useState<string | null>(null);
 
   const [healthData, setHealthData] = useState<any>(null);
 
@@ -232,6 +240,90 @@ export default function AdminPage() {
         type: "error",
         message: e?.message || "Network error updating role",
       });
+    }
+  };
+
+  const handleBanToggle = async (member: any) => {
+    const isCurrentlyBanned =
+      member.status === "INACTIVE" &&
+      (member.bio?.includes("[BANNED]") || member.status === "BANNED");
+    const nextBanned = !isCurrentlyBanned;
+
+    setIsBanningMemberId(member.id);
+    setRoleFeedback(null);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "BAN_MEMBER",
+          payload: {
+            memberId: member.id,
+            banned: nextBanned,
+          },
+        }),
+      });
+      const resJson = await res.json();
+      if (res.ok) {
+        setRoleFeedback({
+          type: "success",
+          message: isFr
+            ? `${member.name} a été ${nextBanned ? "suspendu / banni" : "réactivé"}.`
+            : `${member.name} has been ${nextBanned ? "banned / suspended" : "restored"}.`,
+        });
+        await fetchAdminData();
+      } else {
+        setRoleFeedback({
+          type: "error",
+          message: resJson.error || "Failed to update ban status",
+        });
+      }
+    } catch (e: any) {
+      setRoleFeedback({
+        type: "error",
+        message: e?.message || "Network error updating ban status",
+      });
+    } finally {
+      setIsBanningMemberId(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!memberToDelete) return;
+    setIsDeletingMember(true);
+    setRoleFeedback(null);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "DELETE_MEMBER",
+          payload: { memberId: memberToDelete.id },
+        }),
+      });
+      const resJson = await res.json();
+      if (res.ok) {
+        setRoleFeedback({
+          type: "success",
+          message: isFr
+            ? `Compte de ${memberToDelete.name} supprimé définitivement.`
+            : `Account for ${memberToDelete.name} permanently deleted.`,
+        });
+        setMemberToDelete(null);
+        await fetchAdminData();
+      } else {
+        setRoleFeedback({
+          type: "error",
+          message: resJson.error || "Failed to delete account",
+        });
+      }
+    } catch (e: any) {
+      setRoleFeedback({
+        type: "error",
+        message: e?.message || "Network error deleting member",
+      });
+    } finally {
+      setIsDeletingMember(false);
     }
   };
 
@@ -576,7 +668,14 @@ export default function AdminPage() {
                           <div className="flex items-center gap-3">
                             <Avatar name={m.name} src={m.avatarUrl} size="sm" />
                             <div className="min-w-0">
-                              <p className="font-bold text-ink truncate">{m.name}</p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-bold text-ink truncate">{m.name}</p>
+                                {m.status === "INACTIVE" && (m.bio?.includes("[BANNED]") || m.status === "BANNED") && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                    🚫 {isFr ? "COMPTE BANNI" : "BANNED"}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[11px] text-ink-soft truncate">{m.email}</p>
                               {m.boardTitle && (
                                 <p className="text-[10px] text-teal-900 font-semibold font-mono">
@@ -615,15 +714,44 @@ export default function AdminPage() {
                         </td>
 
                         <td className="py-3 px-4 text-right">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            leftIcon={<Edit className="w-3 h-3" />}
-                            onClick={() => handleOpenEditRole(m)}
-                            className="text-xs py-1"
-                          >
-                            {isFr ? "Modifier" : "Configure"}
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              leftIcon={<Edit className="w-3 h-3" />}
+                              onClick={() => handleOpenEditRole(m)}
+                              className="text-xs py-1 px-2.5"
+                            >
+                              {isFr ? "Rôle" : "Role"}
+                            </Button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleBanToggle(m)}
+                              disabled={isBanningMemberId === m.id}
+                              title={
+                                m.status === "INACTIVE" && (m.bio?.includes("[BANNED]") || m.status === "BANNED")
+                                  ? (isFr ? "Débannir ce membre" : "Unban member")
+                                  : (isFr ? "Bannir / Suspendre le compte" : "Ban / Suspend account")
+                              }
+                              className={`p-1.5 rounded-lg border text-xs font-bold transition-all ${
+                                m.status === "INACTIVE" && (m.bio?.includes("[BANNED]") || m.status === "BANNED")
+                                  ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200 shadow-sm"
+                                  : "bg-surface hover:bg-rose-50 border-line text-ink-soft hover:text-rose-600 hover:border-rose-200"
+                              }`}
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setMemberToDelete(m)}
+                              title={isFr ? "Supprimer définitivement le compte" : "Delete account permanently"}
+                              className="p-1.5 rounded-lg border border-line bg-surface hover:bg-rose-50 hover:border-rose-200 text-ink-soft hover:text-rose-600 transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -901,6 +1029,75 @@ export default function AdminPage() {
                 disabled={isUpdatingRole}
               >
                 {isFr ? "Enregistrer les Permissions" : "Save Role & Permissions"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Member Confirmation Modal */}
+      <Modal
+        isOpen={!!memberToDelete}
+        onClose={() => {
+          if (!isDeletingMember) setMemberToDelete(null);
+        }}
+        title={isFr ? "Supprimer Définitivement le Compte" : "Permanently Delete Member Account"}
+        maxWidth="md"
+      >
+        {memberToDelete && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs">
+                <h5 className="font-bold text-sm text-rose-950 font-display uppercase tracking-wide">
+                  {isFr ? "Attention : Action Irréversible !" : "Warning: Irreversible Action!"}
+                </h5>
+                <p className="leading-relaxed">
+                  {isFr
+                    ? "Vous êtes sur le point de supprimer définitivement le profil et les identifiants de ce membre. Toutes ses présences, participations et tickets assignés seront dissociés."
+                    : "You are about to permanently delete this member's profile and login credentials. All attendance records, memberships, and assigned tasks will be unlinked."}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-surface-alt rounded-xl border border-line flex items-center gap-3">
+              <Avatar name={memberToDelete.name} src={memberToDelete.avatarUrl} size="md" />
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-ink">{memberToDelete.name}</p>
+                <p className="text-[11px] text-ink-soft truncate">{memberToDelete.email}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <RoleBadge role={memberToDelete.role} />
+                  <span className="text-[10px] text-ink-faint">
+                    {memberToDelete.departmentName || "Général"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-ink-soft">
+              {isFr
+                ? "Confirmez-vous la suppression immédiate de ce compte de la base de données et du système d'authentification ?"
+                : "Do you confirm immediate deletion of this account from the database and auth system?"}
+            </p>
+
+            <div className="pt-4 border-t border-line flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setMemberToDelete(null)}
+                disabled={isDeletingMember}
+              >
+                {isFr ? "Annuler" : "Cancel"}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleConfirmDelete}
+                isLoading={isDeletingMember}
+                disabled={isDeletingMember}
+                leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+              >
+                {isFr ? "Confirmer la Suppression Définitive" : "Confirm Permanent Deletion"}
               </Button>
             </div>
           </div>

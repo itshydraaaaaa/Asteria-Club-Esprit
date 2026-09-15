@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,11 +21,16 @@ import {
   Edit,
   Mail,
   Award,
+  Trash2,
+  Ban,
+  ShieldAlert,
+  AlertCircle,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export default function MemberProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
   const [member, setMember] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -40,9 +45,15 @@ export default function MemberProfilePage() {
     status: "ACTIVE",
     role: "MEMBER",
     departmentId: "",
-    boardTitle: "",
     freelanceReady: false,
+    boardTitle: "",
   });
+
+  // Moderation state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isBanning, setIsBanning] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const fetchMember = () => {
     if (!id) return;
@@ -98,6 +109,75 @@ export default function MemberProfilePage() {
       setEditError(e?.message || "Network error updating member");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleBanToggle = async () => {
+    if (!member) return;
+    const isCurrentlyBanned =
+      member.status === "INACTIVE" &&
+      (member.bio?.includes("[BANNED]") || member.status === "BANNED");
+    const nextBanned = !isCurrentlyBanned;
+
+    setIsBanning(true);
+    setActionFeedback(null);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "BAN_MEMBER",
+          payload: { memberId: id, banned: nextBanned },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setActionFeedback({
+          type: "success",
+          message: nextBanned
+            ? "Member account has been suspended and banned from accessing the platform."
+            : "Member account has been restored and unbanned.",
+        });
+        await fetchMember();
+      } else {
+        setActionFeedback({
+          type: "error",
+          message: data.error || "Failed to update ban status",
+        });
+      }
+    } catch (e: any) {
+      setActionFeedback({
+        type: "error",
+        message: e?.message || "Network error updating ban status",
+      });
+    } finally {
+      setIsBanning(false);
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    setIsDeleting(true);
+    setActionFeedback(null);
+    try {
+      const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok) {
+        router.push("/members");
+      } else {
+        setActionFeedback({
+          type: "error",
+          message: data.error || "Failed to delete account",
+        });
+        setIsDeleting(false);
+        setIsDeleteModalOpen(false);
+      }
+    } catch (e: any) {
+      setActionFeedback({
+        type: "error",
+        message: e?.message || "Network error deleting member",
+      });
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -330,6 +410,80 @@ export default function MemberProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Action Feedback Banner */}
+        {actionFeedback && (
+          <div
+            className={`p-3.5 rounded-xl flex items-center justify-between text-xs font-body ${
+              actionFeedback.type === "success"
+                ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                : "bg-red-50 border border-red-200 text-red-800"
+            }`}
+          >
+            <span>{actionFeedback.message}</span>
+            <button
+              type="button"
+              onClick={() => setActionFeedback(null)}
+              className="font-bold px-2 py-0.5 rounded hover:bg-black/5"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Executive Danger Zone */}
+        {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && currentUser?.id !== member?.id && (
+          <Card className="border-rose-200 bg-rose-50/20">
+            <CardHeader className="border-b border-rose-100">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-rose-600" />
+                <CardTitle className="text-rose-900">Executive Account Moderation & Danger Zone</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface border border-line">
+                <div>
+                  <h5 className="font-bold text-xs text-ink">Account Suspension & Ban</h5>
+                  <p className="text-[11px] text-ink-soft">
+                    {member.status === "INACTIVE" && (member.bio?.includes("[BANNED]") || member.status === "BANNED")
+                      ? "This member account is currently banned and blocked from authenticating."
+                      : "Suspend this member's credentials and revoke portal access immediately."}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={member.status === "INACTIVE" && (member.bio?.includes("[BANNED]") || member.status === "BANNED") ? "secondary" : "danger"}
+                  onClick={handleBanToggle}
+                  isLoading={isBanning}
+                  leftIcon={<Ban className="w-3.5 h-3.5" />}
+                  className="text-xs"
+                >
+                  {member.status === "INACTIVE" && (member.bio?.includes("[BANNED]") || member.status === "BANNED")
+                    ? "Unban Member"
+                    : "Ban / Suspend Account"}
+                </Button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-surface border border-rose-200">
+                <div>
+                  <h5 className="font-bold text-xs text-rose-950">Permanent Account Deletion</h5>
+                  <p className="text-[11px] text-ink-soft">
+                    Permanently delete this user, their profile, credentials, and unlink all activities.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                  className="text-xs font-bold"
+                >
+                  Delete Account Permanently
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Edit Profile Modal */}
@@ -530,6 +684,55 @@ export default function MemberProfilePage() {
               disabled={isSaving}
             >
               Save Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Member Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) setIsDeleteModalOpen(false);
+        }}
+        title="Permanently Delete Member Account"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1 text-xs">
+              <h5 className="font-bold text-sm text-rose-950 font-display uppercase tracking-wide">
+                Warning: Irreversible Deletion!
+              </h5>
+              <p className="leading-relaxed">
+                You are about to permanently delete <strong>{member.name}</strong> ({member.email}). All their credentials, portfolio bio, and attendance associations will be permanently purged.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-soft">
+            Are you sure you want to proceed with permanent account deletion? This action cannot be undone.
+          </p>
+
+          <div className="pt-4 border-t border-line flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteMember}
+              isLoading={isDeleting}
+              disabled={isDeleting}
+              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+            >
+              Confirm Permanent Deletion
             </Button>
           </div>
         </div>
