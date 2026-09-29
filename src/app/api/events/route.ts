@@ -28,13 +28,22 @@ export async function GET(req: Request) {
       user_id: user?.id,
     });
 
+    const isLeadership =
+      user?.role === "PRESIDENT" ||
+      user?.role === "VICE_PRESIDENT" ||
+      user?.role === "BOARD";
+
     const mappedEvents = events.map((e: any) => {
       const { cleanDescription, imageUrl } = extractImageUrl(e.description, e.image_url);
 
+      const isOrganizer = user?.id && e.created_by_id === user.id;
+      const isDeptHod = user?.role === "HOD" && user?.departmentId === (e.department_id || e.departmentId);
+      const canViewCode = Boolean(isLeadership || isOrganizer || isDeptHod);
+
       return {
         ...e,
-        // Support both camelCase and snake_case
-        checkInCode: e.check_in_code || e.checkInCode || "",
+        // Security: Strip check_in_code from non-organizers to prevent premature attendance spoofing
+        checkInCode: canViewCode ? (e.check_in_code || e.checkInCode || "") : "",
         startTime: e.start_time || e.startTime,
         endTime: e.end_time || e.endTime,
         departmentId: e.department_id || e.departmentId,

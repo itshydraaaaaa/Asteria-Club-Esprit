@@ -16,6 +16,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized: Authentication required to view member profiles." }, { status: 401 });
+    }
+
     const { id } = await params;
     const member = await getMemberById(id);
 
@@ -23,11 +28,19 @@ export async function GET(
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    // Fetch recent attendance records for this member
-    const attendanceRecords = await getAttendanceRecords({ user_id: id });
+    const isSelf = currentUser.id === id;
+    const isManagement =
+      currentUser.role === "PRESIDENT" ||
+      currentUser.role === "VICE_PRESIDENT" ||
+      currentUser.role === "BOARD" ||
+      currentUser.role === "HOD";
+
+    const isSelfOrManagement = isSelf || isManagement;
+
+    // Fetch recent attendance records for this member (only exposed to self or management)
+    const attendanceRecords = isSelfOrManagement ? await getAttendanceRecords({ user_id: id }) : [];
 
     // Count events relevant to this member's scope (club-wide + their dept)
-    const totalEvents = await countEvents({ after: new Date() }); // past events only: lte now
     const adminClient = getAdminClient();
     const { count: pastCount } = await (adminClient as any)
       .from("events")
@@ -45,21 +58,22 @@ export async function GET(
       member: {
         id: member.id,
         name: member.name,
-        email: member.email,
+        // PII restriction: Only self and leadership can view direct email address and private bio
+        email: isSelfOrManagement ? member.email : null,
         role: member.role,
         departmentId: member.department_id,
         department: member.departments,
         boardSeat: member.board_seats,
         avatarUrl: member.avatar_url,
-        bio: member.bio,
+        bio: isSelfOrManagement ? member.bio : null,
         skills: parseSkills(member.skills),
         status: member.status,
         freelanceReady: member.freelance_ready,
         joinDate: member.join_date,
-        attendanceRate,
-        totalEvents: totalPast,
-        attendedEvents,
-        recentAttendance: attendanceRecords.slice(0, 10),
+        attendanceRate: isSelfOrManagement ? attendanceRate : undefined,
+        totalEvents: isSelfOrManagement ? totalPast : undefined,
+        attendedEvents: isSelfOrManagement ? attendedEvents : undefined,
+        recentAttendance: isSelfOrManagement ? attendanceRecords.slice(0, 10) : [],
       },
     });
   } catch (error) {

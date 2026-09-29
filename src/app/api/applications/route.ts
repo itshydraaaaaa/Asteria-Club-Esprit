@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getApplications, getApplicationByEmail, createApplication, countApplications } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: Request) {
   try {
@@ -23,6 +24,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const clientIp = getClientIp(req);
+    // Rate limit: Max 5 applications per hour per IP address
+    const limitCheck = checkRateLimit(`apply_ip:${clientIp}`, 5, 60 * 60 * 1000);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: "Too many application submissions from this IP. Please wait an hour before submitting again." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { name, email, phone, departmentPreference, motivation, portfolioLink } = body;
 

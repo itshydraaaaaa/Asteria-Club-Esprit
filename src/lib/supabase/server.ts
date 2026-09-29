@@ -4,12 +4,20 @@ import { Database } from "./types";
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !anonKey) {
+    throw new Error(
+      "Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required."
+    );
+  }
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://asteria-club-esprit.supabase.co",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      "",
+    supabaseUrl,
+    anonKey,
     {
       cookies: {
         getAll() {
@@ -31,14 +39,22 @@ export async function createClient() {
 
 export async function createAdminClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SECRET_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "";
+    process.env.SUPABASE_SECRET_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable.");
+  }
+  if (!serviceKey) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Admin client requires service-role privileges."
+    );
+  }
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://asteria-club-esprit.supabase.co",
+    supabaseUrl,
     serviceKey,
     {
       cookies: {
