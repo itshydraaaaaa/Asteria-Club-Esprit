@@ -23,7 +23,13 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (user.role !== "BOARD" && user.role !== "HOD") {
+    const canPost =
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT" ||
+      user.role === "BOARD" ||
+      user.role === "HOD";
+
+    if (!canPost) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

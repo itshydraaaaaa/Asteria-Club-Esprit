@@ -21,7 +21,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const isPrivileged = user.role === "BOARD" || user.role === "HOD";
+    const isPrivileged =
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT" ||
+      user.role === "BOARD" ||
+      user.role === "HOD";
     const isAssignee = existingTask.assignee_id === user.id;
 
     // Only assignee or BOARD/HOD can change status
@@ -78,7 +82,13 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (user.role !== "BOARD" && user.role !== "HOD") {
+    const canDelete =
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT" ||
+      user.role === "BOARD" ||
+      user.role === "HOD";
+
+    if (!canDelete) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

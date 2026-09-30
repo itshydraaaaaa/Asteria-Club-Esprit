@@ -2,6 +2,7 @@
  * Asteria Club Esprit — Auth Utilities
  * Pure Supabase Auth — no custom JWT, no Prisma fallback.
  */
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { UserRole, UserSession } from "./types";
 import { createClient } from "./supabase/server";
@@ -9,10 +10,10 @@ import { getAdminClient } from "./supabase/admin";
 import { parseSkills } from "./supabase/queries";
 
 // ---------------------------------------------------------------------------
-// Session retrieval — Supabase Auth only
+// Session retrieval — Supabase Auth only (deduplicated per request via cache)
 // ---------------------------------------------------------------------------
 
-export async function getCurrentUser(): Promise<UserSession | null> {
+export const getCurrentUser = cache(async (): Promise<UserSession | null> => {
   try {
     const supabase = await createClient();
     const {
@@ -54,7 +55,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   } catch {
     return null;
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // Role permission checks & helpers

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getMembers, parseSkills } from "@/lib/supabase/queries";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || undefined;
     const department_id = searchParams.get("departmentId") || undefined;

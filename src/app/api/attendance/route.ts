@@ -5,11 +5,27 @@ import { getAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(req: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const eventId = searchParams.get("eventId") || undefined;
-    const userId = searchParams.get("userId") || undefined;
+    const requestedUserId = searchParams.get("userId") || undefined;
 
-    const records = await getAttendanceRecords({ event_id: eventId, user_id: userId });
+    const isLeadership =
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT" ||
+      user.role === "BOARD" ||
+      user.role === "HOD";
+
+    let targetUserId = requestedUserId;
+    if (!isLeadership && !eventId) {
+      targetUserId = user.id;
+    }
+
+    const records = await getAttendanceRecords({ event_id: eventId, user_id: targetUserId });
 
     // Aggregate: count past events and total attendance
     const admin = getAdminClient();

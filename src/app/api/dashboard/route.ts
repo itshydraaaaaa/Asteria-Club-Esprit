@@ -12,7 +12,12 @@ export async function GET() {
     const overview = await getDashboardOverview();
     let roleData: any = {};
 
-    if (user.role === "BOARD") {
+    const isExecutive =
+      user.role === "BOARD" ||
+      user.role === "PRESIDENT" ||
+      user.role === "VICE_PRESIDENT";
+
+    if (isExecutive) {
       const [recentAuditLogs, upcomingEvents, departmentBreakdown] = await Promise.all([
         getRecentAuditLogs(6),
         getUpcomingEvents(4),

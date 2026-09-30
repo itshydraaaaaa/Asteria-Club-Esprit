@@ -12,7 +12,14 @@ export async function PATCH(
 ) {
   try {
     const user = await getCurrentUser();
-    if (!user || (user.role !== "BOARD" && user.role !== "HOD")) {
+    const isAuthorized =
+      user &&
+      (user.role === "PRESIDENT" ||
+        user.role === "VICE_PRESIDENT" ||
+        user.role === "BOARD" ||
+        user.role === "HOD");
+
+    if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

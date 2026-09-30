@@ -5,6 +5,11 @@ import { broadcastRealtime } from "@/lib/supabase/realtime";
 
 export async function GET(req: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const department_id = searchParams.get("departmentId") ?? undefined;
     const assignee_id = searchParams.get("assigneeId") ?? undefined;

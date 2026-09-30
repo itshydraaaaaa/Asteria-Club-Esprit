@@ -329,7 +329,10 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
             </Select>
           </div>
 
-          {(currentUser?.role === "BOARD" || currentUser?.role === "HOD") && (
+          {(currentUser?.role === "PRESIDENT" ||
+            currentUser?.role === "VICE_PRESIDENT" ||
+            currentUser?.role === "BOARD" ||
+            currentUser?.role === "HOD") && (
             <Button
               size="sm"
               variant="primary"

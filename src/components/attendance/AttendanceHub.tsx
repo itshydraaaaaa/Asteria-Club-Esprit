@@ -223,6 +223,8 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   );
 
   const isHost =
+    currentUser?.role === "PRESIDENT" ||
+    currentUser?.role === "VICE_PRESIDENT" ||
     currentUser?.role === "BOARD" ||
     currentUser?.role === "HOD" ||
     events.some(
