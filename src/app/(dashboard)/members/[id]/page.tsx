@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -25,6 +25,12 @@ import {
   Ban,
   ShieldAlert,
   AlertCircle,
+  Phone,
+  Globe,
+  ExternalLink,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
@@ -39,15 +45,26 @@ export default function MemberProfilePage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
   const [editForm, setEditForm] = useState({
     name: "",
     bio: "",
+    phone: "",
+    portfolioLink: "",
+    avatarUrl: "",
+    bannerUrl: "",
+    skills: "",
     status: "ACTIVE",
     role: "MEMBER",
     departmentId: "",
     freelanceReady: false,
     boardTitle: "",
   });
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // Moderation state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -62,9 +79,18 @@ export default function MemberProfilePage() {
       .then((res) => {
         setMember(res.member);
         if (res.member) {
+          const skillsStr = Array.isArray(res.member.skills)
+            ? res.member.skills.join(", ")
+            : (typeof res.member.skills === "string" ? res.member.skills : "");
+
           setEditForm({
-            name: res.member.name,
+            name: res.member.name || "",
             bio: res.member.bio || "",
+            phone: res.member.phone || "",
+            portfolioLink: res.member.portfolioLink || "",
+            avatarUrl: res.member.avatarUrl || "",
+            bannerUrl: res.member.bannerUrl || "",
+            skills: skillsStr,
             status: res.member.status || "ACTIVE",
             role: res.member.role || "MEMBER",
             departmentId: res.member.departmentId || res.member.department?.id || "",
@@ -88,14 +114,58 @@ export default function MemberProfilePage() {
       .catch(() => {});
   }, [id]);
 
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, target: "avatar" | "banner") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (target === "avatar") setIsUploadingAvatar(true);
+    if (target === "banner") setIsUploadingBanner(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "avatars");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        if (target === "avatar") {
+          setEditForm((prev) => ({ ...prev, avatarUrl: data.url }));
+        } else {
+          setEditForm((prev) => ({ ...prev, bannerUrl: data.url }));
+        }
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Error uploading image");
+    } finally {
+      if (target === "avatar") setIsUploadingAvatar(false);
+      if (target === "banner") setIsUploadingBanner(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     setIsSaving(true);
     setEditError(null);
     try {
+      const skillsArray = editForm.skills
+        ? editForm.skills.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      const payload = {
+        ...editForm,
+        skills: skillsArray,
+      };
+
       const res = await fetch(`/api/members/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok) {
@@ -201,6 +271,13 @@ export default function MemberProfilePage() {
     );
   }
 
+  const isExecutive =
+    currentUser?.role === "BOARD" ||
+    currentUser?.role === "PRESIDENT" ||
+    currentUser?.role === "VICE_PRESIDENT";
+  const isSelf = currentUser?.id === member?.id;
+  const canEdit = isExecutive || isSelf;
+
   return (
     <div className="flex-1 flex flex-col">
       <Header
@@ -217,75 +294,165 @@ export default function MemberProfilePage() {
         </Link>
 
         {/* Profile Dossier Hero */}
-        <Card className="p-6 sm:p-8 bg-surface">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="flex items-start sm:items-center gap-5">
-              <Avatar name={member.name} src={member.avatarUrl} size="xl" />
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-ink">
-                    {member.name}
-                  </h2>
-                  <RoleBadge role={member.role} />
-                  <Badge variant={member.status === "ACTIVE" ? "success" : "neutral"}>
-                    {member.status}
-                  </Badge>
-                </div>
-
-                <p className="font-body text-xs text-ink-soft flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-ink-faint" /> {member.email}
-                </p>
-
-                {member.department && (
-                  <p className="font-body font-semibold text-xs text-teal-900">
-                    Division:{" "}
-                    <Link href={`/departments/${member.department.id}`} className="hover:underline">
-                      {member.department.name}
-                    </Link>
-                  </p>
-                )}
+        <Card className="overflow-hidden bg-surface border-line dark:border-teal-900 shadow-md">
+          {/* Cover Banner */}
+          <div className="relative h-44 sm:h-56 w-full overflow-hidden bg-gradient-to-r from-[#03171a] via-[#09353c] to-[#11606E]">
+            {member.bannerUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={member.bannerUrl}
+                alt={`${member.name} Cover Banner`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center opacity-20">
+                <Sparkles className="w-20 h-20 text-white" />
               </div>
-            </div>
+            )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<Edit className="w-3.5 h-3.5" />}
-              onClick={() => setIsEditOpen(true)}
-            >
-              Edit Profile
-            </Button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(true)}
+                className="absolute top-4 right-4 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-semibold backdrop-blur-md border border-white/20 flex items-center gap-1.5 transition-all shadow-lg"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Changer la bannière</span>
+              </button>
+            )}
           </div>
 
-          {member.bio && (
-            <div className="mt-6 pt-5 border-t border-line">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-body mb-1">
-                About / Biography
-              </h4>
-              <p className="font-body text-xs text-ink leading-relaxed">
-                {member.bio}
-              </p>
-            </div>
-          )}
+          <div className="p-6 sm:p-8 pt-0 relative">
+            {/* Header info with overlapping Avatar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
+                <div className="relative group">
+                  <div className="p-1 rounded-full bg-surface dark:bg-[#052024] shadow-2xl">
+                    <Avatar name={member.name} src={member.avatarUrl} size="xl" className="ring-4 ring-surface dark:ring-[#052024]" />
+                  </div>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditOpen(true)}
+                      title="Modifier la photo"
+                      className="absolute bottom-1 right-1 p-2 rounded-full bg-ast-primary text-white hover:bg-teal-700 shadow-lg border-2 border-surface dark:border-[#052024] transition-all"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
-          {/* Skill tags */}
-          {member.skills?.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-line">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-body mb-2">
-                Technical Skills & Tools
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {member.skills.map((s: string, idx: number) => (
-                  <span
-                    key={idx}
-                    className="text-xs bg-teal-50 text-teal-900 border border-teal-200 px-2.5 py-1 rounded-lg font-medium"
-                  >
-                    {s}
-                  </span>
-                ))}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-ink dark:text-white">
+                      {member.name}
+                    </h2>
+                    <RoleBadge role={member.role} />
+                    <Badge variant={member.status === "ACTIVE" ? "success" : "neutral"}>
+                      {member.status}
+                    </Badge>
+                  </div>
+
+                  {member.boardSeat?.title && (
+                    <p className="font-display font-semibold text-xs text-amber-700 dark:text-amber-400">
+                      ★ {member.boardSeat.title}
+                    </p>
+                  )}
+
+                  {member.department && (
+                    <p className="font-body font-semibold text-xs text-ast-primary dark:text-teal-300">
+                      Division:{" "}
+                      <Link href={`/departments/${member.department.id}`} className="hover:underline">
+                        {member.department.name}
+                      </Link>
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Edit className="w-3.5 h-3.5" />}
+                  onClick={() => setIsEditOpen(true)}
+                  className="self-end sm:self-auto"
+                >
+                  Modifier le Profil
+                </Button>
+              )}
             </div>
-          )}
+
+            {/* Contact & Portfolio Quick Bar */}
+            <div className="flex flex-wrap items-center gap-4 py-3 px-4 rounded-xl bg-surface-alt/70 dark:bg-teal-950/60 border border-line dark:border-teal-900 text-xs text-ink-soft dark:text-teal-200">
+              {member.email && (
+                <a
+                  href={`mailto:${member.email}`}
+                  className="flex items-center gap-1.5 hover:text-ast-primary dark:hover:text-teal-300 transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400" />
+                  <span>{member.email}</span>
+                </a>
+              )}
+
+              {member.phone && (
+                <a
+                  href={`tel:${member.phone}`}
+                  className="flex items-center gap-1.5 hover:text-ast-primary dark:hover:text-teal-300 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400" />
+                  <span>{member.phone}</span>
+                </a>
+              )}
+
+              {member.portfolioLink && (
+                <a
+                  href={member.portfolioLink.startsWith("http") ? member.portfolioLink : `https://${member.portfolioLink}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-ast-primary dark:text-ast-light font-semibold hover:underline"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Portfolio & Réalisations</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+
+              <span className="font-mono text-[11px] text-ink-soft dark:text-teal-400/60 ml-auto">
+                Inscrit le {formatDate(member.joinDate || member.created_at)}
+              </span>
+            </div>
+
+            {member.bio && (
+              <div className="mt-5 pt-4 border-t border-line dark:border-teal-900">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300 font-display mb-1">
+                  Biographie & Présentation
+                </h4>
+                <p className="font-body text-xs text-ink dark:text-teal-100/90 leading-relaxed whitespace-pre-line">
+                  {member.bio}
+                </p>
+              </div>
+            )}
+
+            {/* Skill tags */}
+            {member.skills?.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-line dark:border-teal-900">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300 font-display mb-2">
+                  Compétences & Outils Techniques
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {member.skills.map((s: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="text-xs bg-teal-50 dark:bg-teal-950/80 text-teal-900 dark:text-teal-200 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-lg font-medium"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Metrics Grid */}
@@ -502,14 +669,120 @@ export default function MemberProfilePage() {
             </div>
           )}
 
+          {/* Photos: Avatar & Banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 bg-surface-alt/50 border border-line rounded-2xl">
+            {/* Avatar upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-ink dark:text-teal-200 block">
+                Photo de Profil (Avatar)
+              </label>
+              <div className="flex items-center gap-3">
+                <Avatar name={editForm.name || "U"} src={editForm.avatarUrl} size="md" />
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    ref={avatarInputRef}
+                    onChange={(e) => handleUploadFile(e, "avatar")}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => avatarInputRef.current?.click()}
+                    isLoading={isUploadingAvatar}
+                    leftIcon={<Camera className="w-3.5 h-3.5" />}
+                  >
+                    {isUploadingAvatar ? "Téléversement..." : "Changer photo"}
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Ou URL directe (https://...)"
+                value={editForm.avatarUrl}
+                onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })}
+                className="text-xs"
+              />
+            </div>
+
+            {/* Banner upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-ink dark:text-teal-200 block">
+                Bannière de Couverture
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-10 rounded-lg overflow-hidden border border-line bg-gradient-to-r from-teal-950 to-teal-800 flex items-center justify-center flex-shrink-0">
+                  {editForm.bannerUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={editForm.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4 text-white/50" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    onChange={(e) => handleUploadFile(e, "banner")}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => bannerInputRef.current?.click()}
+                    isLoading={isUploadingBanner}
+                    leftIcon={<Upload className="w-3.5 h-3.5" />}
+                  >
+                    {isUploadingBanner ? "Téléversement..." : "Changer bannière"}
+                  </Button>
+                </div>
+              </div>
+              <Input
+                placeholder="Ou URL directe (https://...)"
+                value={editForm.bannerUrl}
+                onChange={(e) => setEditForm({ ...editForm, bannerUrl: e.target.value })}
+                className="text-xs"
+              />
+            </div>
+          </div>
+
           <Input
             label="Full Name"
             value={editForm.name}
             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
           />
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Numéro de Téléphone"
+              placeholder="+216 99 999 999"
+              value={editForm.phone}
+              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+            />
+
+            <Input
+              label="Lien Portfolio / LinkedIn / GitHub"
+              placeholder="https://mon-portfolio.dev"
+              value={editForm.portfolioLink}
+              onChange={(e) => setEditForm({ ...editForm, portfolioLink: e.target.value })}
+            />
+          </div>
+
+          <Input
+            label="Compétences Techniques (séparées par des virgules)"
+            placeholder="React, TypeScript, Next.js, UI/UX Design, Supabase..."
+            value={editForm.skills}
+            onChange={(e) => setEditForm({ ...editForm, skills: e.target.value })}
+          />
+
           <Textarea
-            label="Bio & Specialization"
+            label="Bio & Spécialisation"
+            placeholder="Parlez-nous de vos projets, expériences et passions..."
             value={editForm.bio}
             onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
           />

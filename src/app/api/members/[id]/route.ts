@@ -54,12 +54,24 @@ export async function GET(
     const totalPast = pastCount || 0;
     const attendanceRate = totalPast > 0 ? Math.round((attendedEvents / totalPast) * 100) : 100;
 
+    const skillsVal = member.skills;
+    const metaPhone = skillsVal && typeof skillsVal === "object" && !Array.isArray(skillsVal) ? (skillsVal as any).phone : null;
+    const metaPortfolio = skillsVal && typeof skillsVal === "object" && !Array.isArray(skillsVal) ? (skillsVal as any).portfolioLink : null;
+    const metaBanner = skillsVal && typeof skillsVal === "object" && !Array.isArray(skillsVal) ? (skillsVal as any).bannerUrl : null;
+
+    const phone = isSelfOrManagement ? (member.phone || metaPhone || null) : null;
+    const portfolioLink = member.portfolio_link || member.portfolioLink || metaPortfolio || null;
+    const bannerUrl = member.banner_url || member.bannerUrl || metaBanner || null;
+
     return NextResponse.json({
       member: {
         id: member.id,
         name: member.name,
-        // PII restriction: Only self and leadership can view direct email address and private bio
+        // PII restriction: Only self and leadership can view direct email address and private phone/bio
         email: isSelfOrManagement ? member.email : null,
+        phone,
+        portfolioLink,
+        bannerUrl,
         role: member.role,
         departmentId: member.department_id,
         department: member.departments,
@@ -128,10 +140,24 @@ export async function PATCH(
       updateData.department_id = body.departmentId || null;
     }
     if (body.freelanceReady !== undefined) updateData.freelance_ready = body.freelanceReady;
+    
+    // Parse skills tags
+    let parsedSkills: string[] | null = null;
     if (body.skills !== undefined) {
-      updateData.skills = Array.isArray(body.skills) ? body.skills : body.skills;
+      if (Array.isArray(body.skills)) {
+        parsedSkills = body.skills;
+      } else if (typeof body.skills === "string") {
+        parsedSkills = body.skills.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      updateData.skills = parsedSkills;
     }
+
     if (body.avatarUrl !== undefined) updateData.avatar_url = body.avatarUrl;
+    if (body.bannerUrl !== undefined) updateData.banner_url = body.bannerUrl;
+    if (body.phone !== undefined) updateData.phone = body.phone;
+    if (body.portfolioLink !== undefined || body.portfolioUrl !== undefined) {
+      updateData.portfolio_link = body.portfolioLink || body.portfolioUrl;
+    }
 
     let targetRole = body.role;
     let effectiveBoardTitle = body.boardTitle;
@@ -151,7 +177,25 @@ export async function PATCH(
     try {
       updated = await updateProfile(id, updateData);
     } catch (err: any) {
-      console.warn("[MEMBER ROLE CONSTRAINT FALLBACK]:", err?.message);
+      console.warn("[PROFILE UPDATE RESILIENT FALLBACK]:", err?.message);
+      
+      // If error is due to missing phone/portfolio_link/banner_url columns, embed into skills JSON metadata
+      const errStr = (err?.message || "").toLowerCase();
+      if (errStr.includes("column") || errStr.includes("does not exist") || errStr.includes("schema cache")) {
+        delete updateData.phone;
+        delete updateData.portfolio_link;
+        delete updateData.banner_url;
+
+        // Fetch existing skills or tags
+        const currentSkills = parsedSkills || [];
+        updateData.skills = {
+          tags: currentSkills,
+          phone: body.phone,
+          portfolioLink: body.portfolioLink || body.portfolioUrl,
+          bannerUrl: body.bannerUrl,
+        };
+      }
+
       if (targetRole === "PRESIDENT" || targetRole === "VICE_PRESIDENT") {
         updateData.role = "BOARD";
       } else if (targetRole === "WAITING_FOR_INTERVIEW" || targetRole === "DECLINED") {

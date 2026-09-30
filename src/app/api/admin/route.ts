@@ -53,20 +53,32 @@ export async function GET() {
         : null,
     }));
 
-    const normalizedMembers = (members || []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      email: m.email,
-      role: m.role,
-      departmentId: m.department_id,
-      departmentName: m.departments?.name ?? null,
-      boardTitle: m.board_seats?.title ?? null,
-      avatarUrl: m.avatar_url,
-      bio: m.bio,
-      status: m.status,
-      freelanceReady: m.freelance_ready,
-      joinDate: m.join_date,
-    }));
+    const normalizedMembers = (members || []).map((m: any) => {
+      const skillsObj = typeof m.skills === "object" && !Array.isArray(m.skills) ? m.skills : null;
+      const skillsArray = Array.isArray(m.skills)
+        ? m.skills
+        : skillsObj?.tags || [];
+      const phone = m.phone ?? skillsObj?.phone ?? null;
+      const portfolioLink = m.portfolio_link ?? skillsObj?.portfolioLink ?? null;
+
+      return {
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        role: m.role,
+        departmentId: m.department_id,
+        departmentName: m.departments?.name ?? null,
+        boardTitle: m.board_seats?.title ?? null,
+        avatarUrl: m.avatar_url,
+        bio: m.bio,
+        status: m.status,
+        freelanceReady: m.freelance_ready,
+        joinDate: m.join_date,
+        phone,
+        portfolioLink,
+        skills: skillsArray,
+      };
+    });
 
     return NextResponse.json({
       boardSeats: normalizedBoardSeats,

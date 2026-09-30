@@ -28,9 +28,38 @@ import {
   Trash2,
   Ban,
   UserX,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { BOARD_TRACK_LABELS, BoardTrack, UserRole } from "@/lib/types";
+
+function downloadCsv(
+  filename: string,
+  headers: string[],
+  rows: (string | number | boolean | null | undefined)[][]
+) {
+  const escapeCell = (cell: any) => {
+    if (cell === null || cell === undefined) return '""';
+    const str = String(cell).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+  const csvContent =
+    "\uFEFF" +
+    [
+      headers.map(escapeCell).join(","),
+      ...rows.map((row) => row.map(escapeCell).join(",")),
+    ].join("\r\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 export default function AdminPage() {
   const { language, t } = useLanguage();
@@ -67,6 +96,10 @@ export default function AdminPage() {
   const [memberToDelete, setMemberToDelete] = useState<any | null>(null);
   const [isDeletingMember, setIsDeletingMember] = useState(false);
   const [isBanningMemberId, setIsBanningMemberId] = useState<string | null>(null);
+
+  // Export Excel / CSV state
+  const [isExportingMembers, setIsExportingMembers] = useState(false);
+  const [isExportingAttendance, setIsExportingAttendance] = useState(false);
 
   const [healthData, setHealthData] = useState<any>(null);
 
@@ -327,6 +360,97 @@ export default function AdminPage() {
     }
   };
 
+  const handleExportMembers = () => {
+    setIsExportingMembers(true);
+    try {
+      const membersList = data?.members || [];
+      const headers = [
+        "ID",
+        "Nom Complet",
+        "Email",
+        "Rôle",
+        "Pôle / Département",
+        "Titre Exécutif / Siège",
+        "Statut",
+        "Téléphone",
+        "Lien Portfolio",
+        "Compétences",
+        "Éligible Freelance",
+        "Date d'Adhésion",
+      ];
+
+      const rows = membersList.map((m: any) => [
+        m.id,
+        m.name,
+        m.email,
+        m.role,
+        m.departmentName || "Général / Non assigné",
+        m.boardTitle || "",
+        m.status,
+        m.phone || "",
+        m.portfolioLink || "",
+        Array.isArray(m.skills) ? m.skills.join(", ") : (m.skills || ""),
+        m.freelanceReady ? "OUI" : "NON",
+        m.joinDate ? formatDate(m.joinDate) : "",
+      ]);
+
+      const timestamp = new Date().toISOString().split("T")[0];
+      downloadCsv(`asteria_membres_${timestamp}.csv`, headers, rows);
+    } catch (e) {
+      console.error(e);
+      alert(isFr ? "Erreur lors de l'export des membres" : "Error exporting members");
+    } finally {
+      setIsExportingMembers(false);
+    }
+  };
+
+  const handleExportAttendance = async () => {
+    setIsExportingAttendance(true);
+    try {
+      const res = await fetch("/api/attendance");
+      const json = await res.json();
+      const records = json.records || [];
+
+      const headers = [
+        "ID Émargement",
+        "ID Événement",
+        "Titre de l'Événement",
+        "Pôle / Département",
+        "Date & Heure Début",
+        "Lieu",
+        "Nom du Membre",
+        "Email du Membre",
+        "Rôle du Membre",
+        "Statut de Présence",
+        "Méthode d'Émargement",
+        "Date & Heure d'Émargement",
+      ];
+
+      const rows = records.map((r: any) => [
+        r.id,
+        r.eventId,
+        r.event?.title || "Session",
+        r.event?.departments?.name || "Tous Pôles",
+        r.event?.start_time ? formatDateTime(r.event.start_time) : "",
+        r.event?.location || "",
+        r.user?.name || "Inconnu",
+        r.user?.email || "",
+        r.user?.role || "",
+        r.status || "PRESENT",
+        r.check_in_method || "CODE",
+        r.checkedInAt ? formatDateTime(r.checkedInAt) : "",
+      ]);
+
+      const timestamp = new Date().toISOString().split("T")[0];
+      downloadCsv(`asteria_feuilles_presence_${timestamp}.csv`, headers, rows);
+    } catch (e) {
+      console.error(e);
+      alert(isFr ? "Erreur lors de l'export des présences" : "Error exporting attendance records");
+    } finally {
+      setIsExportingAttendance(false);
+    }
+  };
+
   const filteredMembers = (data?.members || []).filter((m: any) => {
     const matchesSearch =
       !memberSearch ||
@@ -466,6 +590,49 @@ export default function AdminPage() {
                   ? isFr ? "En Ligne & Sécurisé" : "Live & Protected"
                   : isFr ? "Configuration Validée" : "Config Verified"}
               </span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Exports & Rapports Administratifs (Excel / CSV) */}
+        <Card className="p-6 bg-surface border-line shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-teal-900" />
+                <h3 className="font-display font-bold text-base uppercase tracking-wider text-ink">
+                  {isFr ? "Exports & Rapports Administratifs (Excel / CSV)" : "Administrative Exports & Reports (Excel / CSV)"}
+                </h3>
+              </div>
+              <p className="text-xs text-ink-soft font-body max-w-xl">
+                {isFr
+                  ? "Téléchargez instantanément les registres officiels d'Asteria Club au format universel CSV (compatible Microsoft Excel UTF-8, LibreOffice, Google Sheets)."
+                  : "Instantly download official Asteria Club registries in universal CSV format (fully compatible with Microsoft Excel UTF-8, LibreOffice, Google Sheets)."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportMembers}
+                isLoading={isExportingMembers}
+                disabled={isExportingMembers || !data?.members?.length}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
+              >
+                {isFr ? `Export Membres (${data?.members?.length || 0})` : `Export Members (${data?.members?.length || 0})`}
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleExportAttendance}
+                isLoading={isExportingAttendance}
+                disabled={isExportingAttendance}
+                leftIcon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+              >
+                {isFr ? "Export Feuilles de Présence" : "Export Attendance Sheets"}
+              </Button>
             </div>
           </div>
         </Card>
