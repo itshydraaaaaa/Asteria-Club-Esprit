@@ -296,7 +296,7 @@ export default function MemberProfilePage() {
         {/* Profile Dossier Hero */}
         <Card className="overflow-hidden bg-surface border-line dark:border-teal-900 shadow-md">
           {/* Cover Banner */}
-          <div className="relative h-44 sm:h-56 w-full overflow-hidden bg-gradient-to-r from-[#03171a] via-[#09353c] to-[#11606E]">
+          <div className="relative h-48 sm:h-60 w-full overflow-hidden bg-gradient-to-r from-[#03171a] via-[#09353c] to-[#11606E]">
             {member.bannerUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -322,64 +322,71 @@ export default function MemberProfilePage() {
             )}
           </div>
 
-          <div className="p-6 sm:p-8 pt-0 relative">
-            {/* Header info with overlapping Avatar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
-                <div className="relative group">
-                  <div className="p-1 rounded-full bg-surface dark:bg-[#052024] shadow-2xl">
-                    <Avatar name={member.name} src={member.avatarUrl} size="xl" className="ring-4 ring-surface dark:ring-[#052024]" />
-                  </div>
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditOpen(true)}
-                      title="Modifier la photo"
-                      className="absolute bottom-1 right-1 p-2 rounded-full bg-ast-primary text-white hover:bg-teal-700 shadow-lg border-2 border-surface dark:border-[#052024] transition-all"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+          <div className="px-6 sm:px-8 pb-6 sm:pb-8 relative">
+            {/* Top row: Avatar (overlapping banner) on left, Action buttons on right */}
+            <div className="flex items-end justify-between gap-4 -mt-12 sm:-mt-16 mb-4">
+              {/* Overlapping Avatar */}
+              <div className="relative group flex-shrink-0">
+                <div className="p-1 rounded-full bg-surface dark:bg-[#052024] shadow-2xl inline-block">
+                  <Avatar
+                    name={member.name}
+                    src={member.avatarUrl}
+                    size="xl"
+                    className="w-24 h-24 sm:w-28 sm:h-28 text-2xl sm:text-3xl ring-4 ring-surface dark:ring-[#052024]"
+                  />
                 </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-ink dark:text-white">
-                      {member.name}
-                    </h2>
-                    <RoleBadge role={member.role} />
-                    <Badge variant={member.status === "ACTIVE" ? "success" : "neutral"}>
-                      {member.status}
-                    </Badge>
-                  </div>
-
-                  {member.boardSeat?.title && (
-                    <p className="font-display font-semibold text-xs text-amber-700 dark:text-amber-400">
-                      ★ {member.boardSeat.title}
-                    </p>
-                  )}
-
-                  {member.department && (
-                    <p className="font-body font-semibold text-xs text-ast-primary dark:text-teal-300">
-                      Division:{" "}
-                      <Link href={`/departments/${member.department.id}`} className="hover:underline">
-                        {member.department.name}
-                      </Link>
-                    </p>
-                  )}
-                </div>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditOpen(true)}
+                    title="Modifier la photo"
+                    className="absolute bottom-1 right-1 p-2 rounded-full bg-ast-primary text-white hover:bg-teal-700 shadow-lg border-2 border-surface dark:border-[#052024] transition-all"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
+              {/* Action Buttons */}
               {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<Edit className="w-3.5 h-3.5" />}
-                  onClick={() => setIsEditOpen(true)}
-                  className="self-end sm:self-auto"
-                >
-                  Modifier le Profil
-                </Button>
+                <div className="flex items-center gap-2 pb-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Edit className="w-3.5 h-3.5" />}
+                    onClick={() => setIsEditOpen(true)}
+                  >
+                    Modifier le Profil
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Member Identity & Details (cleanly inside card, no overlap) */}
+            <div className="space-y-1.5 mb-6">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-wider text-ink dark:text-white">
+                  {member.name}
+                </h2>
+                <RoleBadge role={member.role} />
+                <Badge variant={member.status === "ACTIVE" ? "success" : "neutral"}>
+                  {member.status}
+                </Badge>
+              </div>
+
+              {member.boardSeat?.title && (
+                <p className="font-display font-semibold text-xs sm:text-sm text-amber-700 dark:text-amber-400">
+                  ★ {member.boardSeat.title}
+                </p>
+              )}
+
+              {member.department && (
+                <p className="font-body font-semibold text-xs sm:text-sm text-ast-primary dark:text-teal-300">
+                  Division:{" "}
+                  <Link href={`/departments/${member.department.id}`} className="hover:underline">
+                    {member.department.name}
+                  </Link>
+                </p>
               )}
             </div>
 
