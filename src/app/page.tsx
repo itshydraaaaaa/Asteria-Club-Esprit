@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { AsteriaLogo } from "@/components/brand/AsteriaLogo";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
+import { RoleBadge } from "@/components/ui/Badge";
+import { UserSession } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const AmbientCanvas = dynamic(
   () => import("@/components/ui/AmbientCanvas").then((m) => m.AmbientCanvas),
@@ -40,12 +44,25 @@ import {
   Github,
   Mail,
   MapPin,
+  Bell,
+  User,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function HomePage() {
   const { language, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [bulletins, setBulletins] = useState<any[]>([]);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
+
   const [stats, setStats] = useState<{
     totalMembers: number;
     totalDepartments: number;
@@ -58,7 +75,55 @@ export default function HomePage() {
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch((err) => console.error("Error fetching stats:", err));
+
+    // Check if member is logged in
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : { user: null }))
+      .then((data) => {
+        if (data.user) {
+          setCurrentUser(data.user);
+          // Fetch real-time bulletins for notifications
+          fetch("/api/announcements")
+            .then((res) => (res.ok ? res.json() : { announcements: [] }))
+            .then((notifData) => {
+              const list = notifData.announcements || [];
+              setBulletins(list.slice(0, 4));
+              setUnreadCount(Math.min(list.length, 4));
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => setCurrentUser(null));
   }, []);
+
+  // Handle click outside to close dropdown popovers
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+      if (notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setCurrentUser(null);
+      setIsProfileMenuOpen(false);
+      setIsMobileMenuOpen(false);
+      window.location.reload();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const isFr = language === "fr";
 
@@ -222,20 +287,262 @@ export default function HomePage() {
             <LanguageToggle variant="pill" />
             <ThemeToggle />
 
-            <Link href="/login">
-              <button className="px-3.5 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white transition-colors">
-                {t("nav.portal", "Member Login")}
-              </button>
-            </Link>
-            <Link href="/apply">
-              <button className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button scale-100 hover:scale-105 active:scale-95 shadow-md">
-                {t("nav.apply", "Apply to Join")} ★
-              </button>
-            </Link>
+            {currentUser ? (
+              <>
+                {/* Real-time Notifications Popover */}
+                <div className="relative" ref={notifMenuRef}>
+                  <button
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      if (unreadCount > 0) setUnreadCount(0);
+                    }}
+                    title={isFr ? "Bulletins & Notifications" : "Notifications & Bulletins"}
+                    className="p-2.5 rounded-xl bg-surface dark:bg-teal-950/80 border border-line dark:border-teal-800 text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white hover:border-ast-primary dark:hover:border-ast-light relative transition-all shadow-sm"
+                  >
+                    <Bell className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-ast-light text-ink font-bold text-[9px] rounded-full flex items-center justify-center border border-surface shadow-sm">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#08262b] border border-line dark:border-teal-800 rounded-2xl shadow-2xl z-50 p-2 animate-vague-in">
+                      <div className="px-3 py-2 border-b border-line dark:border-teal-900 flex items-center justify-between">
+                        <span className="font-display font-bold uppercase text-xs tracking-wider text-ink dark:text-white">
+                          {isFr ? "Bulletins en Direct" : "Real-Time Bulletins"}
+                        </span>
+                        <span className="text-[10px] text-ast-primary dark:text-ast-light font-mono font-bold bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
+                          Supabase Live
+                        </span>
+                      </div>
+                      <div className="p-2 space-y-1.5 max-h-64 overflow-y-auto">
+                        {bulletins.length > 0 ? (
+                          bulletins.map((b) => (
+                            <Link
+                              key={b.id}
+                              href="/announcements"
+                              onClick={() => setShowNotifications(false)}
+                              className="block p-2 rounded-xl hover:bg-surface-alt dark:hover:bg-teal-950/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between gap-1 mb-0.5">
+                                <span className="font-bold text-xs text-ink dark:text-white line-clamp-1">
+                                  {b.title}
+                                </span>
+                                <span className="text-[9px] font-mono text-ink-soft dark:text-teal-300/60 shrink-0">
+                                  {new Date(b.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-2">
+                                {b.body}
+                              </p>
+                            </Link>
+                          ))
+                        ) : (
+                          <p className="py-4 text-center text-xs text-ink-soft dark:text-teal-200/70">
+                            {isFr ? "Aucun nouveau bulletin." : "No new bulletins."}
+                          </p>
+                        )}
+                        <div className="pt-2 border-t border-line dark:border-teal-900 text-center">
+                          <Link
+                            href="/announcements"
+                            onClick={() => setShowNotifications(false)}
+                            className="text-xs text-ast-primary dark:text-ast-light font-semibold hover:underline"
+                          >
+                            {isFr ? "Voir tous les bulletins →" : "View All Bulletins →"}
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Pill & Dropdown */}
+                <div className="relative" ref={profileMenuRef}>
+                  <button
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="flex items-center gap-2.5 p-1.5 pr-3 rounded-xl bg-surface dark:bg-teal-950/80 border border-line dark:border-teal-800 text-ink dark:text-white hover:border-ast-primary dark:hover:border-ast-light transition-all shadow-sm group"
+                  >
+                    <Avatar
+                      name={currentUser.name}
+                      src={currentUser.avatarUrl}
+                      size="sm"
+                    />
+                    <div className="flex flex-col text-left">
+                      <span className="font-bold text-xs leading-none text-ink dark:text-white truncate max-w-[110px] group-hover:text-ast-primary dark:group-hover:text-ast-light transition-colors">
+                        {currentUser.name}
+                      </span>
+                      <span className="text-[10px] text-ink-soft dark:text-teal-300/70 font-mono mt-0.5 capitalize">
+                        {currentUser.role.toLowerCase().replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <ChevronDown className={cn("w-3.5 h-3.5 text-ink-soft dark:text-teal-300 transition-transform duration-200", isProfileMenuOpen && "rotate-180")} />
+                  </button>
+
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#08262b] border border-line dark:border-teal-800 rounded-2xl shadow-2xl z-50 p-3 animate-vague-in">
+                      {/* User Header */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-line dark:border-teal-900">
+                        <Avatar
+                          name={currentUser.name}
+                          src={currentUser.avatarUrl}
+                          size="md"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm text-ink dark:text-white truncate">
+                            {currentUser.name}
+                          </p>
+                          <p className="text-xs text-ink-soft dark:text-teal-300/70 truncate font-mono">
+                            {currentUser.email}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <RoleBadge role={currentUser.role} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation links */}
+                      <div className="py-2 space-y-1 text-xs font-semibold">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ink dark:text-white hover:bg-teal-50 dark:hover:bg-teal-950/60 hover:text-ast-primary dark:hover:text-ast-light transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-ast-primary dark:text-teal-400" />
+                          <span>{isFr ? "Tableau de Bord (OS)" : "Member Dashboard"}</span>
+                        </Link>
+
+                        <Link
+                          href={`/members/${currentUser.id}`}
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ink dark:text-white hover:bg-teal-50 dark:hover:bg-teal-950/60 hover:text-ast-primary dark:hover:text-ast-light transition-colors"
+                        >
+                          <User className="w-4 h-4 text-ast-primary dark:text-teal-400" />
+                          <span>{isFr ? "Mon Profil & Dossier" : "My Profile Dossier"}</span>
+                        </Link>
+
+                        {(currentUser.role === "PRESIDENT" ||
+                          currentUser.role === "VICE_PRESIDENT" ||
+                          currentUser.role === "BOARD" ||
+                          currentUser.role === "HOD") && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setIsProfileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+                          >
+                            <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            <span>{isFr ? "Console d'Administration" : "Admin Console"}</span>
+                          </Link>
+                        )}
+
+                        <Link
+                          href="/calendar"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-ink dark:text-white hover:bg-teal-50 dark:hover:bg-teal-950/60 hover:text-ast-primary dark:hover:text-ast-light transition-colors"
+                        >
+                          <CalendarCheck className="w-4 h-4 text-ast-primary dark:text-teal-400" />
+                          <span>{isFr ? "Événements & Présence" : "Events & Attendance"}</span>
+                        </Link>
+                      </div>
+
+                      {/* Divider & Sign Out */}
+                      <div className="pt-2 border-t border-line dark:border-teal-900">
+                        <button
+                          onClick={handleLogout}
+                          disabled={isLoggingOut}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <LogOut className="w-4 h-4" />
+                            <span>{isLoggingOut ? (isFr ? "Déconnexion..." : "Logging out...") : (isFr ? "Déconnexion" : "Sign Out")}</span>
+                          </div>
+                          <span className="text-[10px] font-mono text-ink-soft dark:text-rose-300/60">ESC</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Direct Dashboard Link */}
+                <Link href="/dashboard">
+                  <button className="px-4 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button scale-100 hover:scale-105 active:scale-95 shadow-md flex items-center gap-1.5">
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>{isFr ? "Mon Espace" : "Dashboard"}</span>
+                    <span>→</span>
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <button className="px-3.5 py-2 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink-soft dark:text-teal-200 hover:text-ink dark:hover:text-white transition-colors">
+                    {t("nav.portal", "Member Login")}
+                  </button>
+                </Link>
+                <Link href="/apply">
+                  <button className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button scale-100 hover:scale-105 active:scale-95 shadow-md">
+                    {t("nav.apply", "Apply to Join")} ★
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Mobile Right Controls: Language + Theme + Hamburger Toggle */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Mobile Right Controls: Notifications (if logged in) + Language + Theme + Hamburger Toggle */}
+          <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+            {currentUser && (
+              <div className="relative" ref={notifMenuRef}>
+                <button
+                  onClick={() => {
+                    setShowNotifications(!showNotifications);
+                    if (unreadCount > 0) setUnreadCount(0);
+                  }}
+                  className="p-2 rounded-xl bg-surface-alt dark:bg-teal-950/80 border border-line dark:border-teal-800 text-ink-soft dark:text-teal-200 relative"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-ast-light text-ink font-bold text-[8px] rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#08262b] border border-line dark:border-teal-800 rounded-2xl shadow-2xl z-50 p-2 animate-vague-in text-left">
+                    <div className="px-3 py-1.5 border-b border-line dark:border-teal-900 flex items-center justify-between">
+                      <span className="font-display font-bold uppercase text-xs tracking-wider text-ink dark:text-white">
+                        {isFr ? "Bulletins en Direct" : "Real-Time Bulletins"}
+                      </span>
+                    </div>
+                    <div className="p-2 space-y-1.5 max-h-56 overflow-y-auto">
+                      {bulletins.length > 0 ? (
+                        bulletins.map((b) => (
+                          <Link
+                            key={b.id}
+                            href="/announcements"
+                            onClick={() => setShowNotifications(false)}
+                            className="block p-2 rounded-xl hover:bg-surface-alt dark:hover:bg-teal-950/50 transition-colors"
+                          >
+                            <span className="font-bold text-xs text-ink dark:text-white block line-clamp-1">
+                              {b.title}
+                            </span>
+                            <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-2 mt-0.5">
+                              {b.body}
+                            </p>
+                          </Link>
+                        ))
+                      ) : (
+                        <p className="py-3 text-center text-xs text-ink-soft dark:text-teal-200/70">
+                          {isFr ? "Aucun nouveau bulletin." : "No new bulletins."}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <LanguageToggle variant="pill" />
             <ThemeToggle />
             <button
@@ -251,7 +558,74 @@ export default function HomePage() {
         {/* Mobile Dropdown Menu Drawer */}
         {isMobileMenuOpen && (
           <div className="md:hidden mt-2 glass-nav rounded-2xl p-4 border border-line dark:border-teal-800 shadow-2xl space-y-3 animate-vague-in">
+            {/* Top User Dossier Card in mobile menu if logged in */}
+            {currentUser && (
+              <div className="p-3 bg-white/70 dark:bg-teal-950/90 rounded-2xl border border-line dark:border-teal-800 flex items-center gap-3">
+                <Avatar
+                  name={currentUser.name}
+                  src={currentUser.avatarUrl}
+                  size="md"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-xs text-ink dark:text-white truncate">
+                    {currentUser.name}
+                  </p>
+                  <p className="text-[11px] text-ink-soft dark:text-teal-300/70 truncate font-mono">
+                    {currentUser.email}
+                  </p>
+                  <div className="mt-1">
+                    <RoleBadge role={currentUser.role} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <nav className="flex flex-col space-y-1 text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-100/90 font-display">
+              {currentUser && (
+                <>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 text-ast-primary dark:text-ast-light font-bold flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      {isFr ? "Tableau de Bord (OS)" : "Member Dashboard"}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-ink-faint" />
+                  </Link>
+
+                  <Link
+                    href={`/members/${currentUser.id}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2.5 rounded-xl hover:bg-teal-50/80 dark:hover:bg-teal-900/40 text-ink dark:text-white flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {isFr ? "Mon Profil & Dossier" : "My Profile"}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-ink-faint" />
+                  </Link>
+
+                  {(currentUser.role === "PRESIDENT" ||
+                    currentUser.role === "VICE_PRESIDENT" ||
+                    currentUser.role === "BOARD" ||
+                    currentUser.role === "HOD") && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="p-2.5 rounded-xl hover:bg-amber-50/80 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        {isFr ? "Administration" : "Admin Console"}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-ink-faint" />
+                    </Link>
+                  )}
+                </>
+              )}
+
               <a
                 href="#about"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -287,16 +661,37 @@ export default function HomePage() {
             </nav>
 
             <div className="pt-3 border-t border-line/80 dark:border-teal-900/80 flex flex-col gap-2">
-              <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                <button className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink dark:text-white bg-surface dark:bg-teal-950/60 border border-line dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900 transition-colors shadow-sm">
-                  {t("nav.portal", "Member Login")}
-                </button>
-              </Link>
-              <Link href="/apply" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                <button className="w-full py-3 px-4 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button shadow-md">
-                  {t("nav.apply", "Apply to Join")} ★
-                </button>
-              </Link>
+              {currentUser ? (
+                <>
+                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <button className="w-full py-3 px-4 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button shadow-md flex items-center justify-center gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>{isFr ? "Accéder à mon Espace (Dashboard)" : "Go to Dashboard"}</span>
+                    </button>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{isLoggingOut ? (isFr ? "Déconnexion..." : "Logging out...") : (isFr ? "Déconnexion" : "Sign Out")}</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <button className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold font-display uppercase tracking-wider text-ink dark:text-white bg-surface dark:bg-teal-950/60 border border-line dark:border-teal-800 hover:bg-teal-50 dark:hover:bg-teal-900 transition-colors shadow-sm">
+                      {t("nav.portal", "Member Login")}
+                    </button>
+                  </Link>
+                  <Link href="/apply" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <button className="w-full py-3 px-4 rounded-xl text-xs font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button shadow-md">
+                      {t("nav.apply", "Apply to Join")} ★
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -345,18 +740,39 @@ export default function HomePage() {
 
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4">
-            <Link href="/apply" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group shadow-lg">
-                {t("hero.cta.apply", "Apply for Membership")}
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            </Link>
+            {currentUser ? (
+              <>
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group shadow-lg">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>{isFr ? "Accéder à mon Espace (Dashboard)" : "Go to Member Dashboard"}</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </Link>
 
-            <Link href="/login" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-white dark:bg-surface-dark2/80 hover:bg-teal-50 dark:hover:bg-teal-900 text-ink dark:text-white border border-teal-200 dark:border-teal-700/80 transition-all flex items-center justify-center gap-2 shadow-sm">
-                {t("hero.cta.portal", "Open Member Portal")}
-              </button>
-            </Link>
+                <Link href={`/members/${currentUser.id}`} className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-white dark:bg-surface-dark2/80 hover:bg-teal-50 dark:hover:bg-teal-900 text-ink dark:text-white border border-teal-200 dark:border-teal-700/80 transition-all flex items-center justify-center gap-2 shadow-sm">
+                    <User className="w-4 h-4 text-ast-primary dark:text-teal-400" />
+                    <span>{isFr ? "Mon Profil & Dossier" : "My Profile Dossier"}</span>
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/apply" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold font-display uppercase tracking-wider bg-ast-light text-ink hover:bg-teal-300 transition-all glow-button flex items-center justify-center gap-2 group shadow-lg">
+                    {t("hero.cta.apply", "Apply for Membership")}
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </Link>
+
+                <Link href="/login" className="w-full sm:w-auto">
+                  <button className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-semibold font-display uppercase tracking-wider bg-white dark:bg-surface-dark2/80 hover:bg-teal-50 dark:hover:bg-teal-900 text-ink dark:text-white border border-teal-200 dark:border-teal-700/80 transition-all flex items-center justify-center gap-2 shadow-sm">
+                    {t("hero.cta.portal", "Open Member Portal")}
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Live Stats Ribbon */}
