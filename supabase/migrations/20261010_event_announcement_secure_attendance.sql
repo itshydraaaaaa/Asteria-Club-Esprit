@@ -5,14 +5,14 @@
 
 -- 1. EXPAND PUBLIC.EVENTS TABLE
 ALTER TABLE public.events
-  ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'WORKSHOP' CHECK (type IN ('WORKSHOP', 'MEETING', 'SESSION', 'PODCAST', 'COMPETITION', 'GENERAL', 'HACKATHON')),
-  ADD COLUMN IF NOT EXISTS audience_scope TEXT DEFAULT 'CLUB' CHECK (audience_scope IN ('CLUB', 'DEPARTMENT', 'BOARD')),
+  ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'WORKSHOP',
+  ADD COLUMN IF NOT EXISTS audience_scope TEXT DEFAULT 'CLUB',
   ADD COLUMN IF NOT EXISTS host_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS attendance_required BOOLEAN NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS check_in_window_start_min INT NOT NULL DEFAULT 15,
   ADD COLUMN IF NOT EXISTS check_in_window_end_min INT NOT NULL DEFAULT 30,
   ADD COLUMN IF NOT EXISTS late_threshold_min INT NOT NULL DEFAULT 10,
-  ADD COLUMN IF NOT EXISTS check_in_status TEXT NOT NULL DEFAULT 'SCHEDULED' CHECK (check_in_status IN ('SCHEDULED', 'OPEN', 'PAUSED', 'CLOSED')),
+  ADD COLUMN IF NOT EXISTS check_in_status TEXT NOT NULL DEFAULT 'SCHEDULED',
   ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS closed_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS is_geofence_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -20,18 +20,51 @@ ALTER TABLE public.events
   ADD COLUMN IF NOT EXISTS geofence_lng NUMERIC,
   ADD COLUMN IF NOT EXISTS geofence_radius_m INT DEFAULT 100;
 
+-- Safe constraints update for events
+DO $do$
+BEGIN
+  ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_type_check;
+  ALTER TABLE public.events ADD CONSTRAINT events_type_check
+    CHECK (type IN ('WORKSHOP', 'MEETING', 'SESSION', 'PODCAST', 'COMPETITION', 'GENERAL', 'HACKATHON'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $do$;
+
+DO $do$
+BEGIN
+  ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_audience_scope_check;
+  ALTER TABLE public.events ADD CONSTRAINT events_audience_scope_check
+    CHECK (audience_scope IN ('CLUB', 'DEPARTMENT', 'BOARD'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $do$;
+
+DO $do$
+BEGIN
+  ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_check_in_status_check;
+  ALTER TABLE public.events ADD CONSTRAINT events_check_in_status_check
+    CHECK (check_in_status IN ('SCHEDULED', 'OPEN', 'PAUSED', 'CLOSED'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $do$;
+
 -- 2. LINK ANNOUNCEMENTS TO EVENTS & EXPAND SCOPE
 ALTER TABLE public.announcements
   ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES public.events(id) ON DELETE CASCADE;
 
-ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_scope_check;
-ALTER TABLE public.announcements ADD CONSTRAINT announcements_scope_check
-  CHECK (scope IN ('CLUB', 'DEPARTMENT', 'BOARD'));
+DO $do$
+BEGIN
+  ALTER TABLE public.announcements DROP CONSTRAINT IF EXISTS announcements_scope_check;
+  ALTER TABLE public.announcements ADD CONSTRAINT announcements_scope_check
+    CHECK (scope IN ('CLUB', 'DEPARTMENT', 'BOARD'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $do$;
 
 -- 3. EXPAND ATTENDANCE RECORDS (LATE STATUS, AUDIT METADATA)
-ALTER TABLE public.attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check;
-ALTER TABLE public.attendance_records ADD CONSTRAINT attendance_records_status_check
-  CHECK (status IN ('PRESENT', 'LATE', 'ABSENT', 'EXCUSED'));
+DO $do$
+BEGIN
+  ALTER TABLE public.attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check;
+  ALTER TABLE public.attendance_records ADD CONSTRAINT attendance_records_status_check
+    CHECK (status IN ('PRESENT', 'LATE', 'ABSENT', 'EXCUSED'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $do$;
 
 ALTER TABLE public.attendance_records
   ADD COLUMN IF NOT EXISTS marked_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -87,20 +120,41 @@ ALTER TABLE public.qr_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.excuse_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_hosts ENABLE ROW LEVEL SECURITY;
 
--- Helper to check if user is the designated host of an event
+-- Helper function: check if authenticated user is board member
+CREATE OR REPLACE FUNCTION public.is_board()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $func$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND role IN ('PRESIDENT', 'VICE_PRESIDENT', 'BOARD')
+  );
+$func$;
+
+-- Helper function: check if user is the designated host of an event
 CREATE OR REPLACE FUNCTION public.is_event_host(p_event_id UUID)
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $func$
   SELECT EXISTS (
     SELECT 1 FROM public.events e
     WHERE e.id = p_event_id AND (
       e.host_id = auth.uid() OR
       e.created_by_id = auth.uid() OR
-      EXISTS (SELECT 1 FROM public.event_hosts eh WHERE eh.event_id = p_event_id AND eh.user_id = auth.uid())
+      EXISTS (
+        SELECT 1 FROM public.event_hosts eh
+        WHERE eh.event_id = p_event_id AND eh.user_id = auth.uid()
+      )
     )
   );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$func$;
 
--- QR Sessions: Strictly visible ONLY to event host and Board/President/VP
+-- QR Sessions: Strictly visible ONLY to event host and Board
 DROP POLICY IF EXISTS "Host and Board can access QR sessions" ON public.qr_sessions;
 CREATE POLICY "Host and Board can access QR sessions"
   ON public.qr_sessions FOR ALL
