@@ -470,9 +470,16 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                           : `An official acceptance email with credentials was successfully delivered to ${createdCredentials.email}.`)}
                   </p>
                   {createdCredentials.emailDelivery?.provider && (
-                    <span className="inline-block mt-1 font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
-                      Service: {createdCredentials.emailDelivery.provider.toUpperCase()} {createdCredentials.emailDelivery.messageId ? `(${createdCredentials.emailDelivery.messageId})` : ""}
-                    </span>
+                    <div className="mt-2 space-y-1.5">
+                      <span className="inline-block font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
+                        Service: {createdCredentials.emailDelivery.provider.toUpperCase()} {createdCredentials.emailDelivery.messageId ? `(${createdCredentials.emailDelivery.messageId})` : ""}
+                      </span>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium bg-emerald-100/70 dark:bg-emerald-900/40 p-2 rounded-lg">
+                        {isFr
+                          ? "💡 Note : Si le candidat ne trouve pas l'email dans sa boîte de réception principale, rappelez-lui de vérifier son dossier « Courrier indésirable / Spam » ou l'onglet « Promotions »."
+                          : "💡 Note: If the recipient does not see the email in their main inbox, please advise them to check their Spam/Junk or Promotions folders."}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

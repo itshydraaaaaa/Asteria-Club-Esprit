@@ -220,33 +220,52 @@ https://asteria-club-esprit.vercel.app
 `;
 }
 
-/**
- * Dispatches an automated acceptance email to an onboarded applicant.
- * Priority order:
- * 1. Resend API (if RESEND_API_KEY is configured)
- * 2. SMTP Transport via Nodemailer (if SMTP_HOST or SMTP_USER is configured)
- * 3. Simulated Delivery with formatted console output (local development / testing)
- */
-export async function sendAcceptanceEmail(
-  params: SendAcceptanceEmailParams
-): Promise<EmailDeliveryResult> {
-  const now = new Date().toISOString();
-  const subject = `⭐ Félicitations ! Votre compte membre Asteria Club Esprit (${params.departmentName})`;
-  const html = buildAcceptanceEmailHtml(params);
-  const text = buildAcceptanceEmailText(params);
+interface DispatchOptions {
+  toEmail: string;
+  subject: string;
+  html: string;
+  text: string;
+  recipientName?: string;
+  departmentName?: string;
+  temporaryPassword?: string;
+  portalUrl?: string;
+}
 
+/**
+ * Robust Email Delivery Dispatcher
+ * - Intelligently routes between Resend and Gmail/Custom SMTP
+ * - Forces IPv4 (family: 4) on SMTP to avoid 30s-40s connection timeouts on serverless runtimes
+ * - Bypasses Resend sandbox 403 errors when using onboarding@resend.dev for external recipients
+ * - Injects anti-spam and high-importance headers
+ */
+export async function dispatchEmailMessage({
+  toEmail,
+  subject,
+  html,
+  text,
+  recipientName,
+  departmentName,
+  temporaryPassword,
+  portalUrl,
+}: DispatchOptions): Promise<EmailDeliveryResult> {
+  const now = new Date().toISOString();
   const resendApiKey = process.env.RESEND_API_KEY;
   const smtpHost = process.env.SMTP_HOST || (process.env.SMTP_USER ? "smtp.gmail.com" : undefined);
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS?.replace(/\s+/g, "");
   const fromAddress =
     process.env.EMAIL_FROM ||
-    (smtpUser ? `Asteria Club Esprit <${smtpUser}>` : "Asteria Club Esprit <onboarding@resend.dev>");
+    (smtpUser ? `Asteria Club Esprit <${smtpUser}>` : "Asteria Club <onboarding@resend.dev>");
 
   let lastError: string | undefined;
 
-  // 1. Resend REST API dispatch
-  if (resendApiKey) {
+  // 1. Resend API Dispatch
+  // NOTE: If fromAddress contains @resend.dev, Resend sandbox ONLY allows delivering to the account owner (theasteriahub@gmail.com).
+  // For external recipients, we route directly to SMTP to ensure instant delivery without 403 errors or delays.
+  const isResendSandbox = !process.env.RESEND_FROM || process.env.RESEND_FROM.includes("@resend.dev");
+  const canUseResend = resendApiKey && (!isResendSandbox || toEmail.toLowerCase() === "theasteriahub@gmail.com");
+
+  if (canUseResend) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -258,7 +277,7 @@ export async function sendAcceptanceEmail(
           from: fromAddress.includes("@resend.dev")
             ? "Asteria Club <onboarding@resend.dev>"
             : fromAddress,
-          to: [params.toEmail],
+          to: [toEmail],
           subject,
           html,
           text,
@@ -266,54 +285,63 @@ export async function sendAcceptanceEmail(
       });
 
       const data = await res.json();
-
       if (res.ok) {
-        console.log(`[EMAIL] Acceptance email successfully sent to ${params.toEmail} via Resend (${data.id})`);
+        console.log(`[EMAIL] Delivered to ${toEmail} via Resend (${data.id})`);
         return {
           success: true,
           provider: "resend",
           messageId: data.id,
-          recipient: params.toEmail,
+          recipient: toEmail,
           dispatchedAt: now,
         };
       } else {
         lastError = data.message || "Resend error";
-        console.warn(`[EMAIL] Resend dispatch rejected (${lastError}). Trying SMTP fallback...`);
+        console.warn(`[EMAIL] Resend error (${lastError}). Falling back to SMTP...`);
       }
     } catch (err: any) {
       lastError = err.message || "Network error via Resend";
-      console.warn(`[EMAIL] Resend network error (${lastError}). Trying SMTP fallback...`);
+      console.warn(`[EMAIL] Resend network error (${lastError}). Falling back to SMTP...`);
     }
   }
 
-  // 2. SMTP Transport via Nodemailer (Gmail, Outlook, custom SMTP)
+  // 2. High-performance SMTP Transport (Gmail SMTP, Outlook, custom)
   if (smtpHost && smtpUser && smtpPass) {
     try {
       const nodemailer = await import("nodemailer");
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: Number(process.env.SMTP_PORT) || 465,
-        secure: process.env.SMTP_SECURE !== "false", // true for 465, false for 587
+        secure: process.env.SMTP_SECURE !== "false", // 465 is SSL/TLS
         auth: {
           user: smtpUser,
           pass: smtpPass,
         },
-      });
+        family: 4, // CRITICAL: Force IPv4 to eliminate 30-40s IPv6 connect timeout
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+      } as any);
 
       const info = await transporter.sendMail({
-        from: `Asteria Club Esprit <${smtpUser}>`,
-        to: params.toEmail,
+        from: `"Asteria Club Esprit" <${smtpUser}>`,
+        replyTo: `"Asteria Club Esprit" <${smtpUser}>`,
+        to: toEmail,
         subject,
         html,
         text,
+        headers: {
+          "X-Entity-Ref-ID": `ast-${Date.now()}`,
+          "X-Priority": "1",
+          Importance: "high",
+        },
       });
 
-      console.log(`[EMAIL] Acceptance email successfully sent to ${params.toEmail} via SMTP (${info.messageId})`);
+      console.log(`[EMAIL] Delivered to ${toEmail} via SMTP (${info.messageId})`);
       return {
         success: true,
         provider: "smtp",
         messageId: info.messageId,
-        recipient: params.toEmail,
+        recipient: toEmail,
         dispatchedAt: now,
       };
     } catch (smtpErr: any) {
@@ -322,34 +350,28 @@ export async function sendAcceptanceEmail(
     }
   }
 
-  // If credentials were provided but all failed:
+  // If credentials were provided but failed:
   if (resendApiKey || (smtpHost && smtpUser)) {
     return {
       success: false,
       provider: smtpUser ? "smtp" : "resend",
       error: lastError || "Failed to dispatch email",
-      recipient: params.toEmail,
+      recipient: toEmail,
       dispatchedAt: now,
     };
   }
 
-  // 3. Simulated Delivery for Local Development & Demo Environments
+  // 3. Fallback Simulated Console Delivery (Local Dev / Offline)
   console.log(`
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ⚠️  [SIMULATED EMAIL DISPATCH — NO OUTBOUND CREDENTIALS CONFIGURED]        │
+│ ⚠️  [SIMULATED EMAIL DISPATCH — LOCAL DEV / DEMO ENVIRONMENT]              │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ Notice:  No RESEND_API_KEY or SMTP credentials found in .env.              │
-│          To receive REAL emails in your personal inbox:                     │
-│          Option A: Add RESEND_API_KEY="re_..." to .env                      │
-│          Option B: Add SMTP_USER and SMTP_PASS (Gmail App PW) to .env       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ To:      ${params.toEmail.padEnd(58)}│
-│ Name:    ${params.memberName.padEnd(58)}│
-│ Dept:    ${params.departmentName.padEnd(58)}│
-│ Subject: ${subject.slice(0, 58).padEnd(58)}│
-│ Portal:  ${(params.portalUrl || "https://asteria-club-esprit.vercel.app/login").padEnd(58)}│
-│ Temp PW: ${params.temporaryPassword.padEnd(58)}│
-│ Status:  PRINTED TO CONSOLE (Configure RESEND_API_KEY or SMTP in .env)     │
+│ To:      ${toEmail.padEnd(59)}│
+│ Name:    ${(recipientName || "").padEnd(59)}│
+│ Dept:    ${(departmentName || "").padEnd(59)}│
+│ Subject: ${subject.slice(0, 59).padEnd(59)}│
+│ Portal:  ${(portalUrl || "https://asteria-club-esprit.vercel.app/login").padEnd(59)}│
+│ Temp PW: ${(temporaryPassword || "").padEnd(59)}│
 └─────────────────────────────────────────────────────────────────────────────┘
   `);
 
@@ -357,9 +379,31 @@ export async function sendAcceptanceEmail(
     success: true,
     provider: "simulated",
     messageId: `sim_${Date.now()}`,
-    recipient: params.toEmail,
+    recipient: toEmail,
     dispatchedAt: now,
   };
+}
+
+/**
+ * Dispatches an automated acceptance email to an onboarded applicant.
+ */
+export async function sendAcceptanceEmail(
+  params: SendAcceptanceEmailParams
+): Promise<EmailDeliveryResult> {
+  const subject = `⭐ Félicitations ! Votre compte membre Asteria Club Esprit (${params.departmentName})`;
+  const html = buildAcceptanceEmailHtml(params);
+  const text = buildAcceptanceEmailText(params);
+
+  return dispatchEmailMessage({
+    toEmail: params.toEmail,
+    subject,
+    html,
+    text,
+    recipientName: params.memberName,
+    departmentName: params.departmentName,
+    temporaryPassword: params.temporaryPassword,
+    portalUrl: params.portalUrl,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -559,127 +603,20 @@ export function buildInterviewEmailHtml({
 export async function sendInterviewInvitationEmail(
   params: SendInterviewEmailParams
 ): Promise<EmailDeliveryResult> {
-  const now = new Date().toISOString();
   const subject = `Asteria Club Esprit · Convocation à l'Entretien & Accès Portail (${params.memberName})`;
   const html = buildInterviewEmailHtml(params);
   const text = `Bonjour ${params.memberName},\n\nVotre candidature chez Asteria Club Esprit a été retenue pour l'étape des entretiens !\n\nPôle: ${params.departmentName}\nStatut: En Attente d'Entretien (WAITING_FOR_INTERVIEW)\n\nVos identifiants de connexion au portail:\nURL: ${params.portalUrl || "https://asteria-club-esprit.vercel.app/login"}\nEmail: ${params.toEmail}\nMot de passe temporaire: ${params.temporaryPassword}\n\nBonne chance pour votre entretien !\nLe Bureau Exécutif · Asteria Club Esprit`;
 
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-
-  let lastError: string | undefined;
-
-  // 1. Resend API Dispatch
-  if (resendApiKey) {
-    try {
-      const fromAddress = process.env.RESEND_FROM || "Asteria Club <onboarding@resend.dev>";
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromAddress.includes("@resend.dev")
-            ? "Asteria Club <onboarding@resend.dev>"
-            : fromAddress,
-          to: [params.toEmail],
-          subject,
-          html,
-          text,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        console.log(`[EMAIL] Interview invitation email sent to ${params.toEmail} via Resend (${data.id})`);
-        return {
-          success: true,
-          provider: "resend",
-          messageId: data.id,
-          recipient: params.toEmail,
-          dispatchedAt: now,
-        };
-      } else {
-        lastError = data.message || "Resend error";
-        console.warn(`[EMAIL] Resend error (${lastError}). Trying SMTP fallback...`);
-      }
-    } catch (err: any) {
-      lastError = err.message || "Network error via Resend";
-      console.warn(`[EMAIL] Resend network error (${lastError}). Trying SMTP fallback...`);
-    }
-  }
-
-  // 2. SMTP Transport
-  if (smtpHost && smtpUser && smtpPass) {
-    try {
-      const nodemailer = await import("nodemailer");
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: Number(process.env.SMTP_PORT) || 465,
-        secure: process.env.SMTP_SECURE !== "false",
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: `Asteria Club Esprit <${smtpUser}>`,
-        to: params.toEmail,
-        subject,
-        html,
-        text,
-      });
-
-      console.log(`[EMAIL] Interview invitation email sent to ${params.toEmail} via SMTP (${info.messageId})`);
-      return {
-        success: true,
-        provider: "smtp",
-        messageId: info.messageId,
-        recipient: params.toEmail,
-        dispatchedAt: now,
-      };
-    } catch (smtpErr: any) {
-      lastError = smtpErr.message || "SMTP error";
-      console.error("[EMAIL ERROR] SMTP error:", smtpErr);
-    }
-  }
-
-  if (resendApiKey || (smtpHost && smtpUser)) {
-    return {
-      success: false,
-      provider: smtpUser ? "smtp" : "resend",
-      error: lastError || "Failed to dispatch email",
-      recipient: params.toEmail,
-      dispatchedAt: now,
-    };
-  }
-
-  // 3. Simulated Delivery
-  console.log(`
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ⚠️  [SIMULATED INTERVIEW INVITATION EMAIL DISPATCH]                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ To:      ${params.toEmail.padEnd(58)}│
-│ Name:    ${params.memberName.padEnd(58)}│
-│ Dept:    ${params.departmentName.padEnd(58)}│
-│ Role:    WAITING_FOR_INTERVIEW                                              │
-│ Temp PW: ${params.temporaryPassword.padEnd(58)}│
-│ Portal:  ${(params.portalUrl || "https://asteria-club-esprit.vercel.app/login").padEnd(58)}│
-└─────────────────────────────────────────────────────────────────────────────┘
-  `);
-
-  return {
-    success: true,
-    provider: "simulated",
-    messageId: `sim_interview_${Date.now()}`,
-    recipient: params.toEmail,
-    dispatchedAt: now,
-  };
+  return dispatchEmailMessage({
+    toEmail: params.toEmail,
+    subject,
+    html,
+    text,
+    recipientName: params.memberName,
+    departmentName: params.departmentName,
+    temporaryPassword: params.temporaryPassword,
+    portalUrl: params.portalUrl,
+  });
 }
 
 // ---------------------------------------------------------------------------
