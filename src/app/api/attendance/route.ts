@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       user.role === "HOD";
 
     let targetUserId = requestedUserId;
-    if (!isLeadership && !eventId) {
+    if (!isLeadership) {
       targetUserId = user.id;
     }
 

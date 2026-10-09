@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -14,7 +14,6 @@ import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   QrCode,
-  KeyRound,
   CheckCircle2,
   AlertCircle,
   FileText,
@@ -23,13 +22,22 @@ import {
   Sparkles,
   Download,
   CalendarCheck,
-  Copy,
+  Maximize2,
+  Play,
+  Pause,
+  XCircle,
+  Edit3,
+  Camera,
+  ShieldCheck,
   Check,
+  Copy,
+  RefreshCw,
 } from "lucide-react";
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
-import { formatDate, formatDateTime } from "@/lib/utils";
-import { BRAND_COLORS } from "@/lib/constants";
+import { formatDate, formatTime, formatDateTime } from "@/lib/utils";
+import { CameraQrScanner } from "@/components/attendance/CameraQrScanner";
+import { RotatingQrProjectorModal } from "@/components/attendance/RotatingQrProjectorModal";
 
 interface AttendanceHubProps {
   currentUser: any;
@@ -39,29 +47,64 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
   const { language, t } = useLanguage();
   const isFr = language === "fr";
 
-  const [activeTab, setActiveTab] = useState<"checkin" | "history">("checkin");
+  const isLeadership =
+    currentUser?.role === "PRESIDENT" ||
+    currentUser?.role === "VICE_PRESIDENT" ||
+    currentUser?.role === "BOARD";
+  const isHod = currentUser?.role === "HOD";
+
+  const [activeTab, setActiveTab] = useState<"member" | "host" | "excuses">("member");
   const [events, setEvents] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
-  const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [checkInCodeInput, setCheckInCodeInput] = useState("");
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [memberQrDataUrl, setMemberQrDataUrl] = useState<string>("");
+  const [excuses, setExcuses] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checkInStatus, setCheckInStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
-  const [copiedMemberId, setCopiedMemberId] = useState(false);
 
-  // Justification Modal
+  // In-App Camera Scanner Modal
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerSubmitting, setScannerSubmitting] = useState(false);
+
+  // Projector Modal
+  const [projectorEvent, setProjectorEvent] = useState<any | null>(null);
+
+  // Host Console Selected Event & Dynamic QR
+  const [selectedHostEventId, setSelectedHostEventId] = useState<string>("");
+  const [hostQrData, setHostQrData] = useState<{
+    qrDataUrl: string;
+    token: string;
+    secondsRemaining: number;
+    status: string;
+    message?: string;
+    checkInCode?: string;
+  } | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Manual Code Check-In
+  const [manualCodeInput, setManualCodeInput] = useState("");
+  const [checkInStatus, setCheckInStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Absence Excuse Modal
   const [isJustifyOpen, setIsJustifyOpen] = useState(false);
   const [justifyEventId, setJustifyEventId] = useState("");
   const [justificationNote, setJustificationNote] = useState("");
+  const [isSubmittingJustify, setIsSubmittingJustify] = useState(false);
+
+  // Manual Status Override Modal (Host/Board)
+  const [manualOverrideMember, setManualOverrideMember] = useState<any | null>(null);
+  const [manualOverrideStatus, setManualOverrideStatus] = useState<"PRESENT" | "LATE" | "ABSENT" | "EXCUSED">("PRESENT");
+  const [manualOverrideReason, setManualOverrideReason] = useState("");
+  const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
+
+  const hostQrTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [evtRes, recRes] = await Promise.all([
+      const [evtRes, recRes, excRes, metRes] = await Promise.all([
         fetch("/api/events").then((r) => r.json()),
         fetch("/api/attendance").then((r) => r.json()),
+        fetch("/api/attendance/excuse").then((r) => r.json()).catch(() => ({ excuses: [] })),
+        fetch("/api/attendance/metrics").then((r) => r.json()).catch(() => ({ metrics: null })),
       ]);
 
       const rawEvents = evtRes.events || [];
@@ -74,57 +117,24 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
       }));
 
       const rawRecords = recRes.records || [];
-      const recs = rawRecords.map((r: any) => ({
-        ...r,
-        eventId: r.eventId || r.event_id,
-        userId: r.userId || r.user_id,
-        checkedInAt: r.checkedInAt || r.checked_in_at,
-        event: r.event || r.events,
-        user: r.user || r.profiles,
-      }));
-
       setEvents(evts);
-      setRecords(recs);
+      setRecords(rawRecords);
+      setExcuses(excRes.excuses || []);
+      setMetrics(metRes.metrics || null);
 
-      if (evts.length > 0) {
-        const initialEvtId = selectedEventId || evts[0].id;
-        setSelectedEventId(initialEvtId);
-        const currentEvt = evts.find((e: any) => e.id === initialEvtId) || evts[0];
-        const code = currentEvt?.checkInCode || currentEvt?.check_in_code;
-        if (code) {
-          generateQr(code);
-        }
+      if (evts.length > 0 && !selectedHostEventId) {
+        setSelectedHostEventId(evts[0].id);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Fetch data error:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMemberQr = async (memberIdentifier: string) => {
-    if (!memberIdentifier) return;
-    try {
-      const url = await QRCode.toDataURL(memberIdentifier, {
-        width: 280,
-        margin: 2,
-        color: {
-          dark: BRAND_COLORS.primary,
-          light: BRAND_COLORS.surface,
-        },
-      });
-      setMemberQrDataUrl(url);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   useEffect(() => {
     fetchData();
-    if (currentUser?.id || currentUser?.email) {
-      generateMemberQr(currentUser?.id || currentUser?.email);
-    }
-  }, [currentUser?.id, currentUser?.email]);
+  }, []);
 
   useRealtimeSubscription({
     channelName: "attendance_realtime",
@@ -133,78 +143,157 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
     onUpdate: fetchData,
   });
 
-  const generateQr = async (code: string) => {
-    if (!code) return;
+  // Fetch host rotating QR when selected event changes or timer ticks
+  const fetchHostRotatingQr = async (eventId: string) => {
+    if (!eventId) return;
     try {
-      const url = await QRCode.toDataURL(code, {
-        width: 280,
-        margin: 2,
-        color: {
-          dark: BRAND_COLORS.primary,
-          light: BRAND_COLORS.surface,
-        },
+      const res = await fetch(`/api/events/${eventId}/qr`);
+      const data = await res.json();
+      if (res.ok && data.status === "OPEN" && data.qrPayloadUrl) {
+        const url = await QRCode.toDataURL(data.qrPayloadUrl, {
+          width: 320,
+          margin: 2,
+          color: { dark: "#050B14", light: "#FFFFFF" },
+        });
+        setHostQrData({
+          qrDataUrl: url,
+          token: data.token,
+          secondsRemaining: data.expiresInSeconds || 30,
+          status: data.status,
+          checkInCode: data.checkInCode,
+        });
+      } else {
+        setHostQrData({
+          qrDataUrl: "",
+          token: "",
+          secondsRemaining: 0,
+          status: data.status || "CLOSED",
+          message: data.message,
+          checkInCode: data.checkInCode,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "host" && selectedHostEventId) {
+      fetchHostRotatingQr(selectedHostEventId);
+
+      const interval = setInterval(() => {
+        setHostQrData((prev) => {
+          if (!prev) return null;
+          if (prev.secondsRemaining <= 1) {
+            fetchHostRotatingQr(selectedHostEventId);
+            return { ...prev, secondsRemaining: 30 };
+          }
+          return { ...prev, secondsRemaining: prev.secondsRemaining - 1 };
+        });
+      }, 1000);
+
+      hostQrTimerRef.current = interval;
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, selectedHostEventId]);
+
+  const handleCameraScanResult = async (decodedText: string) => {
+    setScannerSubmitting(true);
+    try {
+      let payload: any = {};
+      if (decodedText.startsWith("http")) {
+        const url = new URL(decodedText);
+        payload.eventId = url.searchParams.get("event") || url.searchParams.get("eventId");
+        payload.token = url.searchParams.get("token");
+        payload.ts = url.searchParams.get("ts");
+        payload.code = url.searchParams.get("code");
+      } else {
+        payload.code = decodedText.trim();
+      }
+
+      const res = await fetch("/api/attendance/check-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      setQrDataUrl(url);
-    } catch (e) {
-      console.error(e);
+      const data = await res.json();
+
+      if (res.ok) {
+        setIsScannerOpen(false);
+        setCheckInStatus({ type: "success", message: data.message });
+        try {
+          confetti({
+            particleCount: 85,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#6366f1", "#06b6d4", "#10b981"],
+          });
+        } catch {}
+        fetchData();
+      } else {
+        alert(data.error || "Échec du pointage");
+      }
+    } catch (err: any) {
+      alert("Erreur lors de la validation du code.");
+    } finally {
+      setScannerSubmitting(false);
     }
   };
 
-  const handleEventSelect = (evtId: string) => {
-    setSelectedEventId(evtId);
-    setCopiedCode(false);
-    const evt = events.find((e) => e.id === evtId);
-    if (evt) {
-      const code = evt.checkInCode || evt.check_in_code;
-      if (code) generateQr(code);
-    }
-  };
-
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
-
-  const handleCodeCheckIn = async (codeToUse?: string) => {
-    const code = codeToUse || checkInCodeInput;
-    if (!code) return;
-
+  const handleManualCodeSubmit = async () => {
+    if (!manualCodeInput.trim()) return;
     try {
       const res = await fetch("/api/attendance/check-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, method: "CODE" }),
+        body: JSON.stringify({ code: manualCodeInput.trim(), method: "CODE" }),
       });
       const data = await res.json();
       if (res.ok) {
         setCheckInStatus({ type: "success", message: data.message });
-        setCheckInCodeInput("");
-        confetti({
-          particleCount: 85,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#11606E", "#60C8D4", "#0A3A40"],
-        });
+        setManualCodeInput("");
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+          });
+        } catch {}
         fetchData();
       } else {
         setCheckInStatus({ type: "error", message: data.error });
       }
     } catch {
-      setCheckInStatus({ type: "error", message: "Check-in failed." });
+      setCheckInStatus({ type: "error", message: "Échec du pointage." });
     }
   };
 
+  const handleUpdateCheckInStatus = async (eventId: string, status: "OPEN" | "PAUSED" | "CLOSED") => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/check-in-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        fetchData();
+        fetchHostRotatingQr(eventId);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSubmitJustification = async () => {
-    if (!justifyEventId || !justificationNote) return;
+    if (!justifyEventId || !justificationNote.trim()) return;
+    setIsSubmittingJustify(true);
     try {
-      const res = await fetch("/api/attendance/justify", {
+      const res = await fetch("/api/attendance/excuse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: justifyEventId,
-          justification: justificationNote,
+          reason: justificationNote.trim(),
         }),
       });
       if (res.ok) {
@@ -212,380 +301,867 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
         setJustificationNote("");
         fetchData();
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingJustify(false);
     }
   };
 
-  const selectedEvent = events.find((e) => e.id === selectedEventId);
-  const eventAttendanceRecords = records.filter(
-    (r) => (r.eventId || r.event_id) === selectedEventId
-  );
+  const handleReviewExcuse = async (excuseId: string, eventId: string, userId: string, decision: "APPROVED" | "REJECTED") => {
+    try {
+      const res = await fetch(`/api/attendance/excuse/${excuseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, userId, decision }),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
+  const handleManualOverrideSubmit = async () => {
+    if (!selectedHostEventId || !manualOverrideMember || !manualOverrideReason.trim()) return;
+    setIsSubmittingOverride(true);
+    try {
+      const res = await fetch("/api/attendance/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: selectedHostEventId,
+          userId: manualOverrideMember.id,
+          status: manualOverrideStatus,
+          reason: manualOverrideReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        setManualOverrideMember(null);
+        setManualOverrideReason("");
+        fetchData();
+      } else {
+        const d = await res.json();
+        alert(d.error || "Erreur de mise à jour");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingOverride(false);
+    }
+  };
+
+  // Determine host permissions
   const isHost =
-    currentUser?.role === "PRESIDENT" ||
-    currentUser?.role === "VICE_PRESIDENT" ||
-    currentUser?.role === "BOARD" ||
-    currentUser?.role === "HOD" ||
+    isLeadership ||
+    isHod ||
     events.some(
       (e) =>
-        (e.createdById || e.created_by_id) === currentUser?.id ||
+        e.hostId === currentUser?.id ||
+        e.createdById === currentUser?.id ||
         (e.departmentId && e.departmentId === currentUser?.departmentId)
     );
 
+  const selectedHostEvent = events.find((e) => e.id === selectedHostEventId);
+  const hostEventRecords = records.filter(
+    (r) => (r.eventId || r.event_id) === selectedHostEventId
+  );
+
+  // Compute personal user metrics
+  const myRecords = records.filter((r) => (r.userId || r.user_id) === currentUser?.id);
+  const myPresent = myRecords.filter((r) => r.status === "PRESENT").length;
+  const myLate = myRecords.filter((r) => r.status === "LATE").length;
+  const myExcused = myRecords.filter((r) => r.status === "EXCUSED").length;
+  const myAbsent = myRecords.filter((r) => r.status === "ABSENT").length;
+  const totalMyEvaluated = myPresent + myLate + myExcused + myAbsent;
+  const attendanceRate = totalMyEvaluated > 0
+    ? Math.round(((myPresent + myLate + myExcused) / totalMyEvaluated) * 100)
+    : 100;
+
   return (
     <div className="space-y-6">
-      {/* Tab Switcher & Justification CTA */}
+      {/* Navigation Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Tabs
           tabs={[
-            { id: "checkin", label: isFr ? "Portail de Présence" : "Check-In Portal", icon: <QrCode className="w-3.5 h-3.5" /> },
-            { id: "history", label: isFr ? "Vérification des Présences" : "Attendance Verification", count: records.length, icon: <Clock className="w-3.5 h-3.5" /> },
+            {
+              id: "member",
+              label: isFr ? "Mon Espace Émargement" : "My Attendance Pass",
+              icon: <QrCode className="w-3.5 h-3.5" />,
+            },
+            ...(isHost
+              ? [
+                  {
+                    id: "host",
+                    label: isFr ? "Console Hôte (QR Dynamique)" : "Host Console (Rotating QR)",
+                    icon: <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />,
+                  },
+                ]
+              : []),
+            {
+              id: "excuses",
+              label: isFr ? "Justifications d'Absence" : "Absence Requests",
+              count: excuses.length,
+              icon: <FileText className="w-3.5 h-3.5" />,
+            },
           ]}
           activeTab={activeTab}
           onChange={(id) => setActiveTab(id as any)}
         />
 
-        <Button
-          size="sm"
-          variant="outline"
-          leftIcon={<FileText className="w-3.5 h-3.5" />}
-          onClick={() => setIsJustifyOpen(true)}
-        >
-          {t("attendance.justify", "Submit Absence Justification")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<Camera className="w-3.5 h-3.5 text-indigo-400" />}
+            onClick={() => setIsScannerOpen(true)}
+          >
+            {isFr ? "Scanner pour émarger" : "Scan to Check In"}
+          </Button>
+
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<FileText className="w-3.5 h-3.5" />}
+            onClick={() => {
+              setIsJustifyOpen(true);
+              if (events.length > 0) setJustifyEventId(events[0].id);
+            }}
+          >
+            {isFr ? "Justifier une absence" : "Submit Excuse"}
+          </Button>
+        </div>
       </div>
 
       {checkInStatus && (
         <div
           className={`p-4 rounded-xl border flex items-center justify-between text-xs font-body animate-vague-in ${
             checkInStatus.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-red-50 text-red-800 border-red-200"
+              ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+              : "bg-red-500/10 text-red-300 border-red-500/30"
           }`}
         >
           <div className="flex items-center gap-2">
             {checkInStatus.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             ) : (
-              <AlertCircle className="w-4 h-4 text-red-600" />
+              <AlertCircle className="w-4 h-4 text-red-400" />
             )}
             <span>{checkInStatus.message}</span>
           </div>
           <button
             onClick={() => setCheckInStatus(null)}
-            className="text-ink-soft hover:text-ink text-xs font-bold"
+            className="text-white/60 hover:text-white text-xs font-bold"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Tab 1: Check-in Portal */}
-      {activeTab === "checkin" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 1. Host Console (Visible to Event Hosts / Board / HOD) */}
-          {isHost && (
-            <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md border-teal-900/20 shadow-md">
+      {/* ========================================================================= */}
+      {/* TAB 1: MEMBER ATTENDANCE SPACE */}
+      {/* ========================================================================= */}
+      {activeTab === "member" && (
+        <div className="space-y-6">
+          {/* Member Stats Header */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <Card className="p-4 bg-surface/90 border border-line text-center">
+              <span className="text-[10px] uppercase font-mono text-ink-soft block">
+                Taux de Présence
+              </span>
+              <strong className="text-2xl font-display font-bold text-indigo-400">
+                {attendanceRate}%
+              </strong>
+            </Card>
+            <Card className="p-4 bg-surface/90 border border-line text-center">
+              <span className="text-[10px] uppercase font-mono text-ink-soft block">Présents</span>
+              <strong className="text-2xl font-display font-bold text-emerald-500">
+                {myPresent}
+              </strong>
+            </Card>
+            <Card className="p-4 bg-surface/90 border border-line text-center">
+              <span className="text-[10px] uppercase font-mono text-ink-soft block">En Retard</span>
+              <strong className="text-2xl font-display font-bold text-amber-500">
+                {myLate}
+              </strong>
+            </Card>
+            <Card className="p-4 bg-surface/90 border border-line text-center">
+              <span className="text-[10px] uppercase font-mono text-ink-soft block">Excusés</span>
+              <strong className="text-2xl font-display font-bold text-cyan-400">
+                {myExcused}
+              </strong>
+            </Card>
+            <Card className="p-4 bg-surface/90 border border-line text-center col-span-2 sm:col-span-1">
+              <span className="text-[10px] uppercase font-mono text-ink-soft block">Absences</span>
+              <strong className="text-2xl font-display font-bold text-red-400">
+                {myAbsent}
+              </strong>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Quick Check-in Card */}
+            <Card className="p-6 bg-surface/90 border border-line space-y-5 lg:col-span-1">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="primary" size="sm">
-                    {isFr ? "Console de l'Organisateur" : "Event Host Console"}
-                  </Badge>
-                  <span className="text-xs text-ink-soft font-body">
-                    {isFr ? "Pass Numérique & QR de la Session" : "Live Session Attendance Pass"}
-                  </span>
-                </div>
-                <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                  {isFr ? "Code de Présence de la Session" : "Event Attendance Screen Pass"}
+                <Badge variant="primary" size="sm">
+                  Pointage Rapide
+                </Badge>
+                <h3 className="text-lg font-display font-bold text-ink">
+                  Valider ma Présence
                 </h3>
-                <p className="font-body text-xs text-ink-soft">
-                  {isFr
-                    ? "Projetez ce code et ce QR sur écran lors de l'atelier ou réunion pour que les membres valident leur présence."
-                    : "Project this QR code and numeric passcode on screen during your workshop or assembly so members can check in."}
+                <p className="text-xs text-ink-soft font-body leading-relaxed">
+                  Scannez le QR code dynamique projeté par l'animateur ou saisissez le code de secours de la session.
                 </p>
               </div>
 
-              {/* Event Selector */}
-              <Select
-                label={isFr ? "Session Active" : "Active Session"}
-                value={selectedEventId}
-                onChange={(e) => handleEventSelect(e.target.value)}
-              >
-                {events.map((evt) => (
-                  <option key={evt.id} value={evt.id}>
-                    {evt.title} ({evt.department ? evt.department.name : "Club-Wide"})
-                  </option>
-                ))}
-              </Select>
-
-              {/* QR Card Visual */}
-              {selectedEvent ? (
-                <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
-                  {qrDataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={qrDataUrl}
-                      alt="Event QR Code"
-                      className="w-56 h-56 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
-                    />
-                  ) : (
-                    <div className="w-56 h-56 flex items-center justify-center bg-line/20 rounded-2xl">
-                      <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
-                    </div>
-                  )}
-
-                  <div className="text-center space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-ink-faint font-display">
-                      {isFr ? "Code Numérique de la Session" : "Numeric Passcode"}
-                    </span>
-                    <div className="flex items-center justify-center gap-2">
-                      <p className="font-mono text-xl font-bold tracking-widest text-ast-primary bg-teal-50 px-4 py-1.5 rounded-xl border border-teal-200">
-                        {selectedEvent.checkInCode || selectedEvent.check_in_code}
-                      </p>
-                      <button
-                        onClick={() => handleCopyCode(selectedEvent.checkInCode || selectedEvent.check_in_code)}
-                        className="p-2 rounded-xl border border-line bg-surface hover:bg-surface-alt text-ink transition-colors"
-                        title="Copy Code"
-                      >
-                        {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-ink-soft" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-ink-soft font-body flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-ast-primary" />
-                    <span>
-                      <strong>{eventAttendanceRecords.length}</strong> {isFr ? "Membres Émargés en Direct" : "Attendees Checked In Live"}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-2 w-full pt-1">
-                    {qrDataUrl && (
-                      <a
-                        href={qrDataUrl}
-                        download={`Asteria_QR_${selectedEvent.checkInCode || "Event"}.png`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
-                      >
-                        <Download className="w-3.5 h-3.5" /> {isFr ? "Télécharger le QR" : "Download Session QR"}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <EmptyState
-                  icon={CalendarCheck}
-                  title={isFr ? "Aucune Session Active" : "No Active Events"}
-                  description={isFr ? "Planifiez un atelier depuis le calendrier pour générer les codes." : "Schedule a workshop or general assembly from the calendar to generate dynamic check-in codes."}
-                />
-              )}
-            </Card>
-          )}
-
-          {/* 2. Member Personal Account Attendance QR Pass */}
-          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="accent" size="sm">
-                  {isFr ? "Pass Personnel" : "Member Pass"}
-                </Badge>
-                <span className="text-xs text-ink-soft font-body">
-                  {isFr ? "Identifiant Numérique Club" : "Personal Account QR Badge"}
-                </span>
-              </div>
-              <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                {isFr ? "Votre Badge QR Personnel" : "Your Account Attendance QR"}
-              </h3>
-              <p className="font-body text-xs text-ink-soft">
-                {isFr
-                  ? "Présentez ce QR code à l'accueil de l'événement ou saisissez le code de session ci-dessous pour confirmer votre présence."
-                  : "Show this permanent QR badge to the event host at the door or enter the session code to verify attendance."}
-              </p>
-            </div>
-
-            <div className="p-6 bg-surface-alt border border-line rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-sm">
-              {memberQrDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={memberQrDataUrl}
-                  alt="Member Attendance Badge QR"
-                  className="w-52 h-52 rounded-2xl shadow-md border-4 border-surface bg-white p-2"
-                />
-              ) : (
-                <div className="w-52 h-52 flex items-center justify-center bg-line/20 rounded-2xl">
-                  <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full" />
-                </div>
-              )}
-
-              <div className="text-center space-y-1">
-                <h4 className="font-body font-bold text-sm text-ink">
-                  {currentUser?.name || "Asteria Member"}
-                </h4>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="font-mono text-[11px] bg-surface px-2.5 py-1 rounded border border-line text-ink-soft">
-                    {currentUser?.email || currentUser?.id}
-                  </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(currentUser?.id || currentUser?.email || "");
-                      setCopiedMemberId(true);
-                      setTimeout(() => setCopiedMemberId(false), 2000);
-                    }}
-                    className="p-1 rounded border border-line bg-surface text-ink-soft hover:text-ink"
-                    title="Copy Member ID"
-                  >
-                    {copiedMemberId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              {memberQrDataUrl && (
-                <a
-                  href={memberQrDataUrl}
-                  download={`Asteria_Pass_${currentUser?.name?.replace(/\s+/g, "_") || "Member"}.png`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+              <div className="space-y-3 pt-2">
+                <Button
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 font-medium py-3"
+                  onClick={() => setIsScannerOpen(true)}
                 >
-                  <Download className="w-3.5 h-3.5" /> {isFr ? "Télécharger mon Pass QR" : "Download My Pass QR"}
-                </a>
-              )}
-            </div>
-          </Card>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Ouvrir le Scanner Caméra
+                </Button>
 
-          {/* 3. Member Manual Passcode Entry */}
-          <Card className="p-6 space-y-5 bg-surface/90 backdrop-blur-md">
+                <div className="relative flex items-center justify-center my-3">
+                  <div className="border-t border-line w-full" />
+                  <span className="bg-surface px-2 text-[10px] uppercase font-mono text-ink-soft absolute">
+                    ou code numérique
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Ex: AST-4912"
+                    value={manualCodeInput}
+                    onChange={(e) => setManualCodeInput(e.target.value.toUpperCase())}
+                    className="font-mono text-center tracking-widest text-base uppercase"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs"
+                    onClick={handleManualCodeSubmit}
+                    disabled={!manualCodeInput.trim()}
+                  >
+                    Valider le code
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Personal Attendance History Table */}
+            <Card className="p-6 bg-surface/90 border border-line space-y-4 lg:col-span-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-display font-bold text-ink">
+                    Mon Historique d'Émargement
+                  </h3>
+                  <p className="text-xs text-ink-soft font-body">
+                    Feuille nominative des séances et ateliers
+                  </p>
+                </div>
+                <Badge variant="default" size="sm">
+                  {myRecords.length} sessions
+                </Badge>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-line text-ink-soft font-mono uppercase text-[10px]">
+                      <th className="pb-2.5">Événement</th>
+                      <th className="pb-2.5">Date</th>
+                      <th className="pb-2.5">Statut</th>
+                      <th className="pb-2.5">Heure</th>
+                      <th className="pb-2.5">Méthode</th>
+                      <th className="pb-2.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line/60">
+                    {myRecords.length > 0 ? (
+                      myRecords.map((rec) => (
+                        <tr key={rec.id} className="hover:bg-surface-alt/50 transition-colors">
+                          <td className="py-3 font-semibold text-ink">
+                            {rec.events?.title || rec.event?.title || "Session Asteria"}
+                          </td>
+                          <td className="py-3 text-ink-soft">
+                            {rec.events?.startTime
+                              ? formatDate(rec.events.startTime)
+                              : rec.checkedInAt
+                              ? formatDate(rec.checkedInAt)
+                              : "-"}
+                          </td>
+                          <td className="py-3">
+                            <Badge
+                              variant={
+                                rec.status === "PRESENT"
+                                  ? "success"
+                                  : rec.status === "LATE"
+                                  ? "warning"
+                                  : rec.status === "EXCUSED"
+                                  ? "accent"
+                                  : "danger"
+                              }
+                              size="sm"
+                            >
+                              {rec.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 text-ink-soft font-mono">
+                            {rec.checkedInAt ? formatTime(rec.checkedInAt) : "-"}
+                          </td>
+                          <td className="py-3 text-ink-soft font-mono text-[11px]">
+                            {rec.method || "QR"}
+                          </td>
+                          <td className="py-3 text-right">
+                            {rec.status === "ABSENT" && (
+                              <button
+                                onClick={() => {
+                                  setJustifyEventId(rec.eventId || rec.event_id);
+                                  setIsJustifyOpen(true);
+                                }}
+                                className="text-indigo-400 hover:text-indigo-300 font-semibold text-[11px]"
+                              >
+                                Justifier
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-ink-soft">
+                          Aucun pointage enregistré à ce jour.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: HOST CONSOLE (ROTATING QR & REAL-TIME CONTROLS) */}
+      {/* ========================================================================= */}
+      {activeTab === "host" && isHost && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Rotating QR & Host Controls */}
+          <Card className="p-6 bg-surface/90 border border-line space-y-5 lg:col-span-1">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge variant="primary" size="sm">
-                  {isFr ? "Émargement Manuel" : "Self Check-In"}
+                  Contrôle Session
                 </Badge>
-                <span className="text-xs text-ink-soft font-body">
-                  {isFr ? "Validation par Code" : "Passcode Confirmation"}
+                <span className="text-xs font-mono text-indigo-400 font-bold">
+                  {hostQrData?.status || selectedHostEvent?.checkInStatus || "SCHEDULED"}
                 </span>
               </div>
-              <h3 className="font-display font-bold text-lg uppercase tracking-wider text-ink">
-                {isFr ? "Saisir le Code de l'Événement" : "Enter Event Passcode"}
+              <h3 className="font-display font-bold text-lg text-ink">
+                Pass Grand Écran & Rotation QR
               </h3>
-              <p className="font-body text-xs text-ink-soft">
-                {isFr
-                  ? "Saisissez le code affiché sur l'écran de présentation lors de l'événement pour confirmer votre présence."
-                  : "When attending the event, enter the passcode displayed on screen by the host to confirm your attendance."}
+              <p className="text-xs text-ink-soft font-body leading-relaxed">
+                Le QR code se renouvelle toutes les 30 secondes pour prévenir les fraudes et captures d'écran.
               </p>
             </div>
 
-            <div className="p-6 bg-surface-alt border border-line rounded-2xl space-y-4 shadow-sm">
-              <Input
-                label={isFr ? "Code de Présence de l'Événement *" : "Event Check-In Passcode *"}
-                placeholder="e.g. AST-2026 / WEB-DEV26"
-                value={checkInCodeInput}
-                onChange={(e) => setCheckInCodeInput(e.target.value.toUpperCase())}
-                leftIcon={<KeyRound className="w-4 h-4" />}
-                className="text-center font-mono font-bold tracking-widest text-base py-3 uppercase"
-              />
+            {/* Event Selector */}
+            <Select
+              label="Sélectionner la Session Active"
+              value={selectedHostEventId}
+              onChange={(e) => setSelectedHostEventId(e.target.value)}
+            >
+              {events.map((evt) => (
+                <option key={evt.id} value={evt.id}>
+                  {evt.title} ({evt.department ? evt.department.name : "Club"})
+                </option>
+              ))}
+            </Select>
 
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => handleCodeCheckIn()}
-                disabled={!checkInCodeInput.trim()}
-              >
-                {isFr ? "Valider ma Présence" : "Confirm Attendance Check-In"}
-              </Button>
+            {/* Rotating QR Preview Card */}
+            {selectedHostEvent ? (
+              <div className="p-5 rounded-2xl bg-surface-alt border border-line flex flex-col items-center justify-center space-y-4">
+                {hostQrData?.status === "OPEN" && hostQrData.qrDataUrl ? (
+                  <>
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={hostQrData.qrDataUrl}
+                        alt="Rotating QR Pass"
+                        className="w-56 h-56 rounded-2xl bg-white p-2 shadow-lg border border-white/20"
+                      />
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-emerald-400 border border-emerald-500/30">
+                        {hostQrData.secondsRemaining}s
+                      </div>
+                    </div>
+
+                    <div className="w-full space-y-1 text-center">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-ink-soft">
+                        <span>Renouvellement automatique :</span>
+                        <span className="font-bold text-indigo-400">{hostQrData.secondsRemaining}s</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-surface overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-1000 ease-linear"
+                          style={{ width: `${(hostQrData.secondsRemaining / 30) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-56 h-56 rounded-2xl bg-surface border border-line flex flex-col items-center justify-center p-4 text-center space-y-2">
+                    <Clock className="w-8 h-8 text-amber-500" />
+                    <span className="text-xs font-semibold text-ink">
+                      {hostQrData?.status === "PAUSED"
+                        ? "Émargement en Pause"
+                        : hostQrData?.status === "CLOSED"
+                        ? "Session Clôturée"
+                        : "Fenêtre Non Ouverte"}
+                    </span>
+                    <p className="text-[11px] text-ink-soft">
+                      {hostQrData?.message || "Ouvrez l'émargement pour générer le QR code."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Numeric Fallback Code */}
+                {selectedHostEvent.checkInCode && (
+                  <div className="text-center space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-ink-soft font-mono">
+                      Code de secours manuel
+                    </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="font-mono text-lg font-bold tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-xl border border-indigo-500/20">
+                        {selectedHostEvent.checkInCode}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full-Screen Projector Button */}
+                <Button
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30"
+                  onClick={() => setProjectorEvent(selectedHostEvent)}
+                >
+                  <Maximize2 className="w-4 h-4 mr-2" />
+                  Affichage Plein Écran Vidéoprojecteur
+                </Button>
+
+                {/* Host Control Actions */}
+                <div className="flex flex-wrap gap-2 w-full pt-1 border-t border-line">
+                  {selectedHostEvent.checkInStatus !== "OPEN" ? (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="flex-1 text-xs"
+                      onClick={() => handleUpdateCheckInStatus(selectedHostEvent.id, "OPEN")}
+                    >
+                      <Play className="w-3.5 h-3.5 mr-1" /> Ouvrir
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-xs"
+                      onClick={() => handleUpdateCheckInStatus(selectedHostEvent.id, "PAUSED")}
+                    >
+                      <Pause className="w-3.5 h-3.5 mr-1" /> Mettre en Pause
+                    </Button>
+                  )}
+
+                  {selectedHostEvent.checkInStatus !== "CLOSED" && (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="flex-1 text-xs"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            "Clôturer la session marquera automatiquement tous les membres non émargés comme ABSENTS. Confirmer ?"
+                          )
+                        ) {
+                          handleUpdateCheckInStatus(selectedHostEvent.id, "CLOSED");
+                        }
+                      }}
+                    >
+                      <XCircle className="w-3.5 h-3.5 mr-1" /> Clôturer
+                    </Button>
+                  )}
+                </div>
+
+                <a
+                  href={`/api/attendance/export?eventId=${selectedHostEvent.id}`}
+                  download
+                  className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" /> Exporter la feuille en CSV
+                </a>
+              </div>
+            ) : null}
+          </Card>
+
+          {/* Right Column: Live Attendees Board & Real-Time Counters */}
+          <Card className="p-6 bg-surface/90 border border-line space-y-5 lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-bold text-lg text-ink">
+                  Émargement en Direct de la Session
+                </h3>
+                <p className="text-xs text-ink-soft font-body">
+                  Mise à jour instantanée via Supabase Realtime
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge variant="success" size="sm">
+                  {hostEventRecords.filter((r) => r.status === "PRESENT" || r.status === "LATE").length} émargés
+                </Badge>
+              </div>
+            </div>
+
+            {/* Counters */}
+            <div className="grid grid-cols-4 gap-2 text-center text-xs">
+              <div className="p-2.5 rounded-xl bg-surface-alt border border-line">
+                <span className="text-[10px] text-ink-soft block font-mono">PRÉSENTS</span>
+                <strong className="text-emerald-500 text-lg">
+                  {hostEventRecords.filter((r) => r.status === "PRESENT").length}
+                </strong>
+              </div>
+              <div className="p-2.5 rounded-xl bg-surface-alt border border-line">
+                <span className="text-[10px] text-ink-soft block font-mono">EN RETARD</span>
+                <strong className="text-amber-500 text-lg">
+                  {hostEventRecords.filter((r) => r.status === "LATE").length}
+                </strong>
+              </div>
+              <div className="p-2.5 rounded-xl bg-surface-alt border border-line">
+                <span className="text-[10px] text-ink-soft block font-mono">ABSENTS</span>
+                <strong className="text-red-500 text-lg">
+                  {hostEventRecords.filter((r) => r.status === "ABSENT").length}
+                </strong>
+              </div>
+              <div className="p-2.5 rounded-xl bg-surface-alt border border-line">
+                <span className="text-[10px] text-ink-soft block font-mono">EXCUSÉS</span>
+                <strong className="text-cyan-500 text-lg">
+                  {hostEventRecords.filter((r) => r.status === "EXCUSED").length}
+                </strong>
+              </div>
+            </div>
+
+            {/* Attendee Records Table with Manual Adjustment */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-line text-ink-soft font-mono uppercase text-[10px]">
+                    <th className="pb-2.5">Membre</th>
+                    <th className="pb-2.5">Statut</th>
+                    <th className="pb-2.5">Heure Pointage</th>
+                    <th className="pb-2.5">Méthode</th>
+                    <th className="pb-2.5">Motif / Justification</th>
+                    <th className="pb-2.5 text-right">Ajuster</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/60">
+                  {hostEventRecords.length > 0 ? (
+                    hostEventRecords.map((r) => (
+                      <tr key={r.id} className="hover:bg-surface-alt/50 transition-colors">
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <Avatar name={r.user?.name} src={r.user?.avatarUrl} size="sm" />
+                            <div>
+                              <span className="font-semibold text-ink block">{r.user?.name || "Membre"}</span>
+                              <span className="text-[10px] text-ink-soft font-mono">{r.user?.email}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2.5">
+                          <Badge
+                            variant={
+                              r.status === "PRESENT"
+                                ? "success"
+                                : r.status === "LATE"
+                                ? "warning"
+                                : r.status === "EXCUSED"
+                                ? "accent"
+                                : "danger"
+                            }
+                            size="sm"
+                          >
+                            {r.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 text-ink-soft font-mono">
+                          {r.checkedInAt ? formatTime(r.checkedInAt) : "-"}
+                        </td>
+                        <td className="py-2.5 text-ink-soft font-mono text-[11px]">
+                          {r.method || "QR"}
+                        </td>
+                        <td className="py-2.5 text-ink-soft text-[11px] max-w-xs truncate">
+                          {r.justification || r.manualReason || "-"}
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <button
+                            onClick={() => {
+                              setManualOverrideMember(r.user || { id: r.userId, name: "Membre" });
+                              setManualOverrideStatus(r.status || "PRESENT");
+                              setManualOverrideReason("");
+                            }}
+                            className="p-1.5 rounded-lg bg-surface-alt hover:bg-surface border border-line text-ink-soft hover:text-ink transition-colors"
+                            title="Ajustement manuel (avec motif tracé)"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-ink-soft">
+                        Aucun membre n'a encore émargé pour cette session.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </Card>
         </div>
       )}
 
-      {/* Tab 2: Attendance Verification Table */}
-      {activeTab === "history" && (
-        <Card className="bg-surface/90 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Attendance Log & Verification Audit</CardTitle>
-            <span className="text-xs text-ink-soft font-mono">{records.length} Total Check-ins</span>
-          </CardHeader>
-          <CardContent className="divide-y divide-line/60">
-            {records.length > 0 ? (
-              records.map((rec) => (
-                <div key={rec.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <Avatar name={rec.user?.name} src={rec.user?.avatarUrl} size="md" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-body font-bold text-sm text-ink">{rec.user?.name || "Member"}</h4>
-                        <Badge variant="primary" size="sm">
-                          {rec.user?.role || "MEMBER"}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-ink-soft font-body mt-0.5">
-                        Session: <strong>{rec.event?.title || "Asteria Session"}</strong>
-                      </p>
-                      {rec.justification && (
-                        <p className="text-[11px] text-amber-800 font-body italic mt-0.5">
-                          Absence Justification: &quot;{rec.justification}&quot;
-                        </p>
-                      )}
-                    </div>
-                  </div>
+      {/* ========================================================================= */}
+      {/* TAB 3: EXCUSES & JUSTIFICATIONS */}
+      {/* ========================================================================= */}
+      {activeTab === "excuses" && (
+        <Card className="p-6 bg-surface/90 border border-line space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-display font-bold text-lg text-ink">
+                Justifications d'Absence
+              </h3>
+              <p className="text-xs text-ink-soft font-body">
+                Demandes d'excuse soumises par les membres pour examen par les responsables
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setIsJustifyOpen(true);
+                if (events.length > 0) setJustifyEventId(events[0].id);
+              }}
+            >
+              Soumettre une demande
+            </Button>
+          </div>
 
-                  <div className="text-left sm:text-right flex-shrink-0">
-                    <div className="flex items-center gap-2 justify-start sm:justify-end">
-                      <span className="text-[10px] font-mono font-bold bg-surface-alt px-2 py-0.5 rounded border border-line">
-                        Method: {rec.method}
-                      </span>
-                      <Badge variant={rec.status === "PRESENT" ? "success" : "warning"} size="sm">
-                        {rec.status}
-                      </Badge>
-                    </div>
-                    <span className="text-[10px] text-ink-faint font-mono mt-1 block">
-                      {formatDateTime(rec.checkedInAt || rec.checked_in_at)}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <EmptyState
-                icon={Users}
-                title="No Attendance Records Yet"
-                description="Members will appear here once they scan event QR codes or enter session passcodes."
-              />
-            )}
-          </CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-line text-ink-soft font-mono uppercase text-[10px]">
+                  <th className="pb-2.5">Membre</th>
+                  <th className="pb-2.5">Événement</th>
+                  <th className="pb-2.5">Motif</th>
+                  <th className="pb-2.5">Statut</th>
+                  <th className="pb-2.5">Date</th>
+                  {isHost && <th className="pb-2.5 text-right">Décision</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line/60">
+                {excuses.length > 0 ? (
+                  excuses.map((exc) => (
+                    <tr key={exc.id} className="hover:bg-surface-alt/50 transition-colors">
+                      <td className="py-3 font-semibold text-ink">
+                        {exc.user?.name || "Membre"}
+                      </td>
+                      <td className="py-3 text-ink-soft">
+                        {exc.event?.title || "Session Asteria"}
+                      </td>
+                      <td className="py-3 text-ink max-w-sm">
+                        "{exc.reason}"
+                      </td>
+                      <td className="py-3">
+                        <Badge
+                          variant={
+                            exc.status === "APPROVED"
+                              ? "success"
+                              : exc.status === "REJECTED"
+                              ? "danger"
+                              : "warning"
+                          }
+                          size="sm"
+                        >
+                          {exc.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 text-ink-soft font-mono">
+                        {formatDate(exc.createdAt)}
+                      </td>
+                      {isHost && (
+                        <td className="py-3 text-right">
+                          {exc.status === "PENDING" && (
+                            <div className="flex justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="primary"
+                                className="text-[11px] h-7 px-2"
+                                onClick={() =>
+                                  handleReviewExcuse(exc.id, exc.eventId, exc.userId, "APPROVED")
+                                }
+                              >
+                                Approuver
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                className="text-[11px] h-7 px-2"
+                                onClick={() =>
+                                  handleReviewExcuse(exc.id, exc.eventId, exc.userId, "REJECTED")
+                                }
+                              >
+                                Rejeter
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-ink-soft">
+                      Aucune demande de justification enregistrée.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
-      {/* Justification Modal */}
+      {/* ========================================================================= */}
+      {/* IN-APP CAMERA SCANNER MODAL */}
+      {/* ========================================================================= */}
+      <Modal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        title="Scanner le QR Code d'Émargement"
+        description="Pointez la caméra vers l'écran ou le vidéoprojecteur affichant le QR code"
+      >
+        <div className="space-y-4">
+          <CameraQrScanner onScan={handleCameraScanResult} active={isScannerOpen && !scannerSubmitting} />
+          {scannerSubmitting && (
+            <div className="flex items-center justify-center gap-2 text-xs text-indigo-400 font-mono animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              Validation cryptographique du jeton en cours...
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* FULLSCREEN PROJECTOR ROTATING QR MODAL */}
+      {/* ========================================================================= */}
+      {projectorEvent && (
+        <RotatingQrProjectorModal
+          isOpen={Boolean(projectorEvent)}
+          onClose={() => setProjectorEvent(null)}
+          event={projectorEvent}
+          onStatusChange={fetchData}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* MANUAL OVERRIDE DIALOG */}
+      {/* ========================================================================= */}
+      <Modal
+        isOpen={Boolean(manualOverrideMember)}
+        onClose={() => setManualOverrideMember(null)}
+        title="Ajustement Manuel d'Émargement"
+        description={`Membre : ${manualOverrideMember?.name || ""}`}
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">Nouveau Statut</label>
+            <Select
+              value={manualOverrideStatus}
+              onChange={(e) => setManualOverrideStatus(e.target.value as any)}
+            >
+              <option value="PRESENT">PRÉSENT</option>
+              <option value="LATE">EN RETARD</option>
+              <option value="ABSENT">ABSENT</option>
+              <option value="EXCUSED">EXCUSÉ</option>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-ink">
+              Motif obligatoire du changement (Audit Log) *
+            </label>
+            <Textarea
+              placeholder="Ex: Batterie téléphone à plat, vérifié sur place par l'hôte..."
+              value={manualOverrideReason}
+              onChange={(e) => setManualOverrideReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-line">
+            <Button variant="secondary" size="sm" onClick={() => setManualOverrideMember(null)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleManualOverrideSubmit}
+              disabled={isSubmittingOverride || !manualOverrideReason.trim()}
+            >
+              Enregistrer l'ajustement
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* SUBMIT ABSENCE EXCUSE MODAL */}
+      {/* ========================================================================= */}
       <Modal
         isOpen={isJustifyOpen}
         onClose={() => setIsJustifyOpen(false)}
-        title="Submit Absence Justification"
-        description="Provide a valid academic, medical, or competition justification for missed sessions"
+        title="Justifier une Absence"
+        description="Transmettez le motif de votre absence pour validation par l'hôte ou le responsable de département"
       >
         <div className="space-y-4">
           <Select
-            label="Select Event *"
+            label="Événement concerné"
             value={justifyEventId}
             onChange={(e) => setJustifyEventId(e.target.value)}
           >
-            <option value="">Select missed workshop/event...</option>
             {events.map((evt) => (
               <option key={evt.id} value={evt.id}>
-                {evt.title} ({formatDate(evt.startTime || evt.start_time)})
+                {evt.title} ({formatDate(evt.startTime)})
               </option>
             ))}
           </Select>
 
           <Textarea
-            label="Detailed Explanation / Reason *"
-            placeholder="e.g. Exam preparation at Esprit, robotics competition, medical reason..."
+            label="Motif détaillé de l'absence *"
+            placeholder="Précisez la raison (impératif académique, examen, maladie, urgence familiale)..."
             value={justificationNote}
             onChange={(e) => setJustificationNote(e.target.value)}
+            rows={3}
           />
 
-          <div className="pt-4 border-t border-line flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2 border-t border-line">
             <Button variant="secondary" size="sm" onClick={() => setIsJustifyOpen(false)}>
-              Cancel
+              Annuler
             </Button>
-            <Button variant="primary" size="sm" onClick={handleSubmitJustification}>
-              Submit Justification
+            <Button
+              size="sm"
+              onClick={handleSubmitJustification}
+              disabled={isSubmittingJustify || !justificationNote.trim()}
+            >
+              Envoyer la justification
             </Button>
           </div>
         </div>
