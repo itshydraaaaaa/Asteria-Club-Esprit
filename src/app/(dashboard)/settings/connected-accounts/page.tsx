@@ -195,7 +195,7 @@ export default function ConnectedAccountsPage() {
       const { data, error } = await supabase.auth.linkIdentity({
         provider: authProvider,
         options: {
-          redirectTo: `${origin}/settings/connected-accounts`,
+          redirectTo: `${origin}/auth/callback?next=/settings/connected-accounts`,
           scopes: authProvider === "github" ? "read:user" : undefined,
         },
       });

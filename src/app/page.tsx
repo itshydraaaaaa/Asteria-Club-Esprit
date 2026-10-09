@@ -71,6 +71,16 @@ export default function HomePage() {
   } | null>(null);
 
   useEffect(() => {
+    // If arriving on homepage with an OAuth code (?code=...), forward to /auth/callback
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      if (code) {
+        window.location.href = `/auth/callback?code=${encodeURIComponent(code)}&next=/settings/connected-accounts`;
+        return;
+      }
+    }
+
     fetch("/api/stats")
       .then((res) => res.json())
       .then((data) => setStats(data))
