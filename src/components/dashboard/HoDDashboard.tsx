@@ -79,55 +79,55 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
 
       {/* Task Velocity Grid with Animated Counters */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft font-display">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300 font-display">
             {t("tasks.col.todo", "To Do")}
           </p>
-          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink mt-1">
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink dark:text-white mt-1">
             <AnimatedCounter value={taskStats.todo} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">{isFr ? "File d'attente" : "Sprint queue"}</span>
+          <span className="text-[10px] text-ink-faint dark:text-teal-400/60 font-body">{isFr ? "File d'attente" : "Sprint queue"}</span>
         </Card>
 
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ast-primary font-display">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ast-primary dark:text-ast-light font-display">
             {t("tasks.col.inProgress", "In Progress")}
           </p>
-          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary mt-1">
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary dark:text-ast-light mt-1">
             <AnimatedCounter value={taskStats.inProgress} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">{isFr ? "En production" : "Being crafted"}</span>
+          <span className="text-[10px] text-ink-faint dark:text-teal-400/60 font-body">{isFr ? "En production" : "Being crafted"}</span>
         </Card>
 
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 font-display">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300 font-display">
             {t("tasks.col.review", "In Review")}
           </p>
-          <h4 className="font-display font-bold text-2xl sm:text-3xl text-amber-700 mt-1">
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-amber-700 dark:text-amber-300 mt-1">
             <AnimatedCounter value={taskStats.review} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">{isFr ? "Revue responsable" : "HoD feedback"}</span>
+          <span className="text-[10px] text-ink-faint dark:text-teal-400/60 font-body">{isFr ? "Revue responsable" : "HoD feedback"}</span>
         </Card>
 
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 font-display">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 backdrop-blur-md">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 font-display">
             {t("tasks.col.done", "Completed")}
           </p>
-          <h4 className="font-display font-bold text-2xl sm:text-3xl text-emerald-700 mt-1">
+          <h4 className="font-display font-bold text-2xl sm:text-3xl text-emerald-700 dark:text-emerald-300 mt-1">
             <AnimatedCounter value={taskStats.done} />
           </h4>
-          <span className="text-[10px] text-ink-faint font-body">{isFr ? "Validé" : "Production ready"}</span>
+          <span className="text-[10px] text-ink-faint dark:text-teal-400/60 font-body">{isFr ? "Validé" : "Production ready"}</span>
         </Card>
       </div>
 
       {/* Active Department Tasks & Member Roster */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Tasks list */}
-        <Card className="lg:col-span-2 bg-surface/90 backdrop-blur-md">
+        <Card className="lg:col-span-2 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 backdrop-blur-md">
           <CardHeader>
             <div>
               <CardTitle>{isFr ? "Tâches Actives du Pôle" : "Active Department Tasks"}</CardTitle>
-              <p className="text-xs text-ink-soft font-body mt-0.5">
+              <p className="text-xs text-ink-soft dark:text-teal-300/70 font-body mt-0.5">
                 {isFr ? "Tâches de sprint en cours assignées aux membres" : "Current sprint tasks assigned to members"}
               </p>
             </div>
@@ -142,20 +142,20 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
               dept.tasks.slice(0, 5).map((tItem: any) => (
                 <div
                   key={tItem.id}
-                  className="p-4 rounded-2xl border border-line bg-surface-alt/50 flex items-center justify-between gap-3 hover:border-ast-light/40 transition-all"
+                  className="p-4 rounded-2xl border border-line dark:border-teal-900/70 bg-surface-alt/50 dark:bg-[#041a1d]/70 flex items-center justify-between gap-3 hover:bg-surface-alt dark:hover:bg-[#072428] hover:border-ast-light/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={tItem.status} />
                       <PriorityBadge priority={tItem.priority} />
                     </div>
-                    <h5 className="font-body font-bold text-xs text-ink">{tItem.title}</h5>
-                    <p className="text-[11px] text-ink-soft line-clamp-1">
+                    <h5 className="font-body font-bold text-xs text-ink dark:text-white">{tItem.title}</h5>
+                    <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-1">
                       {tItem.description || (isFr ? "Aucune description fournie." : "No description provided.")}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[10px] text-ink-faint font-mono">
+                    <span className="text-[10px] text-ink-faint dark:text-teal-400/60 font-mono">
                       {formatDate(tItem.dueDate)}
                     </span>
                   </div>

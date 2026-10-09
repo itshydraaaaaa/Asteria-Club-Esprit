@@ -86,39 +86,39 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
 
       {/* Member Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300/70 font-display">
                 {isFr ? "Mes Tâches Assignées" : "My Assigned Tasks"}
               </p>
-              <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink mt-1">
+              <h4 className="font-display font-bold text-2xl sm:text-3xl text-ink dark:text-teal-50 mt-1">
                 <AnimatedCounter value={myTasks.length} />
               </h4>
-              <p className="text-xs text-ink-soft font-body mt-1">
+              <p className="text-xs text-ink-soft dark:text-teal-200/60 font-body mt-1">
                 {completedTasks} {isFr ? "terminées" : "completed"}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-teal-50 border border-teal-200 text-ast-primary shadow-sm">
+            <div className="p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 text-ast-primary dark:text-ast-light shadow-sm">
               <Layers className="w-5 h-5" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300/70 font-display">
                 {isFr ? "Taux d'Assiduité" : "Attendance Health"}
               </p>
-              <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary mt-1">
+              <h4 className="font-display font-bold text-2xl sm:text-3xl text-ast-primary dark:text-ast-light mt-1">
                 {attendanceRate !== null ? (
                   <AnimatedCounter value={attendanceRate} suffix="%" />
                 ) : (
-                  <span className="text-base text-ink-soft font-body">{isFr ? "Aucune session" : "No sessions yet"}</span>
+                  <span className="text-base text-ink-soft dark:text-teal-200/60 font-body">{isFr ? "Aucune session" : "No sessions yet"}</span>
                 )}
               </h4>
-              <p className="text-xs text-emerald-700 font-body mt-1 font-semibold">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-body mt-1 font-semibold">
                 {attendanceRate !== null && attendanceRate >= 75
                   ? (isFr ? "Excellente Assiduité" : "Good Standing")
                   : attendanceRate !== null
@@ -126,19 +126,19 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
                   : (isFr ? "Nouveau Membre" : "New Member")}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-sm">
+            <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 shadow-sm">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
         </Card>
 
-        <Card className="p-5 bg-surface/90 backdrop-blur-md">
+        <Card className="p-5 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <div className="flex items-start justify-between">
             <div className="space-y-1.5 flex-1 pr-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft font-display">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300/70 font-display">
                 {isFr ? "Pôle Freelance PreLaunch" : "Freelance PreLaunch"}
               </p>
-              <h4 className="font-display font-bold text-base sm:text-lg text-ink">
+              <h4 className="font-display font-bold text-base sm:text-lg text-ink dark:text-teal-50">
                 {user?.freelanceReady
                   ? (isFr ? "Qualifié ★" : "Qualified ★")
                   : completedTasks >= FREELANCE_THRESHOLD && (attendanceRate !== null && attendanceRate >= 75)
@@ -147,7 +147,7 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               </h4>
               
               {/* Dual Conditions Status Breakdown */}
-              <div className="space-y-1 text-[11px] font-body text-ink-soft pt-1">
+              <div className="space-y-1 text-[11px] font-body text-ink-soft dark:text-teal-200/70 pt-1">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     {completedTasks >= FREELANCE_THRESHOLD ? "✓" : "○"} {isFr ? "Livrables de sprint" : "Sprint tasks"}:
@@ -178,7 +178,7 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
                   : (isFr ? `Bloqueur : Assiduité à ${attendanceRate ?? 0}% (minimum 75% requis)` : `Blocker: Attendance at ${attendanceRate ?? 0}% (≥75% required)`)}
               </p>
             </div>
-            <div className="p-3 rounded-2xl bg-ast-light/20 border border-ast-light/40 text-ast-primary shadow-sm flex-shrink-0">
+            <div className="p-3 rounded-2xl bg-ast-light/20 border border-ast-light/40 text-ast-primary dark:text-ast-light shadow-sm flex-shrink-0">
               <Briefcase className="w-5 h-5" />
             </div>
           </div>
@@ -188,11 +188,11 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
       {/* My Tasks & Next Events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* My Tasks list */}
-        <Card className="lg:col-span-2 bg-surface/90 backdrop-blur-md">
+        <Card className="lg:col-span-2 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <CardHeader>
             <div>
               <CardTitle>{isFr ? "Mes Tâches de Sprint" : "My Sprint Tasks"}</CardTitle>
-              <p className="text-xs text-ink-soft font-body mt-0.5">
+              <p className="text-xs text-ink-soft dark:text-teal-200/70 font-body mt-0.5">
                 {isFr ? "Tâches en cours assignées à votre profil" : "Tasks currently assigned to you across departments"}
               </p>
             </div>
@@ -207,25 +207,25 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               myTasks.map((tItem: any) => (
                 <div
                   key={tItem.id}
-                  className="p-4 rounded-2xl border border-line bg-surface-alt/50 flex items-center justify-between gap-4 hover:border-ast-light/40 transition-all"
+                  className="p-4 rounded-2xl border border-line dark:border-teal-900/60 bg-surface-alt/50 dark:bg-[#041a1d]/60 flex items-center justify-between gap-4 hover:border-ast-light/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={tItem.status} />
                       <PriorityBadge priority={tItem.priority} />
                       {tItem.department && (
-                        <span className="text-[10px] text-ast-primary font-mono font-bold">
+                        <span className="text-[10px] text-ast-primary dark:text-ast-light font-mono font-bold">
                           • {tItem.department.name}
                         </span>
                       )}
                     </div>
-                    <h5 className="font-body font-bold text-xs text-ink">{tItem.title}</h5>
-                    <p className="text-[11px] text-ink-soft line-clamp-1">
+                    <h5 className="font-body font-bold text-xs text-ink dark:text-teal-50">{tItem.title}</h5>
+                    <p className="text-[11px] text-ink-soft dark:text-teal-200/60 line-clamp-1">
                       {tItem.description || (isFr ? "Aucune description." : "No description.")}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-[10px] text-ink-faint font-mono block">
+                    <span className="text-[10px] text-ink-faint dark:text-teal-300/50 font-mono block">
                       {isFr ? "Échéance :" : "Due:"} {formatDate(tItem.dueDate)}
                     </span>
                   </div>
@@ -242,10 +242,10 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
         </Card>
 
         {/* Next Scheduled Events */}
-        <Card className="bg-surface/90 backdrop-blur-md">
+        <Card className="bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <CardHeader>
             <CardTitle>{isFr ? "Sessions à Venir" : "Upcoming Sessions"}</CardTitle>
-            <Link href="/calendar" className="text-xs text-ast-primary font-semibold hover:underline">
+            <Link href="/calendar" className="text-xs text-ast-primary dark:text-ast-light font-semibold hover:underline">
               {isFr ? "Calendrier" : "Calendar"}
             </Link>
           </CardHeader>
@@ -254,26 +254,26 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
               nextEvents.map((evt: any) => (
                 <div
                   key={evt.id}
-                  className="p-3.5 rounded-xl border border-line bg-surface-alt/50 hover:border-ast-light/40 transition-all space-y-2"
+                  className="p-3.5 rounded-xl border border-line dark:border-teal-900/60 bg-surface-alt/50 dark:bg-[#041a1d]/60 hover:border-ast-light/40 transition-all space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <Badge variant={evt.departmentId ? "accent" : "primary"} size="sm">
                       {evt.department ? evt.department.name : (isFr ? "Tout le Club" : "Club-Wide")}
                     </Badge>
-                    <span className="text-[10px] text-ink-faint font-mono">
+                    <span className="text-[10px] text-ink-faint dark:text-teal-300/50 font-mono">
                       {formatDate(evt.startTime)}
                     </span>
                   </div>
-                  <h5 className="font-body font-bold text-xs text-ink">{evt.title}</h5>
-                  <p className="text-[11px] text-ink-soft font-body">📍 {evt.location}</p>
-                  <div className="pt-2 border-t border-line/60 flex items-center justify-between">
+                  <h5 className="font-body font-bold text-xs text-ink dark:text-teal-50">{evt.title}</h5>
+                  <p className="text-[11px] text-ink-soft dark:text-teal-200/60 font-body">📍 {evt.location}</p>
+                  <div className="pt-2 border-t border-line/60 dark:border-teal-900/50 flex items-center justify-between">
                     <Link href="/attendance">
                       <Button size="sm" variant="outline" className="text-[11px] py-1">
                         {isFr ? "Présence" : "Check In"}
                       </Button>
                     </Link>
-                    <span className="text-[10px] font-mono font-bold text-ast-primary">
-                      Code: {evt.checkInCode}
+                    <span className="text-[10px] font-mono font-medium text-ink-faint dark:text-teal-300/70">
+                      {evt.type || "SESSION"}
                     </span>
                   </div>
                 </div>

@@ -32,6 +32,7 @@ import {
   Check,
   Copy,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
@@ -467,34 +468,34 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
           {/* Member Stats Header */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Card className="p-4 bg-surface/90 border border-line text-center">
-              <span className="text-[10px] uppercase font-mono text-ink-soft block">
+              <span className="text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 block">
                 Taux de Présence
               </span>
-              <strong className="text-2xl font-display font-bold text-indigo-400">
+              <strong className="text-2xl font-display font-bold text-ast-light">
                 {attendanceRate}%
               </strong>
             </Card>
             <Card className="p-4 bg-surface/90 border border-line text-center">
-              <span className="text-[10px] uppercase font-mono text-ink-soft block">Présents</span>
+              <span className="text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 block">Présents</span>
               <strong className="text-2xl font-display font-bold text-emerald-500">
                 {myPresent}
               </strong>
             </Card>
             <Card className="p-4 bg-surface/90 border border-line text-center">
-              <span className="text-[10px] uppercase font-mono text-ink-soft block">En Retard</span>
+              <span className="text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 block">En Retard</span>
               <strong className="text-2xl font-display font-bold text-amber-500">
                 {myLate}
               </strong>
             </Card>
             <Card className="p-4 bg-surface/90 border border-line text-center">
-              <span className="text-[10px] uppercase font-mono text-ink-soft block">Excusés</span>
-              <strong className="text-2xl font-display font-bold text-cyan-400">
+              <span className="text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 block">Excusés</span>
+              <strong className="text-2xl font-display font-bold text-teal-400">
                 {myExcused}
               </strong>
             </Card>
             <Card className="p-4 bg-surface/90 border border-line text-center col-span-2 sm:col-span-1">
-              <span className="text-[10px] uppercase font-mono text-ink-soft block">Absences</span>
-              <strong className="text-2xl font-display font-bold text-red-400">
+              <span className="text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 block">Absences</span>
+              <strong className="text-2xl font-display font-bold text-rose-400">
                 {myAbsent}
               </strong>
             </Card>
@@ -507,33 +508,33 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                 <Badge variant="primary" size="sm">
                   Pointage Rapide
                 </Badge>
-                <h3 className="text-lg font-display font-bold text-ink">
+                <h3 className="text-lg font-display font-bold text-ink dark:text-white">
                   Valider ma Présence
                 </h3>
-                <p className="text-xs text-ink-soft font-body leading-relaxed">
+                <p className="text-xs text-ink-soft dark:text-teal-200/70 font-body leading-relaxed">
                   Scannez le QR code dynamique projeté par l'animateur ou saisissez le code de secours de la session.
                 </p>
               </div>
 
               <div className="space-y-3 pt-2">
                 <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 font-medium py-3"
+                  className="w-full bg-gradient-to-r from-ast-primary to-teal-700 hover:from-teal-700 hover:to-teal-600 text-white shadow-[0_0_20px_rgba(96,200,212,0.25)] border border-teal-400/30 font-medium py-3"
                   onClick={() => setIsScannerOpen(true)}
                 >
-                  <Camera className="w-4 h-4 mr-2" />
+                  <Camera className="w-4 h-4 mr-2 text-ast-light" />
                   Ouvrir le Scanner Caméra
                 </Button>
 
                 <div className="relative flex items-center justify-center my-3">
-                  <div className="border-t border-line w-full" />
-                  <span className="bg-surface px-2 text-[10px] uppercase font-mono text-ink-soft absolute">
-                    ou code numérique
+                  <div className="border-t border-line dark:border-teal-900/60 w-full" />
+                  <span className="bg-surface dark:bg-[#062428] px-2 text-[10px] uppercase font-mono text-ink-soft dark:text-teal-300/70 absolute">
+                    ou code de secours numérique
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   <Input
-                    placeholder="Ex: AST-4912"
+                    placeholder="Ex: 489201 ou AST-4912"
                     value={manualCodeInput}
                     onChange={(e) => setManualCodeInput(e.target.value.toUpperCase())}
                     className="font-mono text-center tracking-widest text-base uppercase"
@@ -699,43 +700,43 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                     </div>
 
                     <div className="w-full space-y-1 text-center">
-                      <div className="flex items-center justify-between text-[11px] font-mono text-ink-soft">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-ink-soft dark:text-teal-300/70">
                         <span>Renouvellement automatique :</span>
-                        <span className="font-bold text-indigo-400">{hostQrData.secondsRemaining}s</span>
+                        <span className="font-bold text-ast-light">{hostQrData.secondsRemaining}s</span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-surface overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-surface dark:bg-teal-950 overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-1000 ease-linear"
+                          className="h-full bg-gradient-to-r from-teal-500 to-ast-light transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(96,200,212,0.6)]"
                           style={{ width: `${(hostQrData.secondsRemaining / 30) * 100}%` }}
                         />
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="w-56 h-56 rounded-2xl bg-surface border border-line flex flex-col items-center justify-center p-4 text-center space-y-2">
+                  <div className="w-56 h-56 rounded-2xl bg-surface dark:bg-[#062428] border border-line dark:border-teal-900/60 flex flex-col items-center justify-center p-4 text-center space-y-2">
                     <Clock className="w-8 h-8 text-amber-500" />
-                    <span className="text-xs font-semibold text-ink">
+                    <span className="text-xs font-semibold text-ink dark:text-white">
                       {hostQrData?.status === "PAUSED"
                         ? "Émargement en Pause"
                         : hostQrData?.status === "CLOSED"
                         ? "Session Clôturée"
                         : "Fenêtre Non Ouverte"}
                     </span>
-                    <p className="text-[11px] text-ink-soft">
+                    <p className="text-[11px] text-ink-soft dark:text-teal-300/60">
                       {hostQrData?.message || "Ouvrez l'émargement pour générer le QR code."}
                     </p>
                   </div>
                 )}
 
                 {/* Numeric Fallback Code */}
-                {selectedHostEvent.checkInCode && (
+                {(hostQrData?.checkInCode || selectedHostEvent.checkInCode) && (
                   <div className="text-center space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-ink-soft font-mono">
-                      Code de secours manuel
+                    <span className="text-[10px] uppercase font-bold text-ink-soft dark:text-teal-300 font-mono">
+                      Code de secours (change toutes les 30s)
                     </span>
                     <div className="flex items-center justify-center gap-2">
-                      <p className="font-mono text-lg font-bold tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-xl border border-indigo-500/20">
-                        {selectedHostEvent.checkInCode}
+                      <p className="font-mono text-lg font-bold tracking-widest text-ast-light bg-teal-500/10 px-3 py-1 rounded-xl border border-teal-500/30">
+                        {hostQrData?.checkInCode || selectedHostEvent.checkInCode}
                       </p>
                     </div>
                   </div>
@@ -743,10 +744,10 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
 
                 {/* Full-Screen Projector Button */}
                 <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30"
+                  className="w-full bg-gradient-to-r from-ast-primary to-teal-700 hover:from-teal-700 hover:to-teal-600 text-white shadow-md shadow-teal-900/40 border border-teal-400/30"
                   onClick={() => setProjectorEvent(selectedHostEvent)}
                 >
-                  <Maximize2 className="w-4 h-4 mr-2" />
+                  <Maximize2 className="w-4 h-4 mr-2 text-ast-light" />
                   Affichage Plein Écran Vidéoprojecteur
                 </Button>
 
@@ -792,13 +793,45 @@ export function AttendanceHub({ currentUser }: AttendanceHubProps) {
                   )}
                 </div>
 
-                <a
-                  href={`/api/attendance/export?eventId=${selectedHostEvent.id}`}
-                  download
-                  className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
-                >
-                  <Download className="w-3.5 h-3.5" /> Exporter la feuille en CSV
-                </a>
+                <div className="flex gap-2 w-full">
+                  <a
+                    href={`/api/attendance/export?eventId=${selectedHostEvent.id}`}
+                    download
+                    className="inline-flex items-center justify-center gap-1.5 flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-line hover:bg-surface-alt text-ink transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Exporter CSV
+                  </a>
+
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="text-xs px-3"
+                    onClick={async () => {
+                      if (
+                        confirm(
+                          `Êtes-vous sûr de vouloir supprimer définitivement l'événement "${selectedHostEvent.title}" ? Cette action effacera également l'annonce et tous les émargements associés.`
+                        )
+                      ) {
+                        try {
+                          const res = await fetch(`/api/events/${selectedHostEvent.id}`, {
+                            method: "DELETE",
+                          });
+                          if (res.ok) {
+                            setSelectedHostEventId("");
+                            fetchData();
+                          } else {
+                            const errData = await res.json();
+                            alert(errData.error || "Échec de la suppression");
+                          }
+                        } catch {
+                          alert("Erreur réseau lors de la suppression.");
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Supprimer
+                  </Button>
+                </div>
               </div>
             ) : null}
           </Card>

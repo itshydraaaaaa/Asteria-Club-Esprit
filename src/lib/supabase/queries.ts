@@ -503,7 +503,9 @@ export function normalizeEvent(e: any): any {
   const checkInWindowStartMin = Number(e.check_in_window_start_min ?? meta.check_in_window_start_min ?? 15);
   const checkInWindowEndMin = Number(e.check_in_window_end_min ?? meta.check_in_window_end_min ?? 30);
   const lateThresholdMin = Number(e.late_threshold_min ?? meta.late_threshold_min ?? 10);
-  const checkInStatus = e.check_in_status || meta.check_in_status || "SCHEDULED";
+  const checkInStatus = meta.check_in_status === "CLOSED" || e.check_in_status === "CLOSED"
+    ? "CLOSED"
+    : (e.check_in_status || meta.check_in_status || "SCHEDULED");
   const closedAt = e.closed_at || meta.closed_at || null;
   const closedById = e.closed_by_id || meta.closed_by_id || null;
   const isGeofenceEnabled = Boolean(e.is_geofence_enabled ?? meta.is_geofence_enabled ?? false);
@@ -678,6 +680,18 @@ export async function createEvent(data: Record<string, any>): Promise<any> {
     recurrence_rule: data.recurrence_rule || null,
     check_in_code: data.check_in_code || `AST-${Math.floor(1000 + Math.random() * 9000)}`,
     created_by_id: data.created_by_id,
+    type: data.type || "WORKSHOP",
+    audience_scope: data.audience_scope || (data.department_id ? "DEPARTMENT" : "CLUB"),
+    host_id: data.host_id || data.created_by_id,
+    attendance_required: data.attendance_required ?? true,
+    check_in_window_start_min: data.check_in_window_start_min || 15,
+    check_in_window_end_min: data.check_in_window_end_min || 30,
+    late_threshold_min: data.late_threshold_min || 10,
+    check_in_status: data.check_in_status || "SCHEDULED",
+    is_geofence_enabled: data.is_geofence_enabled ?? false,
+    geofence_lat: data.geofence_lat ?? null,
+    geofence_lng: data.geofence_lng ?? null,
+    geofence_radius_m: data.geofence_radius_m ?? 100,
   };
 
   const { data: event, error } = await (admin as any)
@@ -736,6 +750,17 @@ export async function updateEvent(id: string, updates: Record<string, any>): Pro
   if (updates.department_id !== undefined) dbUpdates.department_id = updates.department_id;
   if (updates.recurrence_rule !== undefined) dbUpdates.recurrence_rule = updates.recurrence_rule;
   if (updates.check_in_code) dbUpdates.check_in_code = updates.check_in_code;
+  if (updates.check_in_status !== undefined) dbUpdates.check_in_status = updates.check_in_status;
+  if (updates.closed_at !== undefined) dbUpdates.closed_at = updates.closed_at;
+  if (updates.closed_by_id !== undefined) dbUpdates.closed_by_id = updates.closed_by_id;
+  if (updates.type !== undefined) dbUpdates.type = updates.type;
+  if (updates.audience_scope !== undefined) dbUpdates.audience_scope = updates.audience_scope;
+  if (updates.host_id !== undefined) dbUpdates.host_id = updates.host_id;
+  if (updates.attendance_required !== undefined) dbUpdates.attendance_required = updates.attendance_required;
+  if (updates.check_in_window_start_min !== undefined) dbUpdates.check_in_window_start_min = updates.check_in_window_start_min;
+  if (updates.check_in_window_end_min !== undefined) dbUpdates.check_in_window_end_min = updates.check_in_window_end_min;
+  if (updates.late_threshold_min !== undefined) dbUpdates.late_threshold_min = updates.late_threshold_min;
+  if (updates.is_geofence_enabled !== undefined) dbUpdates.is_geofence_enabled = updates.is_geofence_enabled;
 
   const { data: updated, error } = await (admin as any)
     .from("events")
@@ -755,6 +780,17 @@ export async function updateEvent(id: string, updates: Record<string, any>): Pro
 
 export async function deleteEvent(id: string): Promise<void> {
   const admin = getAdminClient();
+  try {
+    const event = await getEventById(id);
+    if (event?.linkedAnnouncementId) {
+      await (admin as any).from("announcements").delete().eq("id", event.linkedAnnouncementId);
+    }
+    await (admin as any).from("qr_sessions").delete().eq("event_id", id);
+    await (admin as any).from("excuse_requests").delete().eq("event_id", id);
+  } catch (cleanErr) {
+    console.warn("Notice: Non-critical cleanup issue in deleteEvent:", cleanErr);
+  }
+
   const { error } = await (admin as any).from("events").delete().eq("id", id);
   if (error) throw error;
 }
@@ -836,12 +872,16 @@ export async function closeEventAttendance(eventId: string, closedById: string):
 
   // 3. Batch insert Absent records (upsert to avoid conflict)
   if (absentRecordsToInsert.length > 0) {
-    await (admin as any)
-      .from("attendance_records")
-      .upsert(absentRecordsToInsert, { onConflict: "event_id,user_id" });
+    try {
+      await (admin as any)
+        .from("attendance_records")
+        .upsert(absentRecordsToInsert, { onConflict: "event_id,user_id" });
+    } catch (upsertErr) {
+      console.error("Warning during absent records batch upsert:", upsertErr);
+    }
   }
 
-  // 4. Update event check-in status to CLOSED
+  // 4. Update event check-in status to CLOSED (both database column and metadata)
   const updatedEvent = await updateEvent(eventId, {
     check_in_status: "CLOSED",
     closed_at: nowIso,

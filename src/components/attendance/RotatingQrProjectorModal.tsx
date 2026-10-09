@@ -38,6 +38,7 @@ export function RotatingQrProjectorModal({
     token: string;
     qrPayloadUrl: string;
     checkInCode: string;
+    secoursCode?: string;
     status: string;
     message?: string;
   } | null>(null);
@@ -148,12 +149,12 @@ export function RotatingQrProjectorModal({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 bg-[#050B14] flex flex-col justify-between p-6 sm:p-10 text-white overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#03171a] bg-gradient-to-b from-[#03171a] via-[#052227] to-[#03171a] flex flex-col justify-between p-6 sm:p-10 text-white overflow-y-auto"
     >
       {/* Top Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="flex items-center justify-between border-b border-teal-900/60 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 text-ast-light flex items-center justify-center">
             <QrCode className="w-5 h-5" />
           </div>
           <div>
@@ -179,8 +180,8 @@ export function RotatingQrProjectorModal({
                   : "PROGRAMMÉ"}
               </Badge>
             </div>
-            <p className="text-xs text-white/60 font-mono">
-              Mode Projection Grand Écran • Rotation cryptographique 30s
+            <p className="text-xs text-teal-300/60 font-mono">
+              Mode Projection Grand Écran • Rotation cryptographique & secours 30s
             </p>
           </div>
         </div>
@@ -190,7 +191,7 @@ export function RotatingQrProjectorModal({
             variant="outline"
             size="sm"
             onClick={toggleFullscreen}
-            className="border-white/10 text-white hover:bg-white/5"
+            className="border-teal-700/50 text-teal-200 hover:bg-teal-900/40"
           >
             {isFullscreen ? (
               <>
@@ -206,7 +207,7 @@ export function RotatingQrProjectorModal({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-white/60 hover:text-white hover:bg-white/10 text-sm font-mono px-3"
+            className="text-teal-300/60 hover:text-white hover:bg-teal-900/40 text-sm font-mono px-3"
           >
             ✕ Quitter
           </Button>
@@ -217,17 +218,17 @@ export function RotatingQrProjectorModal({
       <div className="flex-1 flex flex-col items-center justify-center py-6 text-center space-y-6">
         {loading ? (
           <div className="space-y-4">
-            <RefreshCw className="w-12 h-12 text-indigo-400 animate-spin mx-auto" />
-            <p className="text-sm font-mono text-white/60">Génération du jeton sécurisé...</p>
+            <RefreshCw className="w-12 h-12 text-ast-light animate-spin mx-auto" />
+            <p className="text-sm font-mono text-teal-300/70">Génération du jeton sécurisé...</p>
           </div>
         ) : error ? (
-          <div className="max-w-md p-6 rounded-2xl bg-red-950/30 border border-red-500/30 text-center space-y-3">
+          <div className="max-w-md p-6 rounded-2xl bg-red-950/40 border border-red-500/30 text-center space-y-3">
             <AlertTriangle className="w-10 h-10 text-red-400 mx-auto" />
             <h3 className="text-base font-bold text-white">Erreur d'accès QR</h3>
             <p className="text-xs text-red-300 font-sans">{error}</p>
           </div>
         ) : currentStatus !== "OPEN" ? (
-          <div className="max-w-lg p-8 rounded-3xl bg-white/5 border border-white/10 text-center space-y-4">
+          <div className="max-w-lg p-8 rounded-3xl bg-[#062428]/80 border border-teal-800/80 text-center space-y-4 shadow-2xl">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
               <Clock className="w-8 h-8" />
             </div>
@@ -238,13 +239,13 @@ export function RotatingQrProjectorModal({
                 ? "Session d'Émargement Clôturée"
                 : "Fenêtre d'Émargement Fermée"}
             </h3>
-            <p className="text-xs text-white/70 max-w-sm mx-auto font-sans leading-relaxed">
+            <p className="text-xs text-teal-200/70 max-w-sm mx-auto font-sans leading-relaxed">
               {tokenData?.message ||
                 "Le QR code s'affiche uniquement lorsque l'émargement est ouvert."}
             </p>
             {currentStatus !== "CLOSED" && (
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-lg shadow-indigo-600/30"
+                className="bg-ast-primary hover:bg-teal-700 text-white font-medium shadow-lg shadow-teal-900/40 border border-teal-400/30"
                 onClick={() => handleStatusUpdate("OPEN")}
                 disabled={isUpdatingStatus}
               >
@@ -255,7 +256,7 @@ export function RotatingQrProjectorModal({
         ) : (
           <div className="flex flex-col items-center space-y-6 animate-in zoom-in-95">
             {/* Giant Rotating QR Card */}
-            <div className="relative p-6 sm:p-8 rounded-3xl bg-white shadow-[0_0_80px_rgba(99,102,241,0.25)] border-4 border-indigo-400/40">
+            <div className="relative p-6 sm:p-8 rounded-3xl bg-white shadow-[0_0_80px_rgba(96,200,212,0.28)] border-4 border-ast-light/50">
               {qrDataUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -267,36 +268,38 @@ export function RotatingQrProjectorModal({
 
               {/* Sweeping scan animation */}
               <div className="absolute inset-0 pointer-events-none rounded-3xl overflow-hidden">
-                <div className="w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent absolute animate-bounce" />
+                <div className="w-full h-1 bg-gradient-to-r from-transparent via-ast-light to-transparent absolute animate-bounce" />
               </div>
             </div>
 
             {/* Countdown timer & progress bar */}
             <div className="w-full max-w-sm space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono text-white/70">
+              <div className="flex items-center justify-between text-xs font-mono text-teal-200/80">
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   Code anti-fraude auto-renouvelable
                 </span>
-                <span className="font-bold text-indigo-400">{secondsRemaining}s</span>
+                <span className="font-bold text-ast-light">{secondsRemaining}s</span>
               </div>
               <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-1000 ease-linear"
+                  className="h-full bg-gradient-to-r from-teal-500 to-ast-light transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(96,200,212,0.8)]"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <p className="text-[11px] text-white/50 font-sans">
-                Toute capture d'écran envoyée à distance expire en 30 secondes.
+              <p className="text-[11px] text-teal-300/50 font-sans">
+                Toute capture d'écran ou code envoyé à distance expire en 30 secondes.
               </p>
             </div>
 
-            {/* Fallback Numeric Passcode */}
-            {tokenData?.checkInCode && (
-              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                <span className="text-xs font-mono text-white/60 uppercase">Code de secours :</span>
-                <span className="text-xl font-mono font-bold tracking-widest text-indigo-400">
-                  {tokenData.checkInCode}
+            {/* Dynamic Rotating Secours Code */}
+            {(tokenData?.secoursCode || tokenData?.checkInCode) && (
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-[#062428]/90 border border-teal-500/40 backdrop-blur-md shadow-lg shadow-teal-950/60">
+                <span className="text-xs font-mono text-teal-300/80 uppercase font-semibold">
+                  Code de secours (rotation 30s) :
+                </span>
+                <span className="text-2xl font-mono font-bold tracking-widest text-ast-light drop-shadow-[0_0_8px_rgba(96,200,212,0.4)]">
+                  {tokenData.secoursCode || tokenData.checkInCode}
                 </span>
               </div>
             )}

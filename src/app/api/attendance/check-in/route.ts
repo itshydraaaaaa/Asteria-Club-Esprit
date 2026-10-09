@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   findEventByCheckInCode,
   getEventById,
+  getEvents,
   upsertAttendance,
   createAuditLog,
 } from "@/lib/supabase/queries";
@@ -9,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { broadcastRealtime } from "@/lib/supabase/realtime";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
-import { verifyRotatingQrToken } from "@/lib/qr-security";
+import { verifyRotatingQrToken, verifyRotatingSecoursCode } from "@/lib/qr-security";
 
 // Haversine formula to compute distance in meters between two lat/lng coordinates
 function calculateDistanceMeters(
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
     let targetEvent: any = null;
     let checkInMethod: "QR" | "CODE" = "QR";
 
-    // 1. Authenticate check-in payload (Rotating QR or Fallback Code)
+    // 1. Authenticate check-in payload (Rotating QR or Dynamic Fallback Code)
     if (eventId && token) {
       // Validate dynamic rotating cryptographic token
       const verification = verifyRotatingQrToken(eventId, token, ts ? Number(ts) : undefined);
@@ -80,11 +81,52 @@ export async function POST(req: Request) {
       }
       checkInMethod = "QR";
     } else if (code && typeof code === "string" && code.trim()) {
-      targetEvent = await findEventByCheckInCode(code.trim());
+      const cleanCode = code.trim().toUpperCase();
+
+      // Case A: Event ID was supplied alongside code
+      if (eventId) {
+        const potentialEvent = await getEventById(eventId);
+        if (potentialEvent) {
+          const rotatingCheck = verifyRotatingSecoursCode(potentialEvent.id, cleanCode);
+          if (rotatingCheck.valid) {
+            targetEvent = potentialEvent;
+          } else if (
+            potentialEvent.checkInCode &&
+            potentialEvent.checkInCode.trim().toUpperCase() === cleanCode
+          ) {
+            targetEvent = potentialEvent;
+          } else {
+            return NextResponse.json({ error: rotatingCheck.reason }, { status: 400 });
+          }
+        }
+      }
+
+      // Case B: Global code input (lookup by active event dynamic rotating secours code)
+      if (!targetEvent) {
+        const activeEvents = await getEvents();
+        // Check active / scheduled events matching dynamic rotating code
+        for (const ev of activeEvents) {
+          if (ev.checkInStatus === "CLOSED") continue;
+          const rotatingCheck = verifyRotatingSecoursCode(ev.id, cleanCode);
+          if (rotatingCheck.valid) {
+            targetEvent = ev;
+            break;
+          }
+        }
+      }
+
+      // Case C: Fallback to static code if not matched
+      if (!targetEvent) {
+        targetEvent = await findEventByCheckInCode(cleanCode);
+      }
+
       if (!targetEvent) {
         return NextResponse.json(
-          { error: "Code d'émargement invalide. Aucun événement actif ne correspond à ce code." },
-          { status: 404 }
+          {
+            error:
+              "Code d'émargement invalide ou expiré. Le code de secours se renouvelle automatiquement toutes les 30 secondes en direct.",
+          },
+          { status: 400 }
         );
       }
       checkInMethod = "CODE";

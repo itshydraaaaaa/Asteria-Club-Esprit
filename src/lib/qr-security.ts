@@ -13,14 +13,30 @@ export function getEventQrSecret(eventId: string): string {
 }
 
 /**
+ * Generates a short-lived, rotating numeric/alphanumeric secours code (6 digits).
+ * Rotates strictly in lockstep with the QR token every 30 seconds.
+ */
+export function generateRotatingSecoursCode(eventId: string, timeSlice?: number): string {
+  const currentSlice = timeSlice ?? Math.floor(Date.now() / ROTATION_INTERVAL_MS);
+  const secretKey = getEventQrSecret(eventId);
+  const hash = crypto
+    .createHmac("sha256", secretKey)
+    .update(`secours:${eventId}:${currentSlice}`)
+    .digest("hex");
+  const num = parseInt(hash.slice(0, 8), 16) % 1000000;
+  return num.toString().padStart(6, "0");
+}
+
+/**
  * Generates a short-lived, signed QR token for the specified event.
- * Rotates every 30 seconds.
+ * Rotates every 30 seconds along with the dynamic secours code.
  */
 export function generateRotatingQrToken(eventId: string): {
   token: string;
   timeSlice: number;
   expiresInSeconds: number;
   qrPayloadUrl: string;
+  secoursCode: string;
 } {
   const now = Date.now();
   const timeSlice = Math.floor(now / ROTATION_INTERVAL_MS);
@@ -34,6 +50,7 @@ export function generateRotatingQrToken(eventId: string): {
 
   const token = `${timeSlice}.${signature}`;
   const expiresInSeconds = Math.ceil(((timeSlice + 1) * ROTATION_INTERVAL_MS - now) / 1000);
+  const secoursCode = generateRotatingSecoursCode(eventId, timeSlice);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://asteria-club-esprit.vercel.app";
   const qrPayloadUrl = `${appUrl}/attendance/check-in?event=${eventId}&token=${token}&ts=${timeSlice}`;
@@ -43,6 +60,7 @@ export function generateRotatingQrToken(eventId: string): {
     timeSlice,
     expiresInSeconds,
     qrPayloadUrl,
+    secoursCode,
   };
 }
 
@@ -104,3 +122,33 @@ export function verifyRotatingQrToken(
 
   return { valid: true };
 }
+
+/**
+ * Validates a submitted fallback / secours code against the event's rotating secret.
+ * Strictly permits current 30s slice and immediately preceding slice (30s grace window).
+ */
+export function verifyRotatingSecoursCode(
+  eventId: string,
+  code: string
+): { valid: boolean; reason?: string } {
+  if (!code || typeof code !== "string") {
+    return { valid: false, reason: "Code de secours manquant." };
+  }
+
+  const clean = code.trim().replace(/\s+/g, "");
+  const now = Date.now();
+  const currentSlice = Math.floor(now / ROTATION_INTERVAL_MS);
+
+  const currentCode = generateRotatingSecoursCode(eventId, currentSlice);
+  const prevCode = generateRotatingSecoursCode(eventId, currentSlice - 1);
+
+  if (clean === currentCode || clean === prevCode) {
+    return { valid: true };
+  }
+
+  return {
+    valid: false,
+    reason: "Code de secours expiré ou incorrect. Ce code dynamique se renouvelle automatiquement toutes les 30 secondes avec le QR code.",
+  };
+}
+

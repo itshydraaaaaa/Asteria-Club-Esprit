@@ -32,6 +32,7 @@ import {
   Play,
   Pause,
   Edit3,
+  Trash2,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { formatDate, formatTime, formatDateTime } from "@/lib/utils";
@@ -766,6 +767,36 @@ export function CalendarView({ currentUser }: CalendarViewProps) {
                     >
                       <Download className="w-3.5 h-3.5" /> Exporter CSV
                     </a>
+
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="text-xs"
+                      onClick={async () => {
+                        if (
+                          confirm(
+                            `Êtes-vous sûr de vouloir supprimer définitivement l'événement "${selectedEventDetails.title}" ? Cette action effacera également l'annonce et les émargements associés.`
+                          )
+                        ) {
+                          try {
+                            const res = await fetch(`/api/events/${selectedEventDetails.id}`, {
+                              method: "DELETE",
+                            });
+                            if (res.ok) {
+                              setSelectedEventDetails(null);
+                              await fetchEvents();
+                            } else {
+                              const errData = await res.json();
+                              alert(errData.error || "Échec de la suppression");
+                            }
+                          } catch {
+                            alert("Erreur de connexion.");
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Supprimer
+                    </Button>
                   </div>
                 </div>
 

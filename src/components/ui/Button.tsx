@@ -29,17 +29,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        "bg-teal-900 text-white hover:bg-teal-800 shadow-sm hover:shadow hover:shadow-teal-900/20",
+        "bg-ast-primary text-white hover:bg-teal-800 dark:bg-gradient-to-r dark:from-[#11606E] dark:to-[#187484] dark:hover:from-[#187484] dark:hover:to-[#228b9e] dark:border dark:border-teal-400/40 dark:shadow-[0_0_20px_rgba(96,200,212,0.25)] shadow-sm hover:shadow-md",
       secondary:
-        "bg-surface-alt text-ink hover:bg-surface-alt/80 border border-line hover:border-teal-400/40",
+        "bg-surface-alt text-ink hover:bg-surface-alt/80 border border-line dark:bg-[#062529] dark:text-teal-100 dark:border-teal-800/80 dark:hover:bg-[#09343a] dark:hover:border-teal-400/50",
       accent:
-        "bg-teal-400 text-ink font-bold hover:bg-teal-300 shadow-sm hover:shadow-teal-400/30",
+        "bg-ast-light text-ink font-bold hover:bg-teal-300 dark:bg-gradient-to-r dark:from-[#60C8D4] dark:to-[#86d6df] dark:text-[#03171a] dark:hover:shadow-[0_0_25px_rgba(96,200,212,0.5)] shadow-md",
       outline:
-        "bg-transparent text-teal-900 border border-teal-900/30 hover:bg-teal-50 hover:border-teal-900",
+        "bg-transparent text-ast-primary border border-ast-primary/30 hover:bg-teal-50 dark:text-teal-300 dark:border-teal-700/80 dark:hover:bg-teal-900/40 dark:hover:border-teal-400/60",
       ghost:
-        "bg-transparent text-ink-soft hover:text-ink hover:bg-surface-alt",
+        "bg-transparent text-ink-soft hover:text-ink hover:bg-surface-alt dark:text-teal-300/70 dark:hover:text-teal-100 dark:hover:bg-teal-900/30",
       danger:
-        "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300",
+        "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 dark:bg-red-950/60 dark:text-red-300 dark:border-red-900/80 dark:hover:bg-red-900/50",
     };
 
     const sizeStyles = {

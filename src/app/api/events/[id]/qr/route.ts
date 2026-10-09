@@ -97,7 +97,8 @@ export async function GET(req: Request, { params }: RouteParams) {
       timeSlice: qrData.timeSlice,
       expiresInSeconds: qrData.expiresInSeconds,
       qrPayloadUrl: qrData.qrPayloadUrl,
-      checkInCode: event.checkInCode,
+      checkInCode: qrData.secoursCode,
+      secoursCode: qrData.secoursCode,
       windowClosesAt: new Date(windowEnd).toISOString(),
       lateThresholdMin: event.lateThresholdMin || 10,
     });
