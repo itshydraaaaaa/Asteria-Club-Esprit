@@ -363,6 +363,326 @@ export async function sendAcceptanceEmail(
 }
 
 // ---------------------------------------------------------------------------
+// INTERVIEW INVITATION & PORTAL CREDENTIALS NOTIFICATION
+// ---------------------------------------------------------------------------
+
+export interface SendInterviewEmailParams {
+  toEmail: string;
+  memberName: string;
+  departmentName: string;
+  temporaryPassword: string;
+  portalUrl?: string;
+  interviewDate?: string;
+  interviewLocation?: string;
+}
+
+/**
+ * Builds a responsive, brand-compliant HTML email for applicants invited to interview
+ */
+export function buildInterviewEmailHtml({
+  toEmail,
+  memberName,
+  departmentName,
+  temporaryPassword,
+  portalUrl,
+  interviewDate,
+  interviewLocation,
+}: SendInterviewEmailParams): string {
+  const loginUrl = portalUrl || `${process.env.NEXT_PUBLIC_APP_URL || APP_METADATA.defaultSiteUrl}/login`;
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convocation à l'Entretien · Asteria Club Esprit</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F4F9FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0A3A40; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F4F9FA; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #FFFFFF; border-radius: 24px; overflow: hidden; border: 1px solid #D2E4E6; box-shadow: 0 10px 25px -5px rgba(10, 58, 64, 0.08);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0A3A40 0%, #11606E 50%, #08292E 100%); padding: 40px 32px; text-align: center; color: #FFFFFF;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <span style="display: inline-block; background-color: rgba(229, 169, 60, 0.2); border: 1px solid rgba(229, 169, 60, 0.5); color: #E5A93C; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 6px 14px; border-radius: 9999px; margin-bottom: 16px; font-family: monospace;">
+                      ⏳ Étape 2 · Convocation à l'Entretien
+                    </span>
+                    <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #FFFFFF;">
+                      FÉLICITATIONS, ${memberName.toUpperCase()} !
+                    </h1>
+                    <p style="margin: 0; font-size: 14px; color: #D2E4E6; line-height: 1.5;">
+                      Votre candidature a été retenue pour l'étape des entretiens de sélection chez Asteria Club Esprit.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 24px 32px;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4A6B70;">
+                Bonjour <strong style="color: #0A3A40;">${memberName}</strong>,
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #4A6B70;">
+                Le Bureau Exécutif et les responsables du pôle <strong>${departmentName}</strong> ont analysé votre candidature avec attention. Nous avons le plaisir de vous annoncer que vous êtes <strong>admissible à l'épreuve des entretiens</strong> !
+              </p>
+
+              <!-- Track & Status Card -->
+              <div style="background-color: #F4F9FA; border-left: 4px solid #E5A93C; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+                <div style="margin-bottom: 8px;">
+                  <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: #8F620E; font-family: monospace; display: block; margin-bottom: 2px;">
+                    STATUT ATTRIBUÉ
+                  </span>
+                  <span style="font-size: 15px; font-weight: 800; color: #0A3A40;">
+                    ⏳ En Attente d'Entretien (WAITING_FOR_INTERVIEW)
+                  </span>
+                </div>
+                <div>
+                  <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: #11606E; font-family: monospace; display: block; margin-bottom: 2px;">
+                    PÔLE CANDIDATÉ
+                  </span>
+                  <span style="font-size: 15px; font-weight: 800; color: #11606E;">
+                    ⭐ ${departmentName}
+                  </span>
+                </div>
+                ${interviewDate ? `
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #D2E4E6;">
+                  <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: #0A3A40; font-family: monospace; display: block;">
+                    DATE / CRÉNEAU CONVOCATION
+                  </span>
+                  <span style="font-size: 13px; font-weight: 700; color: #0A3A40;">
+                    📅 ${interviewDate} ${interviewLocation ? `· 📍 ${interviewLocation}` : ""}
+                  </span>
+                </div>
+                ` : ""}
+              </div>
+
+              <!-- Credentials Box -->
+              <div style="background: #0A3A40; border: 1px solid #11606E; border-radius: 18px; padding: 24px; margin-bottom: 28px; color: #FFFFFF;">
+                <div style="border-bottom: 1px solid rgba(96, 200, 212, 0.2); padding-bottom: 12px; margin-bottom: 16px;">
+                  <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #60C8D4; font-family: monospace;">
+                    Vos Identifiants d'Accès au Portail Candidat
+                  </span>
+                </div>
+
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #D2E4E6; width: 140px; font-weight: 600;">Portail Asteria :</td>
+                    <td style="padding: 6px 0; color: #60C8D4; font-family: monospace; font-size: 12px; word-break: break-all;">
+                      <a href="${loginUrl}" style="color: #60C8D4; text-decoration: underline;">${loginUrl}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #D2E4E6; font-weight: 600;">Email de Connexion :</td>
+                    <td style="padding: 6px 0; color: #FFFFFF; font-family: monospace; font-weight: 700;">
+                      ${toEmail}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #D2E4E6; font-weight: 600;">Mot de Passe Temporaire :</td>
+                    <td style="padding: 6px 0; color: #E5A93C; font-family: monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">
+                      ${temporaryPassword}
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 11px; color: #A5C2C6; line-height: 1.4;">
+                  💡 <em>Votre compte a été provisionné avec l'accès restreint d'entretien. Connectez-vous pour découvrir l'environnement du club avant votre passage.</em>
+                </div>
+              </div>
+
+              <!-- Action CTA Button -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 32px;">
+                <tr>
+                  <td align="center">
+                    <a href="${loginUrl}" style="display: inline-block; background-color: #E5A93C; color: #0A3A40; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; padding: 14px 32px; border-radius: 14px; box-shadow: 0 4px 14px rgba(229, 169, 60, 0.4); font-family: monospace;">
+                      Accéder à mon Espace Entretien →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Steps & Preparation -->
+              <div style="background-color: #F4F9FA; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #0A3A40;">
+                  Conseils pour réussir votre entretien :
+                </h3>
+                <ul style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.8; color: #4A6B70;">
+                  <li><strong>Connectez-vous</strong> dès maintenant avec vos identifiants pour valider votre accès.</li>
+                  <li><strong>Préparez votre présentation :</strong> vos motivations, vos projets passés (GitHub, Behance, vidéos, réalisations).</li>
+                  <li><strong>Soyez ponctuel(le) :</strong> présentez-vous 10 minutes avant l'heure indiquée.</li>
+                  <li>À l'issue de cet entretien, votre rôle sera promu en <strong>MEMBER</strong> en cas de validation finale.</li>
+                </ul>
+              </div>
+
+              <p style="margin: 0; font-size: 13px; color: #4A6B70; line-height: 1.6;">
+                Bonne chance pour votre entretien !<br>
+                <strong style="color: #0A3A40;">L'Équipe du Bureau Exécutif & Ressources Humaines (HR)</strong><br>
+                <em>Asteria Club Esprit</em>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #0A3A40; padding: 24px 32px; text-align: center; color: #A5C2C6; font-size: 11px; line-height: 1.6;">
+              <p style="margin: 0 0 6px 0;">
+                © 2026 Asteria Club Esprit · ESPRIT School of Engineering, Tunis.
+              </p>
+              <p style="margin: 0;">
+                <a href="${loginUrl}" style="color: #60C8D4; text-decoration: underline;">Portail Recrutement</a> ·
+                <a href="${CLUB_LINKS.instagram}" style="color: #60C8D4; text-decoration: underline;">Instagram</a> ·
+                <a href="${CLUB_LINKS.linkedin}" style="color: #60C8D4; text-decoration: underline;">LinkedIn</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
+ * Dispatches an official interview invitation email with candidate portal credentials
+ */
+export async function sendInterviewInvitationEmail(
+  params: SendInterviewEmailParams
+): Promise<EmailDeliveryResult> {
+  const now = new Date().toISOString();
+  const subject = `Asteria Club Esprit · Convocation à l'Entretien & Accès Portail (${params.memberName})`;
+  const html = buildInterviewEmailHtml(params);
+  const text = `Bonjour ${params.memberName},\n\nVotre candidature chez Asteria Club Esprit a été retenue pour l'étape des entretiens !\n\nPôle: ${params.departmentName}\nStatut: En Attente d'Entretien (WAITING_FOR_INTERVIEW)\n\nVos identifiants de connexion au portail:\nURL: ${params.portalUrl || "https://asteria-club-esprit.vercel.app/login"}\nEmail: ${params.toEmail}\nMot de passe temporaire: ${params.temporaryPassword}\n\nBonne chance pour votre entretien !\nLe Bureau Exécutif · Asteria Club Esprit`;
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  let lastError: string | undefined;
+
+  // 1. Resend API Dispatch
+  if (resendApiKey) {
+    try {
+      const fromAddress = process.env.RESEND_FROM || "Asteria Club <onboarding@resend.dev>";
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: fromAddress.includes("@resend.dev")
+            ? "Asteria Club <onboarding@resend.dev>"
+            : fromAddress,
+          to: [params.toEmail],
+          subject,
+          html,
+          text,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        console.log(`[EMAIL] Interview invitation email sent to ${params.toEmail} via Resend (${data.id})`);
+        return {
+          success: true,
+          provider: "resend",
+          messageId: data.id,
+          recipient: params.toEmail,
+          dispatchedAt: now,
+        };
+      } else {
+        lastError = data.message || "Resend error";
+        console.warn(`[EMAIL] Resend error (${lastError}). Trying SMTP fallback...`);
+      }
+    } catch (err: any) {
+      lastError = err.message || "Network error via Resend";
+      console.warn(`[EMAIL] Resend network error (${lastError}). Trying SMTP fallback...`);
+    }
+  }
+
+  // 2. SMTP Transport
+  if (smtpHost && smtpUser && smtpPass) {
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: Number(process.env.SMTP_PORT) || 465,
+        secure: process.env.SMTP_SECURE !== "false",
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: `Asteria Club Esprit <${smtpUser}>`,
+        to: params.toEmail,
+        subject,
+        html,
+        text,
+      });
+
+      console.log(`[EMAIL] Interview invitation email sent to ${params.toEmail} via SMTP (${info.messageId})`);
+      return {
+        success: true,
+        provider: "smtp",
+        messageId: info.messageId,
+        recipient: params.toEmail,
+        dispatchedAt: now,
+      };
+    } catch (smtpErr: any) {
+      lastError = smtpErr.message || "SMTP error";
+      console.error("[EMAIL ERROR] SMTP error:", smtpErr);
+    }
+  }
+
+  if (resendApiKey || (smtpHost && smtpUser)) {
+    return {
+      success: false,
+      provider: smtpUser ? "smtp" : "resend",
+      error: lastError || "Failed to dispatch email",
+      recipient: params.toEmail,
+      dispatchedAt: now,
+    };
+  }
+
+  // 3. Simulated Delivery
+  console.log(`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ⚠️  [SIMULATED INTERVIEW INVITATION EMAIL DISPATCH]                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ To:      ${params.toEmail.padEnd(58)}│
+│ Name:    ${params.memberName.padEnd(58)}│
+│ Dept:    ${params.departmentName.padEnd(58)}│
+│ Role:    WAITING_FOR_INTERVIEW                                              │
+│ Temp PW: ${params.temporaryPassword.padEnd(58)}│
+│ Portal:  ${(params.portalUrl || "https://asteria-club-esprit.vercel.app/login").padEnd(58)}│
+└─────────────────────────────────────────────────────────────────────────────┘
+  `);
+
+  return {
+    success: true,
+    provider: "simulated",
+    messageId: `sim_interview_${Date.now()}`,
+    recipient: params.toEmail,
+    dispatchedAt: now,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // ROLE UPDATE / PROMOTION NOTIFICATION
 // ---------------------------------------------------------------------------
 

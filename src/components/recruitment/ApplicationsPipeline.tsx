@@ -49,6 +49,7 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     department: string;
     temporaryPassword: string;
     emailDelivery?: any;
+    stage?: "INTERVIEW" | "ACCEPTED";
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -73,7 +74,7 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     fetchApplications();
   }, [departmentFilter, statusFilter]);
 
-  const handleUpdateStatus = async (id: string, status: "ACCEPTED" | "REJECTED") => {
+  const handleUpdateStatus = async (id: string, status: "ACCEPTED" | "REJECTED" | "INTERVIEW") => {
     try {
       const res = await fetch(`/api/applications/${id}`, {
         method: "PATCH",
@@ -82,18 +83,23 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
       });
       const data = await res.json();
       if (res.ok) {
-        if (status === "ACCEPTED" && data.temporaryPassword) {
-          const app = selectedApp || applications.find((a) => a.id === id);
+        const app = selectedApp || applications.find((a) => a.id === id);
+        if (data.temporaryPassword || status === "INTERVIEW" || status === "ACCEPTED") {
           setOnboardingSuccess(
-            data.message || `Candidature acceptée ! Email avec accès envoyé à ${app?.email}.`
+            data.message || (status === "INTERVIEW"
+              ? `Candidat convoqué à l'entretien ! Email envoyé à ${app?.email}.`
+              : `Candidature acceptée ! Email envoyé à ${app?.email}.`)
           );
-          setCreatedCredentials({
-            name: app?.name || data.application?.name || "Nouveau Membre",
-            email: app?.email || data.application?.email,
-            department: app?.departmentPreference || data.application?.departmentPreference || "Asteria Club",
-            temporaryPassword: data.temporaryPassword,
-            emailDelivery: data.emailDelivery,
-          });
+          if (data.temporaryPassword) {
+            setCreatedCredentials({
+              name: app?.name || data.application?.name || "Nouveau Membre",
+              email: app?.email || data.application?.email,
+              department: app?.departmentPreference || data.application?.departmentPreference || "Asteria Club",
+              temporaryPassword: data.temporaryPassword,
+              emailDelivery: data.emailDelivery,
+              stage: status === "INTERVIEW" ? "INTERVIEW" : "ACCEPTED",
+            });
+          }
           confetti({
             particleCount: 100,
             spread: 80,
@@ -120,11 +126,12 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
         if (data.temporaryPassword) {
           const app = targetApp || selectedApp || applications.find((a) => a.id === id);
           setCreatedCredentials({
-            name: app?.name || data.user?.name || "Nouveau Membre",
+            name: app?.name || data.user?.name || "Candidat",
             email: app?.email || data.user?.email,
             department: app?.departmentPreference || "Asteria Club",
             temporaryPassword: data.temporaryPassword,
             emailDelivery: data.emailDelivery,
+            stage: "INTERVIEW",
           });
         }
         confetti({
@@ -144,7 +151,10 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
   const handleCopyCredentials = () => {
     if (!createdCredentials) return;
     const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://asteria-club-esprit.vercel.app/login";
-    const text = `Asteria Club Esprit — Vos Identifiants Membre\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nBienvenue dans le pôle ${createdCredentials.department} !`;
+    const isInterview = createdCredentials.stage === "INTERVIEW";
+    const text = isInterview
+      ? `Asteria Club Esprit — Convocation Entretien & Accès Candidat\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nPôle: ${createdCredentials.department}\nStatut: Entretien Programmé (Rôle: WAITING_FOR_INTERVIEW)`
+      : `Asteria Club Esprit — Vos Identifiants Membre Officiel\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nBienvenue dans le pôle ${createdCredentials.department} !`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -159,12 +169,13 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-44 text-xs py-1.5"
+              className="w-52 text-xs py-1.5"
             >
               <option value="all">{isFr ? "Tous les Statuts" : "All Application Statuses"}</option>
-              <option value="PENDING">{isFr ? "En Attente" : "Pending Review"}</option>
-              <option value="ACCEPTED">{isFr ? "Acceptée" : "Accepted"}</option>
-              <option value="REJECTED">{isFr ? "Refusée" : "Rejected"}</option>
+              <option value="PENDING">{isFr ? "⏳ En Attente d'Examen" : "⏳ Pending Review"}</option>
+              <option value="INTERVIEW">{isFr ? "📅 Convoqué à l'Entretien" : "📅 Interview Stage"}</option>
+              <option value="ACCEPTED">{isFr ? "✓ Accepté (Membre Officiel)" : "✓ Accepted (Official Member)"}</option>
+              <option value="REJECTED">{isFr ? "✕ Refusé" : "✕ Rejected"}</option>
             </Select>
 
             <Select
@@ -227,12 +238,20 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                     variant={
                       app.status === "ACCEPTED"
                         ? "success"
+                        : app.status === "INTERVIEW"
+                        ? "accent"
                         : app.status === "REJECTED"
                         ? "danger"
                         : "warning"
                     }
                   >
-                    {app.status}
+                    {app.status === "INTERVIEW"
+                      ? (isFr ? "📅 Entretien Convoqué" : "📅 Interview Stage")
+                      : app.status === "ACCEPTED"
+                      ? (isFr ? "✓ Membre Officiel" : "✓ Official Member")
+                      : app.status === "REJECTED"
+                      ? (isFr ? "✕ Candidature Refusée" : "✕ Rejected")
+                      : (isFr ? "⏳ En Attente" : "⏳ Pending Review")}
                   </Badge>
                   <span className="text-[11px] text-ink-faint font-body">
                     {formatDate(app.createdAt)}
@@ -298,18 +317,32 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                     setReviewerNotes(app.reviewerNotes || "");
                   }}
                 >
-                  Review Dossier
+                  {isFr ? "Examiner Dossier" : "Review Dossier"}
                 </Button>
 
-                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && app.status !== "ACCEPTED" && (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    className="text-xs font-bold w-full sm:w-auto"
-                    onClick={() => handleAutoOnboard(app.id, app)}
-                  >
-                    ★ {isFr ? "Entretien & Accès Portail" : "Interview & Portal Access"}
-                  </Button>
+                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && (
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                    {app.status === "PENDING" && (
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        className="text-xs font-bold w-full sm:w-auto"
+                        onClick={() => handleAutoOnboard(app.id, app)}
+                      >
+                        📅 {isFr ? "Convoquer Entretien" : "Invite Interview"}
+                      </Button>
+                    )}
+                    {app.status === "INTERVIEW" && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="text-xs font-bold w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => handleUpdateStatus(app.id, "ACCEPTED")}
+                      >
+                        ⭐ {isFr ? "Valider Membre" : "Accept Member"}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </Card>
@@ -367,30 +400,36 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
             />
 
             <div className="pt-4 border-t border-line flex items-center justify-between gap-2 flex-wrap">
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => handleUpdateStatus(selectedApp.id, "REJECTED")}
-              >
-                Reject Application
-              </Button>
-
-              <div className="flex gap-2">
+              {selectedApp.status !== "REJECTED" && (
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  onClick={() => handleUpdateStatus(selectedApp.id, "ACCEPTED")}
+                  onClick={() => handleUpdateStatus(selectedApp.id, "REJECTED")}
                 >
-                  {isFr ? "Accepter & Envoyer Mail" : "Accept & Send Credentials"}
+                  {isFr ? "✕ Refuser Candidature" : "Reject Application"}
                 </Button>
-                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && (
+              )}
+
+              <div className="flex items-center gap-2 ml-auto flex-wrap">
+                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && selectedApp.status === "PENDING" && (
                   <Button
                     variant="accent"
                     size="sm"
                     className="font-bold"
                     onClick={() => handleAutoOnboard(selectedApp.id, selectedApp)}
                   >
-                    ★ {isFr ? "Entretien & Accès Portail" : "Interview & Portal Access"}
+                    📅 {isFr ? "Convoquer Entretien & Accès Portail" : "Invite to Interview & Portal"}
+                  </Button>
+                )}
+
+                {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && selectedApp.status !== "ACCEPTED" && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => handleUpdateStatus(selectedApp.id, "ACCEPTED")}
+                  >
+                    ⭐ {isFr ? "Valider comme Membre Officiel" : "Approve as Official Member"}
                   </Button>
                 )}
               </div>
@@ -404,7 +443,11 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
         <Modal
           isOpen={!!createdCredentials}
           onClose={() => setCreatedCredentials(null)}
-          title={isFr ? "Candidat Accepté · Accès Membre Créé" : "Applicant Accepted · Member Access Created"}
+          title={
+            createdCredentials.stage === "INTERVIEW"
+              ? (isFr ? "Candidat Convoqué · Accès Entretien Prêt" : "Applicant Invited · Interview Access Ready")
+              : (isFr ? "Candidat Accepté · Accès Membre Confirmé" : "Applicant Accepted · Member Access Confirmed")
+          }
           maxWidth="md"
         >
           <div className="space-y-4 font-body">
@@ -413,12 +456,18 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                 <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1 text-xs">
                   <h5 className="font-bold text-emerald-900 dark:text-emerald-200 text-sm font-display uppercase tracking-wide">
-                    {isFr ? "Email d'Acceptation Envoyé !" : "Acceptance Email Dispatched!"}
+                    {createdCredentials.stage === "INTERVIEW"
+                      ? (isFr ? "Email d'Entretien Expédié !" : "Interview Email Dispatched!")
+                      : (isFr ? "Email d'Intégration Envoyé !" : "Acceptance Email Dispatched!")}
                   </h5>
                   <p className="text-emerald-800/90 dark:text-emerald-300/90 leading-relaxed">
-                    {isFr
-                      ? `Un email officiel avec les instructions et les identifiants de connexion a été délivré à ${createdCredentials.email}.`
-                      : `An acceptance email with portal instructions and login credentials was successfully delivered to ${createdCredentials.email}.`}
+                    {createdCredentials.stage === "INTERVIEW"
+                      ? (isFr
+                          ? `Un email officiel avec la convocation à l'entretien et les identifiants d'accès au portail candidat a été délivré à ${createdCredentials.email}.`
+                          : `An official interview invitation with portal access credentials has been successfully delivered to ${createdCredentials.email}.`)
+                      : (isFr
+                          ? `Un email officiel avec les instructions de membre officiel et les identifiants a été délivré à ${createdCredentials.email}.`
+                          : `An official acceptance email with credentials was successfully delivered to ${createdCredentials.email}.`)}
                   </p>
                   {createdCredentials.emailDelivery?.provider && (
                     <span className="inline-block mt-1 font-mono text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">
@@ -432,13 +481,13 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                 <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1 text-xs">
                   <h5 className="font-bold text-amber-900 dark:text-amber-200 text-sm font-display uppercase tracking-wide">
-                    {isFr ? "Compte Créé · Avis d'Envoi Email" : "Account Created · Email Delivery Note"}
+                    {isFr ? "Compte Prêt · Note d'Envoi Email" : "Account Ready · Email Delivery Note"}
                   </h5>
                   <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
                     {createdCredentials.emailDelivery?.error || (isFr ? "Le compte a été créé. Vérifiez votre configuration Resend dans .env." : "Account created. Verify your Resend setup in .env.")}
                   </p>
                   <p className="text-amber-700 dark:text-amber-300 font-medium">
-                    {isFr ? "Vous pouvez copier les identifiants ci-dessous pour les transmettre manuellement." : "You can copy the credentials below to share them directly with the candidate."}
+                    {isFr ? "Vous pouvez copier les identifiants ci-dessous pour les transmettre au candidat." : "You can copy the credentials below to share them directly with the candidate."}
                   </p>
                 </div>
               </div>
@@ -448,16 +497,18 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
             <div className="p-4 rounded-2xl bg-[#0A3A40] text-white border border-teal-700/60 space-y-3 shadow-lg">
               <div className="flex items-center justify-between border-b border-teal-700/50 pb-2">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-ast-light">
-                  {isFr ? "Dossier de Connexion" : "Portal Login Credentials"}
+                  {createdCredentials.stage === "INTERVIEW"
+                    ? (isFr ? "Accès Portail Entretien" : "Interview Portal Access")
+                    : (isFr ? "Dossier de Connexion Membre" : "Member Portal Credentials")}
                 </span>
                 <span className="text-[10px] font-mono bg-ast-light/20 text-ast-light px-2 py-0.5 rounded-full">
-                  {createdCredentials.department}
+                  {createdCredentials.department} · {createdCredentials.stage === "INTERVIEW" ? "WAITING_FOR_INTERVIEW" : "MEMBER"}
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span className="text-teal-200/70 font-semibold">{isFr ? "Candidat :" : "Member Name:"}</span>
+                  <span className="text-teal-200/70 font-semibold">{isFr ? "Candidat :" : "Candidate Name:"}</span>
                   <span className="font-bold text-white">{createdCredentials.name}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">

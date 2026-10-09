@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getApplicationById, updateApplication, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/server";
-import { sendAcceptanceEmail } from "@/lib/email";
+import { sendInterviewInvitationEmail } from "@/lib/email";
 import { getAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
 
@@ -93,23 +93,24 @@ export async function POST(
       console.warn("Supabase Auth admin user creation error:", sbErr);
     }
 
-    // 2. Update application status
+    // 2. Update application status to INTERVIEW
     const updatedApp = await updateApplication(id, {
-      status: "ACCEPTED",
+      status: "INTERVIEW",
       reviewer_notes:
         (application.reviewer_notes ? application.reviewer_notes + " | " : "") +
-        `Auto-onboarded into ${matchedDept?.name || "General"} by ${user.name}`,
+        `Convoqué à l'entretien par ${user.name}`,
     });
+
+    // 3. Dispatch interview invitation email
+    const targetDeptName = matchedDept?.name || application.department_preference || "Asteria Club";
 
     await createAuditLog({
       user_id: user.id,
-      action: "MEMBER_ONBOARDED",
-      details: `Auto-onboarded applicant ${application.name} (${cleanEmail}) into ${matchedDept?.name || "Asteria Club"}`,
+      action: "APPLICANT_INVITED_TO_INTERVIEW",
+      details: `Invited applicant ${application.name} (${cleanEmail}) to interview for ${targetDeptName} with WAITING_FOR_INTERVIEW role`,
     });
 
-    // 3. Dispatch acceptance email
-    const targetDeptName = matchedDept?.name || application.department_preference || "Asteria Club";
-    const emailResult = await sendAcceptanceEmail({
+    const emailResult = await sendInterviewInvitationEmail({
       toEmail: cleanEmail,
       memberName: application.name,
       departmentName: targetDeptName,
@@ -118,19 +119,19 @@ export async function POST(
 
     await createAuditLog({
       user_id: user.id,
-      action: "MEMBER_ACCEPTANCE_EMAIL_SENT",
-      details: `Dispatched acceptance email to ${cleanEmail} for department ${targetDeptName} (provider: ${emailResult.provider})`,
+      action: "INTERVIEW_INVITATION_EMAIL_SENT",
+      details: `Dispatched interview invitation email to ${cleanEmail} for department ${targetDeptName} (provider: ${emailResult.provider})`,
     });
 
-    // NOTE: temporaryPassword is NOT returned in the response — only sent to the applicant's email
     return NextResponse.json({
       success: true,
-      message: `Applicant ${application.name} successfully onboarded into ${targetDeptName}! Acceptance email sent to ${cleanEmail}.`,
+      message: `Candidat ${application.name} convoqué à l'entretien pour le pôle ${targetDeptName} ! Email d'invitation avec identifiants envoyé à ${cleanEmail}.`,
       application: updatedApp,
+      temporaryPassword: secureTemporaryPassword,
       emailDelivery: emailResult,
     });
   } catch (error) {
-    console.error("Error onboarding applicant:", error);
+    console.error("Error onboarding applicant for interview:", error);
     return NextResponse.json({ error: "Onboarding failed" }, { status: 500 });
   }
 }

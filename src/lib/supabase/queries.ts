@@ -701,6 +701,18 @@ export async function createAnnouncement(data: Record<string, unknown>): Promise
 // APPLICATIONS
 // ---------------------------------------------------------------------------
 
+function normalizeApplication(app: any) {
+  if (!app) return null;
+  let status = app.status;
+  if (status === "PENDING" && app.reviewer_notes?.includes("[STATUS:INTERVIEW]")) {
+    status = "INTERVIEW";
+  }
+  return {
+    ...app,
+    status,
+  };
+}
+
 export async function getApplications(filters: {
   department?: string;
   status?: string;
@@ -715,12 +727,16 @@ export async function getApplications(filters: {
     query = query.eq("department_preference", filters.department);
   }
   if (filters.status && filters.status !== "all") {
-    query = query.eq("status", filters.status);
+    if (filters.status === "INTERVIEW") {
+      query = query.or("status.eq.INTERVIEW,reviewer_notes.ilike.%[STATUS:INTERVIEW]%");
+    } else {
+      query = query.eq("status", filters.status);
+    }
   }
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as any[];
+  return (data || []).map(normalizeApplication);
 }
 
 export async function getApplicationById(id: string): Promise<any> {
@@ -731,7 +747,7 @@ export async function getApplicationById(id: string): Promise<any> {
     .eq("id", id)
     .single();
   if (error) return null;
-  return data;
+  return normalizeApplication(data);
 }
 
 export async function getApplicationByEmail(email: string): Promise<any> {
@@ -742,7 +758,7 @@ export async function getApplicationByEmail(email: string): Promise<any> {
     .eq("email", email.toLowerCase().trim())
     .single();
   if (error) return null;
-  return data;
+  return normalizeApplication(data);
 }
 
 export async function createApplication(data: Record<string, unknown>): Promise<any> {
@@ -753,19 +769,41 @@ export async function createApplication(data: Record<string, unknown>): Promise<
     .select()
     .single();
   if (error) throw error;
-  return application;
+  return normalizeApplication(application);
 }
 
 export async function updateApplication(id: string, updates: Record<string, unknown>): Promise<any> {
   const admin = getAdminClient();
-  const { data, error } = await (admin as any)
-    .from("applications")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await (admin as any)
+      .from("applications")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return normalizeApplication(data);
+  } catch (err: any) {
+    if (updates.status === "INTERVIEW") {
+      const fallbackNotes = (updates.reviewer_notes ? `${updates.reviewer_notes} | ` : "") + "[STATUS:INTERVIEW]";
+      const fallbackUpdates = {
+        ...updates,
+        status: "PENDING",
+        reviewer_notes: fallbackNotes,
+        updated_at: new Date().toISOString(),
+      };
+      const { data: fallbackData, error: fbErr } = await (admin as any)
+        .from("applications")
+        .update(fallbackUpdates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (!fbErr && fallbackData) {
+        return { ...fallbackData, status: "INTERVIEW" };
+      }
+    }
+    throw err;
+  }
 }
 
 export async function countApplications(filter?: { status?: string }): Promise<number> {

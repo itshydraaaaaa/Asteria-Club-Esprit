@@ -45,7 +45,7 @@ export type RsvpStatus = "GOING" | "MAYBE" | "DECLINED";
 export type AttendanceMethod = "QR" | "CODE" | "MANUAL";
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "EXCUSED";
 export type AnnouncementScope = "CLUB" | "DEPARTMENT";
-export type ApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+export type ApplicationStatus = "PENDING" | "INTERVIEW" | "ACCEPTED" | "REJECTED";
 
 export interface UserSession {
   id: string;
