@@ -1672,3 +1672,219 @@ export async function getDashboardOverview(): Promise<any> {
     totalAttendance,
   };
 }
+
+// ---------------------------------------------------------------------------
+// CONNECTED ACCOUNTS & SOCIAL PROFILES
+// ---------------------------------------------------------------------------
+
+export function normalizeConnection(c: any): any {
+  if (!c) return null;
+  return {
+    id: c.id,
+    userId: c.user_id || c.userId,
+    provider: c.provider,
+    type: c.type || "manual",
+    providerUserId: c.provider_user_id || c.providerUserId || null,
+    username: c.username || "",
+    profileUrl: c.profile_url || c.profileUrl || "",
+    avatarUrl: c.avatar_url || c.avatarUrl || null,
+    customLabel: c.custom_label || c.customLabel || null,
+    isVerified: Boolean(c.is_verified ?? c.isVerified ?? false),
+    visibility: c.visibility || "members",
+    displayOrder: c.display_order ?? c.displayOrder ?? 0,
+    metadata: c.metadata || {},
+    linkedAt: c.linked_at || c.linkedAt || new Date().toISOString(),
+    updatedAt: c.updated_at || c.updatedAt || new Date().toISOString(),
+  };
+}
+
+export async function getMemberConnections(
+  targetUserId: string,
+  viewerUserId?: string | null
+): Promise<any[]> {
+  const admin = getAdminClient();
+  let query = (admin as any)
+    .from("member_connections")
+    .select("*")
+    .eq("user_id", targetUserId)
+    .order("display_order", { ascending: true })
+    .order("linked_at", { ascending: true });
+
+  const isOwner = viewerUserId && viewerUserId === targetUserId;
+
+  if (isOwner) {
+    // Owner can view all their connections including 'private'
+  } else if (viewerUserId) {
+    // Logged-in member: can view 'public' and 'members' only
+    query = query.in("visibility", ["public", "members"]);
+  } else {
+    // Unauthenticated: can view 'public' only
+    query = query.eq("visibility", "public");
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    // Fallback if table doesn't exist yet before SQL migration is run
+    return [];
+  }
+  return (data || []).map(normalizeConnection);
+}
+
+export async function createMemberConnection(
+  data: Record<string, any>
+): Promise<any> {
+  const admin = getAdminClient();
+
+  // If OAuth: ensure provider_user_id is not already linked to another user
+  if (data.type === "oauth" && data.providerUserId) {
+    const { data: existingOther } = await (admin as any)
+      .from("member_connections")
+      .select("id, user_id")
+      .eq("provider", data.provider)
+      .eq("provider_user_id", data.providerUserId)
+      .neq("user_id", data.userId)
+      .maybeSingle();
+
+    if (existingOther) {
+      throw new Error(
+        "Ce compte externe est déjà associé à un autre membre d'Asteria Club. Chaque compte externe ne peut être lié qu'à un seul profil."
+      );
+    }
+  }
+
+  // Count existing manual links if manual
+  if (data.type === "manual") {
+    const { count } = await (admin as any)
+      .from("member_connections")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", data.userId)
+      .eq("type", "manual");
+
+    if ((count || 0) >= 10) {
+      throw new Error("Limite atteinte : Vous ne pouvez pas ajouter plus de 10 liens manuels.");
+    }
+  }
+
+  const insertPayload: any = {
+    user_id: data.userId,
+    provider: data.provider,
+    type: data.type || "manual",
+    provider_user_id: data.providerUserId || null,
+    username: data.username,
+    profile_url: data.profileUrl,
+    avatar_url: data.avatarUrl || null,
+    custom_label: data.customLabel || null,
+    is_verified: Boolean(data.isVerified),
+    visibility: data.visibility || "members",
+    display_order: data.displayOrder ?? 0,
+    metadata: data.metadata || {},
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: created, error } = await (admin as any)
+    .from("member_connections")
+    .upsert(insertPayload, {
+      onConflict: data.type === "oauth" ? "user_id,provider" : undefined,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return normalizeConnection(created);
+}
+
+export async function updateMemberConnection(
+  id: string,
+  userId: string,
+  updates: Record<string, any>
+): Promise<any> {
+  const admin = getAdminClient();
+
+  const payload: any = {
+    updated_at: new Date().toISOString(),
+  };
+  if (updates.visibility !== undefined) payload.visibility = updates.visibility;
+  if (updates.customLabel !== undefined) payload.custom_label = updates.customLabel;
+  if (updates.displayOrder !== undefined) payload.display_order = updates.displayOrder;
+  if (updates.username !== undefined) payload.username = updates.username;
+  if (updates.profileUrl !== undefined) payload.profile_url = updates.profileUrl;
+
+  const { data, error } = await (admin as any)
+    .from("member_connections")
+    .update(payload)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return normalizeConnection(data);
+}
+
+export async function deleteMemberConnection(
+  id: string,
+  userId: string,
+  adminId?: string,
+  moderationReason?: string
+): Promise<void> {
+  const admin = getAdminClient();
+
+  // If this is a moderation deletion by a Board member
+  if (adminId && adminId !== userId) {
+    const { data: targetConn } = await (admin as any)
+      .from("member_connections")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (targetConn) {
+      await (admin as any).from("connection_moderation_log").insert({
+        admin_id: adminId,
+        member_id: targetConn.user_id,
+        connection_id: id,
+        provider: targetConn.provider,
+        profile_url: targetConn.profile_url,
+        action: "REMOVED",
+        reason: moderationReason || "Lien supprimé par la modération du Bureau",
+      });
+
+      await createAuditLog({
+        user_id: adminId,
+        action: "SOCIAL_CONNECTION_MODERATED",
+        details: `Board removed manual link "${targetConn.provider}" for user ${targetConn.user_id}. Reason: "${moderationReason}"`,
+      });
+    }
+
+    const { error } = await (admin as any)
+      .from("member_connections")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
+  // Normal owner deletion
+  const { error } = await (admin as any)
+    .from("member_connections")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+export async function getConnectedAccountsStats(): Promise<Record<string, number>> {
+  const admin = getAdminClient();
+  const { data, error } = await (admin as any)
+    .from("member_connections")
+    .select("provider");
+
+  if (error || !data) return {};
+
+  const stats: Record<string, number> = {};
+  data.forEach((row: any) => {
+    stats[row.provider] = (stats[row.provider] || 0) + 1;
+  });
+  return stats;
+}
+

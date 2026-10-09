@@ -33,6 +33,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { SocialConnectionsList } from "@/components/profile/SocialConnectionsList";
 
 export default function MemberProfilePage() {
   const params = useParams();
@@ -349,7 +350,7 @@ export default function MemberProfilePage() {
 
               {/* Action Buttons */}
               {canEdit && (
-                <div className="flex items-center gap-2 pb-1">
+                <div className="flex items-center gap-2 pb-1 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
@@ -358,6 +359,14 @@ export default function MemberProfilePage() {
                   >
                     Modifier le Profil
                   </Button>
+
+                  {isSelf && (
+                    <Link href="/settings/connected-accounts">
+                      <Button variant="outline" size="sm" leftIcon={<Globe className="w-3.5 h-3.5" />}>
+                        Comptes Connectés
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -428,6 +437,28 @@ export default function MemberProfilePage() {
               <span className="font-mono text-[11px] text-ink-soft dark:text-teal-400/60 ml-auto">
                 Inscrit le {formatDate(member.joinDate || member.created_at)}
               </span>
+            </div>
+
+            {/* Connected Accounts & Social Profiles */}
+            <div className="mt-5 pt-4 border-t border-line dark:border-teal-900 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-teal-300 font-display">
+                  Réseaux & Profils Connectés
+                </h4>
+                {isSelf && (
+                  <Link
+                    href="/settings/connected-accounts"
+                    className="text-[11px] font-semibold text-ast-primary dark:text-teal-400 hover:underline inline-flex items-center gap-1"
+                  >
+                    Gérer mes comptes →
+                  </Link>
+                )}
+              </div>
+              <SocialConnectionsList
+                userId={member.id}
+                isOwner={isSelf}
+                currentUser={currentUser}
+              />
             </div>
 
             {member.bio && (

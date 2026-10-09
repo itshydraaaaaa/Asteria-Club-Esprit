@@ -300,3 +300,53 @@ export interface ApplicationItem {
   reviewerNotes?: string | null;
   createdAt: string;
 }
+
+export type ConnectionProvider =
+  | "github"
+  | "linkedin"
+  | "discord"
+  | "google"
+  | "instagram"
+  | "tiktok"
+  | "x"
+  | "facebook"
+  | "youtube"
+  | "behance"
+  | "dribbble"
+  | "telegram"
+  | "website"
+  | "other";
+
+export type ConnectionType = "oauth" | "manual";
+export type ConnectionVisibility = "public" | "members" | "private";
+
+export interface MemberConnectionItem {
+  id: string;
+  userId: string;
+  provider: ConnectionProvider;
+  type: ConnectionType;
+  providerUserId?: string | null;
+  username: string;
+  profileUrl: string;
+  avatarUrl?: string | null;
+  customLabel?: string | null;
+  isVerified: boolean;
+  visibility: ConnectionVisibility;
+  displayOrder: number;
+  metadata?: Record<string, any>;
+  linkedAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectionModerationLogItem {
+  id: string;
+  adminId: string;
+  memberId: string;
+  connectionId?: string | null;
+  provider: ConnectionProvider;
+  profileUrl: string;
+  action: "REMOVED" | "RESTRICTED";
+  reason: string;
+  createdAt: string;
+}
+

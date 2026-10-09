@@ -26,6 +26,7 @@ import {
   ArrowRight,
   HelpCircle,
   BookOpen,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlatformGuideModal } from "@/components/dashboard/PlatformGuideModal";
@@ -94,6 +95,12 @@ export function Sidebar({ user }: SidebarProps) {
       href: "/admin",
       icon: Settings,
       roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD"],
+    },
+    {
+      label: isFr ? "Comptes & Réseaux" : "Connected Accounts",
+      href: "/settings/connected-accounts",
+      icon: Link2,
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER", "WAITING_FOR_INTERVIEW", "APPLICANT"],
     },
   ];
 
