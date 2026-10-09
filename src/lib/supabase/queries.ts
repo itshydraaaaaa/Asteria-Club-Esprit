@@ -1821,15 +1821,43 @@ export async function createMemberConnection(
     updated_at: new Date().toISOString(),
   };
 
-  const { data: created, error } = await (admin as any)
-    .from("member_connections")
-    .upsert(insertPayload, {
-      onConflict: data.type === "oauth" ? "user_id,provider" : undefined,
-    })
-    .select()
-    .single();
+  let created: any;
+  if (data.type === "oauth") {
+    const { data: existing } = await (admin as any)
+      .from("member_connections")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("provider", data.provider)
+      .maybeSingle();
 
-  if (error) throw error;
+    if (existing?.id) {
+      const { data: updated, error: updateError } = await (admin as any)
+        .from("member_connections")
+        .update(insertPayload)
+        .eq("id", existing.id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      created = updated;
+    } else {
+      const { data: inserted, error: insertError } = await (admin as any)
+        .from("member_connections")
+        .insert(insertPayload)
+        .select()
+        .single();
+      if (insertError) throw insertError;
+      created = inserted;
+    }
+  } else {
+    const { data: inserted, error: insertError } = await (admin as any)
+      .from("member_connections")
+      .insert(insertPayload)
+      .select()
+      .single();
+    if (insertError) throw insertError;
+    created = inserted;
+  }
+
   return normalizeConnection(created);
 }
 

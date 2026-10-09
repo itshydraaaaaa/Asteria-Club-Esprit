@@ -47,7 +47,7 @@ const PROVIDER_CONFIG: Record<
   google: {
     name: "Google",
     domains: ["google.com", "profiles.google.com"],
-    isOAuthEligible: true,
+    isOAuthEligible: false,
   },
   instagram: {
     name: "Instagram",

@@ -29,10 +29,8 @@ export async function POST(req: Request) {
       if (rawProvider === "github") provider = "github";
       else if (rawProvider === "linkedin_oidc" || rawProvider === "linkedin") provider = "linkedin";
       else if (rawProvider === "discord") provider = "discord";
-      else if (rawProvider === "google") provider = "google";
-      else if (rawProvider === "facebook") provider = "facebook";
 
-      if (!provider) continue; // Skip email or other non-social identities
+      if (!provider) continue; // Skip email, manual or unconfigured OAuth identities
 
       const data = identity.identity_data || {};
       const username =
