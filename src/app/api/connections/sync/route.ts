@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       else if (rawProvider === "linkedin_oidc" || rawProvider === "linkedin") provider = "linkedin";
       else if (rawProvider === "discord") provider = "discord";
       else if (rawProvider === "google") provider = "google";
+      else if (rawProvider === "facebook") provider = "facebook";
 
       if (!provider) continue; // Skip email or other non-social identities
 
@@ -50,6 +51,8 @@ export async function POST(req: Request) {
         profileUrl = `https://discord.com/users/${identity.id}`;
       } else if (provider === "google") {
         profileUrl = data.profile_url || "https://google.com";
+      } else if (provider === "facebook") {
+        profileUrl = data.profile_url || (username ? `https://facebook.com/${username}` : `https://facebook.com`);
       }
 
       const avatarUrl = data.avatar_url || data.picture || null;
