@@ -42,16 +42,17 @@ export async function POST(req: Request) {
 
       let profileUrl = "";
       if (provider === "github") {
-        profileUrl = `https://github.com/${username}`;
+        const cleanUser = encodeURIComponent(String(username).replace(/\s+/g, ""));
+        profileUrl = `https://github.com/${cleanUser}`;
       } else if (provider === "linkedin") {
-        profileUrl = data.profile_url || `https://linkedin.com/in/${username}`;
+        const slug = encodeURIComponent(String(username).trim().toLowerCase().replace(/\s+/g, "-"));
+        profileUrl = data.profile_url || `https://linkedin.com/in/${slug}`;
       } else if (provider === "discord") {
         profileUrl = `https://discord.com/users/${identity.id}`;
-      } else if (provider === "google") {
-        profileUrl = data.profile_url || "https://google.com";
-      } else if (provider === "facebook") {
-        profileUrl = data.profile_url || (username ? `https://facebook.com/${username}` : `https://facebook.com`);
       }
+
+      // Ensure profile_url is strictly valid and contains no spaces
+      profileUrl = profileUrl.trim().replace(/\s+/g, "-");
 
       const avatarUrl = data.avatar_url || data.picture || null;
 
