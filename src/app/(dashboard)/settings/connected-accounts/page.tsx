@@ -150,6 +150,29 @@ export default function ConnectedAccountsPage() {
   };
 
   useEffect(() => {
+    // Check URL parameters or hash for OAuth errors returned from redirect
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+      const error = searchParams.get("error") || hashParams.get("error");
+      const errorDesc = searchParams.get("error_description") || hashParams.get("error_description");
+
+      if (error || errorDesc) {
+        let msg = decodeURIComponent(errorDesc || error || "Erreur de liaison OAuth.");
+        if (
+          msg.toLowerCase().includes("invalid") ||
+          msg.toLowerCase().includes("client_id") ||
+          msg.toLowerCase().includes("app") ||
+          error === "invalid_request"
+        ) {
+          msg = `Configuration OAuth invalide (${msg}). Le Client ID ou le Client Secret saisi dans votre console Supabase pour ce fournisseur est invalide ou n'est pas une application OAuth autorisée.`;
+        }
+        setFeedback({ type: "error", message: msg });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     // 1. Trigger identity sync on mount (to capture return from OAuth callback)
     fetch("/api/connections/sync", { method: "POST" })
       .then((r) => r.json())
@@ -178,11 +201,15 @@ export default function ConnectedAccountsPage() {
       });
 
       if (error) {
+        let errorMsg = error.message;
+        if (error.message?.includes("provider is not enabled")) {
+          errorMsg = `Le fournisseur "${authProvider}" n'est pas activé dans le tableau de bord Supabase (Authentication > Providers). Vous devez l'activer et renseigner les clés OAuth pour l'utiliser.`;
+        } else if (error.message?.includes("Manual linking is disabled")) {
+          errorMsg = "La liaison manuelle de comptes (Manual Linking) est désactivée dans Supabase Auth. Activez 'Allow manual linking' dans Authentication > Settings.";
+        }
         setFeedback({
           type: "error",
-          message:
-            error.message ||
-            "Échec de l'initialisation OAuth. Vérifiez que la liaison manuelle est activée dans Supabase Auth.",
+          message: errorMsg,
         });
       }
     } catch (err: any) {
