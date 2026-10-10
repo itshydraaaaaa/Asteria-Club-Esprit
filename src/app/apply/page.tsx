@@ -40,7 +40,7 @@ export default function ApplyPage() {
   const [selectedTrack, setSelectedTrack] = useState("Web Development");
   const [form, setForm] = useState({
     name: "",
-    email: "AsteriaClubEsprit@gmail.com",
+    email: "",
     studentEmail: "",
     phone: "",
     departmentPreference: "Web Development",
@@ -195,7 +195,7 @@ export default function ApplyPage() {
                   setSubmitted(false);
                   setForm({
                     name: "",
-                    email: "AsteriaClubEsprit@gmail.com",
+                    email: "",
                     studentEmail: "",
                     phone: "",
                     departmentPreference: "Web Development",
