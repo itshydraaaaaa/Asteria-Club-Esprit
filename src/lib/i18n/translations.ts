@@ -293,9 +293,17 @@ export const translations: TranslationDictionary = {
     en: "Full Name",
     fr: "Nom et Prénom",
   },
+  "apply.form.gmail": {
+    en: "Personal Gmail Address (Account & Auto-Mails)",
+    fr: "Adresse Gmail Personnelle (Compte & Auto-Mails)",
+  },
+  "apply.form.studentEmail": {
+    en: "ESPRIT Student Email",
+    fr: "Email Étudiant ESPRIT",
+  },
   "apply.form.email": {
-    en: "Esprit / Student Email",
-    fr: "Email Étudiant / Esprit",
+    en: "Personal Gmail Address",
+    fr: "Adresse Gmail Personnelle",
   },
   "apply.form.department": {
     en: "Target Department",

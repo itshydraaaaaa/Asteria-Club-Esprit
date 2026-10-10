@@ -27,6 +27,7 @@ import {
   AlertCircle,
   User,
   Mail,
+  GraduationCap,
   Phone,
   Link2,
 } from "lucide-react";
@@ -39,7 +40,8 @@ export default function ApplyPage() {
   const [selectedTrack, setSelectedTrack] = useState("Web Development");
   const [form, setForm] = useState({
     name: "",
-    email: "",
+    email: "AsteriaClubEsprit@gmail.com",
+    studentEmail: "",
     phone: "",
     departmentPreference: "Web Development",
     motivation: "",
@@ -94,8 +96,8 @@ export default function ApplyPage() {
     if (!form.name || !form.email || !form.motivation) {
       setError(
         isFr
-          ? "Veuillez remplir tous les champs obligatoires (Nom, Email, Motivation)."
-          : "Please complete all required fields (Name, Email, Motivation)."
+          ? "Veuillez remplir tous les champs obligatoires (Nom, Adresse Gmail, Motivation)."
+          : "Please complete all required fields (Name, Gmail address, Motivation)."
       );
       return;
     }
@@ -177,8 +179,8 @@ export default function ApplyPage() {
               </h2>
               <p className="font-body text-xs sm:text-sm text-ink-soft dark:text-teal-100/80 leading-relaxed max-w-lg mx-auto">
                 {isFr
-                  ? `Votre candidature pour le pôle ${selectedTrack} a été enregistrée avec succès. Le Bureau Exécutif examine les dossiers sous 48h. Dès acceptation, vous recevrez automatiquement un email avec vos identifiants de connexion au portail membre.`
-                  : `Your application for the ${selectedTrack} track has been securely recorded in our database. The Executive Board reviews submissions within 48 hours. Once accepted, you will automatically receive an acceptance email with your member portal credentials.`}
+                  ? `Votre candidature pour le pôle ${selectedTrack} a été enregistrée avec succès. Un email de confirmation a été envoyé sur votre adresse Gmail (${form.email}). Votre compte sera créé avec cette adresse Gmail et les emails automatiques d'étape (convocations et identifiants de connexion) y seront transmis.`
+                  : `Your application for the ${selectedTrack} track has been securely recorded. A confirmation email has been dispatched to your Gmail (${form.email}). Your account will be created with this Gmail address and all upcoming automated emails and credentials will be sent there.`}
               </p>
             </div>
 
@@ -193,7 +195,8 @@ export default function ApplyPage() {
                   setSubmitted(false);
                   setForm({
                     name: "",
-                    email: "",
+                    email: "AsteriaClubEsprit@gmail.com",
+                    studentEmail: "",
                     phone: "",
                     departmentPreference: "Web Development",
                     motivation: "",
@@ -311,25 +314,6 @@ export default function ApplyPage() {
 
                   <div>
                     <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                      {t("apply.form.email", "ESPRIT Student Email")} *
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        placeholder="prenom.nom@esprit.tn"
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
                       {isFr ? "Numéro de Téléphone" : "Phone Number"}
                     </label>
                     <div className="relative">
@@ -343,21 +327,76 @@ export default function ApplyPage() {
                       />
                     </div>
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                      {isFr ? "Lien Portfolio / GitHub / Behance" : "Portfolio / GitHub / Behance Link"}
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200">
+                        {isFr ? "Adresse Gmail (Compte & Auto-Mails) *" : "Personal Gmail (Account & Auto-Mails) *"}
+                      </label>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-700 font-semibold">
+                        Gmail
+                      </span>
+                    </div>
                     <div className="relative">
-                      <Link2 className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
-                        type="url"
-                        placeholder="https://github.com/... or behance.net/..."
-                        value={form.portfolioLink}
-                        onChange={(e) => setForm({ ...form, portfolioLink: e.target.value })}
+                        type="email"
+                        required
+                        placeholder="AsteriaClubEsprit@gmail.com"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
                         className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
                       />
                     </div>
+                    <p className="text-[11px] text-ink-faint dark:text-teal-300/70 mt-1 font-body">
+                      {isFr
+                        ? "Votre compte sera créé avec cette adresse Gmail et tous les emails automatiques y seront envoyés."
+                        : "Your account will be created with this Gmail and auto-emails will be delivered here."}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200">
+                        {isFr ? "Email Étudiant ESPRIT (Optionnel)" : "ESPRIT Student Email (Optional)"}
+                      </label>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-teal-950 text-slate-700 dark:text-teal-300 border border-slate-200 dark:border-teal-800 font-semibold">
+                        {isFr ? "Optionnel" : "Optional"}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <GraduationCap className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        placeholder="prenom.nom@esprit.tn"
+                        value={form.studentEmail}
+                        onChange={(e) => setForm({ ...form, studentEmail: e.target.value })}
+                        className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
+                      />
+                    </div>
+                    <p className="text-[11px] text-ink-faint dark:text-teal-300/70 mt-1 font-body">
+                      {isFr
+                        ? "Votre adresse académique ESPRIT si vous en possédez déjà une (optionnel)."
+                        : "Your official ESPRIT university email if available (optional)."}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
+                    {isFr ? "Lien Portfolio / GitHub / Behance" : "Portfolio / GitHub / Behance Link"}
+                  </label>
+                  <div className="relative">
+                    <Link2 className="w-4 h-4 text-ast-primary dark:text-teal-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="url"
+                      placeholder="https://github.com/... or behance.net/..."
+                      value={form.portfolioLink}
+                      onChange={(e) => setForm({ ...form, portfolioLink: e.target.value })}
+                      className="w-full bg-surface dark:bg-[#052024] border border-line dark:border-teal-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-body text-ink dark:text-white placeholder:text-ink-faint dark:placeholder:text-teal-700 focus:outline-none focus:border-ast-primary dark:focus:border-ast-light focus:ring-1 focus:ring-ast-primary shadow-sm"
+                    />
                   </div>
                 </div>
 

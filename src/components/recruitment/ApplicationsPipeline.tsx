@@ -15,6 +15,7 @@ import {
   XCircle,
   FileText,
   Mail,
+  GraduationCap,
   Phone,
   Sparkles,
   ArrowRight,
@@ -260,14 +261,29 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
 
                 <div>
                   <h3 className="font-body font-bold text-base text-ink">{app.name}</h3>
-                  <p className="text-xs text-ink-soft flex items-center gap-1.5 mt-0.5 font-body">
-                    <Mail className="w-3.5 h-3.5 text-ink-faint" /> {app.email}
-                  </p>
-                  {app.phone && (
-                    <p className="text-xs text-ink-soft flex items-center gap-1.5 mt-0.5 font-body">
-                      <Phone className="w-3.5 h-3.5 text-ink-faint" /> {app.phone}
+                  <div className="space-y-1 mt-1 font-body">
+                    <p className="text-xs text-ink-soft flex items-center gap-1.5 flex-wrap">
+                      <Mail className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400 shrink-0" />
+                      <span>{app.email}</span>
+                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 bg-teal-50 dark:bg-teal-900/60 text-ast-primary dark:text-teal-300 rounded font-bold">
+                        Gmail
+                      </span>
                     </p>
-                  )}
+                    {(app.studentEmail || app.student_email) && (
+                      <p className="text-xs text-ink-soft flex items-center gap-1.5 flex-wrap">
+                        <GraduationCap className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="text-ink-faint">{app.studentEmail || app.student_email}</span>
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded font-bold">
+                          ESPRIT
+                        </span>
+                      </p>
+                    )}
+                    {app.phone && (
+                      <p className="text-xs text-ink-soft flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-ink-faint shrink-0" /> {app.phone}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-teal-50 border border-teal-200/80">
@@ -360,13 +376,19 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
         >
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-surface-alt border border-line space-y-2 text-xs font-body">
-              <div className="flex justify-between">
-                <span className="font-bold text-ink">Applicant Email:</span>
-                <span>{selectedApp.email}</span>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-ink">Gmail (Compte & Auto-Mails) :</span>
+                <span className="font-mono text-ast-primary dark:text-teal-300 font-semibold">{selectedApp.email}</span>
               </div>
+              {(selectedApp.studentEmail || selectedApp.student_email) && (
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-ink">Email Étudiant ESPRIT :</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold">{selectedApp.studentEmail || selectedApp.student_email}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="font-bold text-ink">Preferred Department:</span>
-                <span className="font-semibold text-teal-900">{selectedApp.departmentPreference}</span>
+                <span className="font-semibold text-teal-900 dark:text-teal-300">{selectedApp.departmentPreference}</span>
               </div>
               {selectedApp.portfolioLink && (
                 <div className="flex justify-between">

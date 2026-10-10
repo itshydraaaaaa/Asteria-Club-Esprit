@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { getApplications, getApplicationByEmail, createApplication, countApplications } from "@/lib/supabase/queries";
+import {
+  getApplications,
+  getApplicationByEmail,
+  getApplicationByStudentEmail,
+  createApplication,
+} from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
+import { sendApplicationConfirmationEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   try {
@@ -42,27 +48,57 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, phone, departmentPreference, motivation, portfolioLink } = body;
+    const {
+      name,
+      email,
+      studentEmail,
+      student_email,
+      phone,
+      departmentPreference,
+      motivation,
+      portfolioLink,
+    } = body;
+
+    const targetStudentEmail = (studentEmail || student_email || "").trim();
 
     if (!name || !email || !departmentPreference || !motivation) {
       return NextResponse.json(
-        { error: "Name, email, department preference, and motivation are required" },
+        {
+          error:
+            "Name, personal Gmail address, department preference, and motivation are required.",
+        },
         { status: 400 }
       );
     }
 
-    // Check if an application already exists for this email
-    const existing = await getApplicationByEmail(email.toLowerCase().trim());
-    if (existing) {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanStudentEmail = targetStudentEmail ? targetStudentEmail.toLowerCase().trim() : null;
+
+    // 1. Check if an application already exists for this Gmail address
+    const existingGmail = await getApplicationByEmail(cleanEmail);
+    if (existingGmail) {
       return NextResponse.json(
-        { error: "An application with this email address is already in our review pipeline." },
+        { error: "An application with this Gmail address is already in our review pipeline." },
         { status: 409 }
       );
     }
 
+    // 2. Check if an application already exists for this ESPRIT student email (if provided)
+    if (cleanStudentEmail) {
+      const existingStudent = await getApplicationByStudentEmail(cleanStudentEmail);
+      if (existingStudent) {
+        return NextResponse.json(
+          { error: "An application with this ESPRIT student email is already in our review pipeline." },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 3. Save application in database (email = candidate Gmail, student_email = ESPRIT student email)
     const application = await createApplication({
       name,
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
+      student_email: cleanStudentEmail,
       phone: phone || null,
       department_preference: departmentPreference,
       motivation,
@@ -70,11 +106,26 @@ export async function POST(req: Request) {
       status: "PENDING",
     });
 
+    // 4. Dispatch automated confirmation email immediately to the applicant's Gmail
+    let emailResult = null;
+    try {
+      emailResult = await sendApplicationConfirmationEmail({
+        toEmail: cleanEmail,
+        studentEmail: cleanStudentEmail || undefined,
+        applicantName: name,
+        departmentName: departmentPreference,
+      });
+    } catch (mailErr) {
+      console.warn("Failed to dispatch application confirmation email to Gmail:", mailErr);
+    }
+
     return NextResponse.json(
       {
         success: true,
-        message: "Application submitted successfully! Our Board and Heads of Department will review your profile.",
+        message:
+          "Application submitted successfully! A confirmation email has been dispatched to your Gmail.",
         application,
+        emailDelivery: emailResult,
       },
       { status: 201 }
     );

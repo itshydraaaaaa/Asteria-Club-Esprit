@@ -72,6 +72,7 @@ export async function PATCH(
         // Provision new Supabase Auth account
         try {
           const supabaseAdmin = await createAdminClient();
+          const studentEmail = application.student_email || application.studentEmail || null;
           const { data: authUser, error: authError } =
             await supabaseAdmin.auth.admin.createUser({
               email: cleanEmail,
@@ -81,12 +82,13 @@ export async function PATCH(
                 name: application.name,
                 role: "WAITING_FOR_INTERVIEW",
                 department_id: matchedDept?.id,
+                student_email: studentEmail,
               },
             });
 
           if (!authError && authUser?.user) {
             supabaseUserId = authUser.user.id;
-            await (admin as any).from("profiles").upsert({
+            const profileData: any = {
               id: authUser.user.id,
               name: application.name,
               email: cleanEmail,
@@ -96,7 +98,15 @@ export async function PATCH(
               status: "ACTIVE",
               freelance_ready: false,
               skills: ["Applicant", application.department_preference || "Candidate"],
-            });
+            };
+            if (studentEmail) profileData.student_email = studentEmail;
+
+            const { error: profErr } = await (admin as any).from("profiles").upsert(profileData);
+            if (profErr && studentEmail) {
+              // Retry without student_email in case profiles table doesn't have the column yet
+              delete profileData.student_email;
+              await (admin as any).from("profiles").upsert(profileData);
+            }
           }
         } catch (sbErr) {
           console.warn("Error creating Supabase user for interview:", sbErr);
@@ -184,6 +194,7 @@ export async function PATCH(
         // Direct acceptance without prior interview account
         try {
           const supabaseAdmin = await createAdminClient();
+          const studentEmail = application.student_email || application.studentEmail || null;
           const { data: authUser, error: authError } =
             await supabaseAdmin.auth.admin.createUser({
               email: cleanEmail,
@@ -193,11 +204,12 @@ export async function PATCH(
                 name: application.name,
                 role: "MEMBER",
                 department_id: matchedDept?.id,
+                student_email: studentEmail,
               },
             });
 
           if (!authError && authUser?.user) {
-            await (admin as any).from("profiles").upsert({
+            const memberProfileData: any = {
               id: authUser.user.id,
               name: application.name,
               email: cleanEmail,
@@ -207,7 +219,14 @@ export async function PATCH(
               status: "ACTIVE",
               freelance_ready: false,
               skills: ["Junior Recruit", application.department_preference],
-            });
+            };
+            if (studentEmail) memberProfileData.student_email = studentEmail;
+
+            const { error: profErr } = await (admin as any).from("profiles").upsert(memberProfileData);
+            if (profErr && studentEmail) {
+              delete memberProfileData.student_email;
+              await (admin as any).from("profiles").upsert(memberProfileData);
+            }
           }
         } catch (sbErr) {
           console.warn("Supabase Auth admin user creation error:", sbErr);

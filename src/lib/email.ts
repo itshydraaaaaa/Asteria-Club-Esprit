@@ -1056,3 +1056,204 @@ export async function sendRoleUpdateEmail(
     dispatchedAt: now,
   };
 }
+
+// ---------------------------------------------------------------------------
+// APPLICATION CONFIRMATION (DISPATCHED IMMEDIATELY TO GMAIL UPON APPLYING)
+// ---------------------------------------------------------------------------
+
+export interface SendApplicationConfirmationEmailParams {
+  toEmail: string; // The candidate's Gmail
+  studentEmail?: string;
+  applicantName: string;
+  departmentName: string;
+  portalUrl?: string;
+}
+
+export function buildApplicationConfirmationEmailHtml({
+  toEmail,
+  studentEmail,
+  applicantName,
+  departmentName,
+  portalUrl,
+}: SendApplicationConfirmationEmailParams): string {
+  const homeUrl = portalUrl || `${process.env.NEXT_PUBLIC_APP_URL || APP_METADATA.defaultSiteUrl}`;
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidature Reçue · Asteria Club Esprit</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F4F9FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0A3A40; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #F4F9FA; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #FFFFFF; border-radius: 24px; overflow: hidden; border: 1px solid #D2E4E6; box-shadow: 0 10px 25px -5px rgba(10, 58, 64, 0.08);">
+          
+          <!-- Header Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0A3A40 0%, #11606E 50%, #08292E 100%); padding: 40px 32px; text-align: center; color: #FFFFFF;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <span style="display: inline-block; background-color: rgba(96, 200, 212, 0.2); border: 1px solid rgba(96, 200, 212, 0.4); color: #60C8D4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 6px 14px; border-radius: 9999px; margin-bottom: 16px; font-family: monospace;">
+                      Saison Universitaire 2026 · Recrutement Officiel
+                    </span>
+                    <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #FFFFFF;">
+                      CANDIDATURE BIEN REÇUE !
+                    </h1>
+                    <p style="margin: 0; font-size: 14px; color: #D2E4E6; line-height: 1.5;">
+                      Merci d'avoir postulé pour rejoindre l'incubateur Asteria Club Esprit.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 24px 32px;">
+              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4A6B70;">
+                Bonjour <strong style="color: #0A3A40;">${applicantName}</strong>,
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #4A6B70;">
+                Nous confirmons la bonne réception de votre dossier de candidature pour intégrer nos équipes techniques et créatives.
+              </p>
+
+              <!-- Application Summary Box -->
+              <div style="background-color: #F4F9FA; border-left: 4px solid #60C8D4; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; color: #11606E; font-family: monospace; display: block; margin-bottom: 8px;">
+                  RÉCAPITULATIF DU DOSSIER
+                </span>
+                
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px;">
+                  <tr>
+                    <td style="padding: 4px 0; color: #4A6B70; width: 160px; font-weight: 600;">Pôle Candidaté :</td>
+                    <td style="padding: 4px 0; color: #0A3A40; font-weight: 800;">⭐ ${departmentName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 0; color: #4A6B70; font-weight: 600;">Gmail (Compte & Envois) :</td>
+                    <td style="padding: 4px 0; color: #11606E; font-family: monospace; font-weight: 700;">${toEmail}</td>
+                  </tr>
+                  ${studentEmail ? `
+                  <tr>
+                    <td style="padding: 4px 0; color: #4A6B70; font-weight: 600;">Email Étudiant ESPRIT :</td>
+                    <td style="padding: 4px 0; color: #0A3A40; font-family: monospace;">${studentEmail}</td>
+                  </tr>
+                  ` : ""}
+                  <tr>
+                    <td style="padding: 4px 0; color: #4A6B70; font-weight: 600;">Statut Actuel :</td>
+                    <td style="padding: 4px 0; color: #E5A93C; font-weight: 700;">⏳ En Attente d'Examen (PENDING)</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Information Notice -->
+              <div style="background: #0A3A40; border: 1px solid #11606E; border-radius: 18px; padding: 20px; margin-bottom: 24px; color: #FFFFFF;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                  <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #60C8D4; font-family: monospace;">
+                    📬 Que se passe-t-il ensuite ?
+                  </span>
+                </div>
+                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #D2E4E6;">
+                  Le Bureau Exécutif et les Heads of Department examinent les dossiers sous 48h. Dès qu'une décision est prise, vos accès au portail et vos convocations d'étape vous seront <strong>automatiquement envoyés sur cette adresse Gmail (${toEmail})</strong>.
+                </p>
+              </div>
+
+              <!-- Action Link -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${homeUrl}" style="display: inline-block; background-color: #60C8D4; color: #0A3A40; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-family: monospace;">
+                      Découvrir Asteria Club Esprit →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- English Summary Section -->
+              <div style="border-top: 1px dashed #D2E4E6; padding-top: 16px; margin-top: 16px;">
+                <p style="margin: 0; font-size: 12px; color: #4A6B70; line-height: 1.5;">
+                  <strong>English Summary:</strong> We have successfully received your application for the <strong>${departmentName}</strong> track. Your account and all upcoming notifications will be sent to your Gmail (<strong>${toEmail}</strong>). The Executive Board reviews submissions within 48 hours.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F4F9FA; border-top: 1px solid #D2E4E6; padding: 24px 32px; text-align: center; font-size: 11px; color: #4A6B70; line-height: 1.6;">
+              <p style="margin: 0 0 6px 0; font-weight: 700; color: #0A3A40;">
+                Asteria Club Esprit · Incubateur Technique & Créatif
+              </p>
+              <p style="margin: 0 0 8px 0;">
+                ESPRIT Charguia & Ghazela · Tunis, Tunisie
+              </p>
+              <p style="margin: 0; color: #A5C2C6;">
+                Une question ? Écrivez au bureau : <a href="mailto:${CLUB_LINKS.email}" style="color: #11606E; text-decoration: underline;">${CLUB_LINKS.email}</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export function buildApplicationConfirmationEmailText({
+  toEmail,
+  studentEmail,
+  applicantName,
+  departmentName,
+  portalUrl,
+}: SendApplicationConfirmationEmailParams): string {
+  const homeUrl = portalUrl || `${process.env.NEXT_PUBLIC_APP_URL || APP_METADATA.defaultSiteUrl}`;
+
+  return `ASTERIA CLUB ESPRIT — CANDIDATURE BIEN REÇUE !
+==================================================
+
+Bonjour ${applicantName},
+
+Nous confirmons la bonne réception de votre dossier de candidature pour le pôle "${departmentName}".
+
+RÉCAPITULATIF :
+--------------------------------------------------
+- Pôle : ${departmentName}
+- Gmail (Compte & Envois) : ${toEmail}
+${studentEmail ? `- Email Étudiant ESPRIT : ${studentEmail}\n` : ""}- Statut : En Attente d'Examen (PENDING)
+
+QUE SE PASSE-T-IL ENSUITE ?
+Le Bureau Exécutif et les responsables de division étudient actuellement votre dossier. Dès validation ou convocation à l'entretien, vos identifiants d'accès au portail vous seront automatiquement envoyés sur cette adresse Gmail (${toEmail}).
+
+Découvrez le club en attendant :
+${homeUrl}
+
+Pour toute question, écrivez-nous à ${CLUB_LINKS.email}.
+
+Cordialement,
+Le Bureau Exécutif — Asteria Club Esprit
+https://asteria-club-esprit.vercel.app
+`;
+}
+
+export async function sendApplicationConfirmationEmail(
+  params: SendApplicationConfirmationEmailParams
+): Promise<EmailDeliveryResult> {
+  const subject = `⭐ Asteria Club Esprit · Candidature Reçue (${params.departmentName})`;
+  const html = buildApplicationConfirmationEmailHtml(params);
+  const text = buildApplicationConfirmationEmailText(params);
+
+  return dispatchEmailMessage({
+    toEmail: params.toEmail,
+    subject,
+    html,
+    text,
+    recipientName: params.applicantName,
+    departmentName: params.departmentName,
+  });
+}
+

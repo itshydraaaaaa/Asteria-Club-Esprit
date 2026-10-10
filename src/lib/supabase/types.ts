@@ -14,6 +14,7 @@ export type Database = {
           id: string;
           name: string;
           email: string;
+          student_email?: string | null;
           role: "BOARD" | "HOD" | "MEMBER" | "APPLICANT";
           department_id: string | null;
           avatar_url: string | null;
@@ -29,6 +30,7 @@ export type Database = {
           id: string;
           name: string;
           email: string;
+          student_email?: string | null;
           role?: "BOARD" | "HOD" | "MEMBER" | "APPLICANT";
           department_id?: string | null;
           avatar_url?: string | null;
@@ -44,6 +46,7 @@ export type Database = {
           id?: string;
           name?: string;
           email?: string;
+          student_email?: string | null;
           role?: "BOARD" | "HOD" | "MEMBER" | "APPLICANT";
           department_id?: string | null;
           avatar_url?: string | null;
@@ -317,11 +320,12 @@ export type Database = {
           id: string;
           name: string;
           email: string;
+          student_email?: string | null;
           phone: string | null;
           department_preference: string;
           motivation: string;
           portfolio_link: string | null;
-          status: "PENDING" | "ACCEPTED" | "REJECTED";
+          status: "PENDING" | "INTERVIEW" | "ACCEPTED" | "REJECTED";
           reviewer_notes: string | null;
           created_at: string;
           updated_at: string;
@@ -330,11 +334,12 @@ export type Database = {
           id?: string;
           name: string;
           email: string;
+          student_email?: string | null;
           phone?: string | null;
           department_preference: string;
           motivation: string;
           portfolio_link?: string | null;
-          status?: "PENDING" | "ACCEPTED" | "REJECTED";
+          status?: "PENDING" | "INTERVIEW" | "ACCEPTED" | "REJECTED";
           reviewer_notes?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -343,11 +348,12 @@ export type Database = {
           id?: string;
           name?: string;
           email?: string;
+          student_email?: string | null;
           phone?: string | null;
           department_preference?: string;
           motivation?: string;
           portfolio_link?: string | null;
-          status?: "PENDING" | "ACCEPTED" | "REJECTED";
+          status?: "PENDING" | "INTERVIEW" | "ACCEPTED" | "REJECTED";
           reviewer_notes?: string | null;
           created_at?: string;
           updated_at?: string;

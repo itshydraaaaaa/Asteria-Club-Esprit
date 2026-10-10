@@ -1487,6 +1487,12 @@ function normalizeApplication(app: any) {
   }
   return {
     ...app,
+    createdAt: app.created_at || app.createdAt,
+    updatedAt: app.updated_at || app.updatedAt,
+    departmentPreference: app.department_preference || app.departmentPreference,
+    portfolioLink: app.portfolio_link || app.portfolioLink,
+    reviewerNotes: app.reviewer_notes || app.reviewerNotes,
+    studentEmail: app.student_email || app.studentEmail || null,
     status,
   };
 }
@@ -1530,24 +1536,83 @@ export async function getApplicationById(id: string): Promise<any> {
 
 export async function getApplicationByEmail(email: string): Promise<any> {
   const admin = getAdminClient();
-  const { data, error } = await (admin as any)
+  const cleanEmail = email.toLowerCase().trim();
+  const { data } = await (admin as any)
     .from("applications")
     .select("*")
-    .eq("email", email.toLowerCase().trim())
-    .single();
-  if (error) return null;
-  return normalizeApplication(data);
+    .eq("email", cleanEmail)
+    .maybeSingle();
+  if (data) return normalizeApplication(data);
+
+  // Also check student_email column if present
+  try {
+    const { data: studentData } = await (admin as any)
+      .from("applications")
+      .select("*")
+      .eq("student_email", cleanEmail)
+      .maybeSingle();
+    if (studentData) return normalizeApplication(studentData);
+  } catch {
+    // Column might not exist yet
+  }
+
+  return null;
+}
+
+export async function getApplicationByStudentEmail(studentEmail: string): Promise<any> {
+  const admin = getAdminClient();
+  const clean = studentEmail.toLowerCase().trim();
+  try {
+    const { data } = await (admin as any)
+      .from("applications")
+      .select("*")
+      .eq("student_email", clean)
+      .maybeSingle();
+    if (data) return normalizeApplication(data);
+  } catch {
+    // Column might not exist yet
+  }
+
+  const { data: emailMatch } = await (admin as any)
+    .from("applications")
+    .select("*")
+    .eq("email", clean)
+    .maybeSingle();
+  if (emailMatch) return normalizeApplication(emailMatch);
+
+  return null;
 }
 
 export async function createApplication(data: Record<string, unknown>): Promise<any> {
   const admin = getAdminClient();
-  const { data: application, error } = await (admin as any)
-    .from("applications")
-    .insert(data)
-    .select()
-    .single();
-  if (error) throw error;
-  return normalizeApplication(application);
+  try {
+    const { data: application, error } = await (admin as any)
+      .from("applications")
+      .insert(data)
+      .select()
+      .single();
+    if (error) throw error;
+    return normalizeApplication(application);
+  } catch (err: any) {
+    // Fallback if student_email column does not yet exist on the live database schema
+    if (err.message?.includes("student_email") || err.code === "PGRST204" || err.message?.includes("column")) {
+      const { student_email, ...fallbackData } = data as any;
+      const fallbackNotes = student_email
+        ? `${fallbackData.reviewer_notes ? fallbackData.reviewer_notes + " | " : ""}[ESPRIT: ${student_email}]`
+        : fallbackData.reviewer_notes;
+      const { data: retryApp, error: retryErr } = await (admin as any)
+        .from("applications")
+        .insert({
+          ...fallbackData,
+          reviewer_notes: fallbackNotes,
+        })
+        .select()
+        .single();
+      if (retryErr) throw retryErr;
+      return normalizeApplication({ ...retryApp, student_email });
+    }
+    throw err;
+  }
 }
 
 export async function updateApplication(id: string, updates: Record<string, unknown>): Promise<any> {

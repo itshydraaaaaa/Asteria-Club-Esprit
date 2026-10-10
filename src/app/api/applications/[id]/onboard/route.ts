@@ -47,6 +47,7 @@ export async function POST(
 
     // 1. Create Supabase Auth user via admin client
     let supabaseUserId: string | null = null;
+    const studentEmail = application.student_email || application.studentEmail || null;
     try {
       const supabaseAdmin = await createAdminClient();
       const { data: authUser, error: authError } =
@@ -58,6 +59,7 @@ export async function POST(
             name: application.name,
             role: "WAITING_FOR_INTERVIEW",
             department_id: matchedDept?.id,
+            student_email: studentEmail,
           },
         });
 
@@ -76,16 +78,18 @@ export async function POST(
           freelance_ready: false,
           skills: ["Applicant", application.department_preference || "Candidate"],
         };
+        if (studentEmail) profilePayload.student_email = studentEmail;
 
         const { error: upsertErr } = await (admin as any)
           .from("profiles")
           .upsert(profilePayload);
 
-        // Fallback for when database check constraint has not yet been altered via migration script
+        // Fallback for when database check constraint or student_email has not yet been altered via migration script
         if (upsertErr) {
           console.warn("WAITING_FOR_INTERVIEW constraint fallback triggered:", upsertErr.message);
           profilePayload.role = "APPLICANT";
           profilePayload.bio = `[WAITING_FOR_INTERVIEW] ${application.motivation || ""}`;
+          delete profilePayload.student_email;
           await (admin as any).from("profiles").upsert(profilePayload);
         }
       }
