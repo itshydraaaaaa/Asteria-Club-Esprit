@@ -127,8 +127,8 @@ export function SocialConnectionsList({
         const list: MemberConnectionItem[] = data.connections || [];
         setConnections(list);
 
-        // If verified GitHub is present, fetch public enrichment
-        const githubConn = list.find((c) => c.provider === "github" && c.isVerified);
+        // Fetch public enrichment for any connected GitHub account
+        const githubConn = list.find((c) => c.provider === "github");
         if (githubConn) {
           fetchGithubEnrichment(githubConn.username);
         }

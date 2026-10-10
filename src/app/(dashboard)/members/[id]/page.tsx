@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { SocialConnectionsList } from "@/components/profile/SocialConnectionsList";
+import { GitHubContributionsCard } from "@/components/profile/GitHubContributionsCard";
 
 export default function MemberProfilePage() {
   const params = useParams();
@@ -492,6 +493,13 @@ export default function MemberProfilePage() {
             )}
           </div>
         </Card>
+
+        {/* GitHub Contributions & Live Developer Activity */}
+        <GitHubContributionsCard
+          userId={member.id}
+          portfolioLink={member.portfolioLink}
+          isOwner={isSelf}
+        />
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
