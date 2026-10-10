@@ -96,12 +96,6 @@ export function Sidebar({ user }: SidebarProps) {
       icon: Settings,
       roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD"],
     },
-    {
-      label: isFr ? "Comptes & Réseaux" : "Connected Accounts",
-      href: "/settings/connected-accounts",
-      icon: Link2,
-      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER", "WAITING_FOR_INTERVIEW", "APPLICANT"],
-    },
   ];
 
   const allowedNav = navItems.filter((item) => {

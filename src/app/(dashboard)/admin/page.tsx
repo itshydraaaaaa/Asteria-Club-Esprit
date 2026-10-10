@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -479,6 +480,31 @@ export default function AdminPage() {
       <div className="p-12 text-center text-ink-soft">
         <div className="animate-spin w-8 h-8 border-2 border-teal-900 border-t-transparent rounded-full mx-auto mb-3" />
         <p className="font-display text-xs uppercase tracking-wider">{isFr ? "Chargement des Contrôles Admin..." : "Loading Admin Controls..."}</p>
+      </div>
+    );
+  }
+
+  if (data?.error) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <Header
+          title={isFr ? "Administration & Gouvernance Système" : "Admin & System Governance"}
+          subtitle={isFr ? "Accès restreint au Bureau Exécutif" : "Restricted to Executive Board"}
+        />
+        <div className="p-8 max-w-xl mx-auto text-center space-y-4 my-12 bg-surface dark:bg-[#062428] border border-line dark:border-teal-900 rounded-3xl shadow-xl">
+          <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto" />
+          <h3 className="font-display font-bold text-xl text-ink dark:text-white">
+            {isFr ? "Accès Réservé au Bureau Exécutif" : "Executive Board Access Required"}
+          </h3>
+          <p className="text-xs text-ink-soft dark:text-teal-200">
+            {data.error || (isFr ? "Cette console est strictement réservée aux membres du Bureau Exécutif." : "This console is strictly restricted to Executive Board members.")}
+          </p>
+          <div className="pt-2">
+            <Link href="/dashboard">
+              <Button variant="primary">{isFr ? "Retour au Tableau de Bord" : "Back to Dashboard"}</Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

@@ -41,53 +41,8 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Admin routes authorization gate (requires BOARD role)
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
-    let isBoard = false;
-    let decodedSuccessfully = false;
-
-    if (tokenValue) {
-      try {
-        const raw = tokenValue.startsWith("base64-")
-          ? Buffer.from(tokenValue.replace("base64-", ""), "base64").toString("utf-8")
-          : tokenValue;
-        const parsed = JSON.parse(raw);
-        const accessToken = parsed.access_token || parsed[0];
-        if (accessToken && typeof accessToken === "string") {
-          const parts = accessToken.split(".");
-          if (parts.length >= 2) {
-            const payload = JSON.parse(
-              Buffer.from(parts[1], "base64").toString("utf-8")
-            );
-            decodedSuccessfully = true;
-            const role = payload.user_metadata?.role || payload.app_metadata?.role;
-            if (
-              role === "BOARD" ||
-              role === "PRESIDENT" ||
-              role === "VICE_PRESIDENT"
-            ) {
-              isBoard = true;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Middleware JWT decode warning:", err);
-      }
-    }
-
-    // Only reject if we successfully decoded the token and confirmed the role is NOT BOARD
-    // Otherwise let the request reach the route handler where getCurrentUser() verifies against DB
-    if (decodedSuccessfully && !isBoard) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { error: "Forbidden: Board access required" },
-          { status: 403 }
-        );
-      }
-      const dashboardUrl = new URL("/dashboard?error=unauthorized", req.url);
-      return NextResponse.redirect(dashboardUrl);
-    }
-  }
+  // 2. Admin routes authentication is handled by gate 1 above.
+  // Role authorization (BOARD / PRESIDENT / VICE_PRESIDENT) is verified authoritatively against Postgres in /api/admin and AdminPage.
 
   return NextResponse.next();
 }
