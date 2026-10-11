@@ -480,8 +480,13 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "1/ Département de la Vie Estudiantine (Validation de l'évènement)",
     titleEn: "1/ Student Life Department (Event Validation)",
     personName: "M. Zied Saidi (Responsable de la vie étudiante)",
+    salutation: "Bonjour M. Zied Saidi,",
     email: "zied.saidi@esprit.tn",
     phone: "92234330",
+    subjectPrefixFr:
+      "[Asteria Club ESPRIT] Demande de validation d'événement :",
+    subjectPrefixEn:
+      "[Asteria Club ESPRIT] Event Validation Request:",
     instructionFr:
       "Envoyer un e-mail descriptif de l’évènement une semaine à l’avance au responsable du département de la vie estudiantine. Si l’événement est validé, passer aux étapes 2/ à 6/.",
     instructionEn:
@@ -495,8 +500,13 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "2/ Service de la Scolarité (Espace & Vidéoprojecteurs)",
     titleEn: "2/ Academic Affairs / Scolarité (Space & Projectors)",
     personName: "M. Mohamed Ali Bouakline",
+    salutation: "Bonjour M. Mohamed Ali Bouakline,",
     email: "mohamedali.bouakline@Esprit.tn",
     phone: "",
+    subjectPrefixFr:
+      "[Asteria Club ESPRIT] Réservation d'espace et vidéoprojecteur :",
+    subjectPrefixEn:
+      "[Asteria Club ESPRIT] Space & Projector Reservation:",
     instructionFr:
       "Si l’événement est validé : envoyer un e-mail au service de la scolarité pour réserver l’espace et les vidéo projecteurs (au moins 10 jours avant l’évènement).",
     instructionEn:
@@ -510,8 +520,13 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "3/ Matériel Technique (Sono ou autres)",
     titleEn: "3/ Technical Equipment (Sound system & AV)",
     personName: "M. Faycel Lbabda",
+    salutation: "Bonjour M. Faycel Lbabda,",
     email: "faycal.lbabda@esprit.tn",
     phone: "",
+    subjectPrefixFr:
+      "[Asteria Club ESPRIT] Réservation de matériel technique (sono) :",
+    subjectPrefixEn:
+      "[Asteria Club ESPRIT] Technical Equipment Reservation:",
     instructionFr:
       "Envoyer un e-mail à M. Faycel Lbabda pour réserver le matériel technique (sono ou autres) au moins 10 jours avant l’évènement.",
     instructionEn:
@@ -525,8 +540,11 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "4/ Logistique Générale",
     titleEn: "4/ General Logistics",
     personName: "M. Hazem Hajji",
+    salutation: "Bonjour M. Hazem Hajji,",
     email: "hazem.hajji@esprit.tn",
     phone: "",
+    subjectPrefixFr: "[Asteria Club ESPRIT] Demande logistique :",
+    subjectPrefixEn: "[Asteria Club ESPRIT] Logistics Request:",
     instructionFr:
       "Envoyer un e-mail à M. Hazem Hajji pour tout ce qui concerne la logistique (au moins 10 jours avant l’évènement).",
     instructionEn:
@@ -540,8 +558,13 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "5/ Publication & Promotion des Évènements",
     titleEn: "5/ Event Publication & Promotion",
     personName: "Mme Nadia Ajailia",
+    salutation: "Bonjour Mme Nadia Ajailia,",
     email: "Nadia.ajailia@Esprit.tn",
     phone: "",
+    subjectPrefixFr:
+      "[Asteria Club ESPRIT] Publication et promotion d'événement :",
+    subjectPrefixEn:
+      "[Asteria Club ESPRIT] Event Publication & Promotion:",
     instructionFr:
       "Envoyer un e-mail à Mme Nadia Ajailia pour tout ce qui est publication et promotion des évènements.",
     instructionEn:
@@ -555,8 +578,13 @@ const OFFICIAL_ESPRIT_STEPS = [
     titleFr: "6/ Service Achats (Négociation fournisseurs, Devis & BC)",
     titleEn: "6/ Purchasing Office (Vendors, Quotes & Purchase Orders)",
     personName: "M. Souhail Mezzi",
+    salutation: "Bonjour M. Souhail Mezzi,",
     email: "souhail.mezzi@esprit.tn",
     phone: "",
+    subjectPrefixFr:
+      "[Asteria Club ESPRIT] Demande d'achat / Devis & BC :",
+    subjectPrefixEn:
+      "[Asteria Club ESPRIT] Purchase Request / Quote & PO:",
     instructionFr:
       "Envoyer un e-mail à M. Souhail Mezzi pour traiter tous vos achats (négociation avec les fournisseurs + envoi du BC). Devis au nom d'Esprit (MF : 830 823 C PM 000). Remettre la facture originale cachetée après l'action.",
     instructionEn:
@@ -581,8 +609,107 @@ export function EmailsTab({
   canEdit: boolean;
   onRefresh: () => void;
 }) {
+  const [selectedStepOffice, setSelectedStepOffice] = useState<string>(
+    OFFICIAL_ESPRIT_STEPS[0].officeType
+  );
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [savingStep, setSavingStep] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  const defaultClubSignature = `Cordialement,\n\n--\nBureau Exécutif — Asteria Club ESPRIT\nResponsable : ${
+    activity.owner?.name || "Bureau Exécutif Asteria"
+  }${
+    activity.department?.name ? `\nDépartement : ${activity.department.name}` : ""
+  }\nÉcole Supérieure Privée d'Ingénierie et de Technologies (ESPRIT)`;
+
+  const [clubSignature, setClubSignature] = useState<string>(
+    defaultClubSignature
+  );
+
+  const activeStep =
+    OFFICIAL_ESPRIT_STEPS.find((s) => s.officeType === selectedStepOffice) ||
+    OFFICIAL_ESPRIT_STEPS[0];
+
+  const findTrackedEmail = (step: (typeof OFFICIAL_ESPRIT_STEPS)[number]) => {
+    const targetEmail = step.email.toLowerCase();
+    return (
+      emails.find(
+        (e) =>
+          e.office === step.officeType ||
+          e.adminContact?.officeCategory === step.officeType ||
+          (e.recipientEmail || e.adminContact?.email || "").toLowerCase() ===
+            targetEmail
+      ) || null
+    );
+  };
+
+  const trackedForActive = findTrackedEmail(activeStep);
+
+  const getDefaultSubject = (step: (typeof OFFICIAL_ESPRIT_STEPS)[number]) =>
+    `${isFr ? step.subjectPrefixFr : step.subjectPrefixEn} ${activity.title}`;
+
+  // Strip salutation and signature if stored inside body so user edits only their message content cleanly
+  const extractUserContent = (
+    rawSavedBody: string | undefined | null,
+    salutation: string
+  ) => {
+    if (!rawSavedBody || rawSavedBody === "Suivi de courrier administratif ESPRIT") {
+      return "";
+    }
+    let cleaned = rawSavedBody;
+    if (cleaned.startsWith(`${salutation}\n\n`)) {
+      cleaned = cleaned.slice(`${salutation}\n\n`.length);
+    } else if (cleaned.startsWith(salutation)) {
+      cleaned = cleaned.slice(salutation.length).trimStart();
+    }
+    const sigMarker = "\n\nCordialement,\n\n--";
+    const idx = cleaned.indexOf(sigMarker);
+    if (idx !== -1) {
+      cleaned = cleaned.slice(0, idx);
+    }
+    return cleaned.trim();
+  };
+
+  const [draftTo, setDraftTo] = useState<string>(
+    trackedForActive?.recipientEmail || activeStep.email
+  );
+  const [draftCc, setDraftCc] = useState<string>(
+    Array.isArray(trackedForActive?.ccEmails) &&
+      trackedForActive.ccEmails.length > 0
+      ? trackedForActive.ccEmails.join(", ")
+      : activeStep.ccEmails
+  );
+  const [draftSubject, setDraftSubject] = useState<string>(
+    trackedForActive?.renderedSubject || getDefaultSubject(activeStep)
+  );
+  const [draftContent, setDraftContent] = useState<string>(
+    extractUserContent(trackedForActive?.renderedBody, activeStep.salutation)
+  );
+  const [draftReplyNotes, setDraftReplyNotes] = useState<string>(
+    trackedForActive?.replySummary || ""
+  );
+
+  const handleSelectStep = (step: (typeof OFFICIAL_ESPRIT_STEPS)[number]) => {
+    setSelectedStepOffice(step.officeType);
+    const tracked = findTrackedEmail(step);
+    setDraftTo(tracked?.recipientEmail || step.email);
+    setDraftCc(
+      Array.isArray(tracked?.ccEmails) && tracked.ccEmails.length > 0
+        ? tracked.ccEmails.join(", ")
+        : step.ccEmails
+    );
+    setDraftSubject(tracked?.renderedSubject || getDefaultSubject(step));
+    setDraftContent(extractUserContent(tracked?.renderedBody, step.salutation));
+    setDraftReplyNotes(tracked?.replySummary || "");
+    setSaveToast(null);
+  };
+
+  const assembleFullBody = () => {
+    const contentPart = draftContent.trim()
+      ? `${activeStep.salutation}\n\n${draftContent.trim()}`
+      : `${activeStep.salutation}\n\n`;
+    return `${contentPart}\n\n${clubSignature.trim()}`;
+  };
 
   const copyText = (key: string, value: string) => {
     navigator.clipboard.writeText(value);
@@ -590,78 +717,97 @@ export function EmailsTab({
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const findTrackedEmail = (step: (typeof OFFICIAL_ESPRIT_STEPS)[number]) => {
-    const targetEmail = step.email.toLowerCase();
-    return (
-      emails.find(
-        (e) =>
-          (e.recipientEmail || e.adminContact?.email || "").toLowerCase() ===
-            targetEmail ||
-          e.adminContact?.officeType === step.officeType
-      ) || null
-    );
-  };
-
-  const handleSetStepStatus = async (
-    step: (typeof OFFICIAL_ESPRIT_STEPS)[number],
-    status: string,
-    replySummary?: string
-  ) => {
-    setSavingStep(step.officeType);
+  const handleSaveStepEmail = async (nextStatus?: string) => {
+    setSaving(true);
+    setSaveToast(null);
     try {
-      const existing = findTrackedEmail(step);
+      const existing = findTrackedEmail(activeStep);
+      const statusToSave = nextStatus || existing?.status || "DRAFT";
+      const fullBodyToSave = assembleFullBody();
+
+      const matchedContact = adminContacts.find(
+        (c) =>
+          (c.email || "").toLowerCase() === activeStep.email.toLowerCase() ||
+          c.officeCategory === activeStep.officeType
+      );
+
       if (existing) {
         await fetch(`/api/planner/activities/${activity.id}/emails`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             emailId: existing.id,
-            status,
-            ...(replySummary !== undefined ? { replySummary } : {}),
+            recipientEmail: draftTo,
+            ccEmails: draftCc,
+            renderedSubject: draftSubject,
+            renderedBody: fullBodyToSave,
+            status: statusToSave,
+            replySummary: draftReplyNotes,
           }),
         });
       } else {
-        const matchedContact = adminContacts.find(
-          (c) =>
-            (c.email || "").toLowerCase() === step.email.toLowerCase() ||
-            c.officeType === step.officeType
-        );
         await fetch(`/api/planner/activities/${activity.id}/emails`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             adminContactId: matchedContact?.id || null,
-            officeType: step.officeType,
-            recipientEmail: step.email,
-            ccEmails: step.ccEmails,
-            subject: `${step.stepNumber} ${activity.title}`,
-            status,
-            replySummary: replySummary || "",
+            office: activeStep.officeType,
+            officeType: activeStep.officeType,
+            recipientEmail: draftTo,
+            ccEmails: draftCc,
+            subject: draftSubject,
+            body: fullBodyToSave,
+            status: statusToSave,
+            replySummary: draftReplyNotes,
           }),
         });
       }
+
+      setSaveToast(
+        isFr
+          ? `Email (${activeStep.stepNumber}) enregistré (${statusToSave}).`
+          : `Email (${activeStep.stepNumber}) saved (${statusToSave}).`
+      );
       onRefresh();
     } finally {
-      setSavingStep(null);
+      setSaving(false);
     }
   };
 
+  const buildMailtoHref = () => {
+    const to = draftTo.trim();
+    const cc = draftCc.replace(/\s+/g, "");
+    const subject = encodeURIComponent(draftSubject);
+    const body = encodeURIComponent(assembleFullBody());
+    return `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${subject}&body=${body}`;
+  };
+
+  const buildGmailComposeHref = () => {
+    const to = encodeURIComponent(draftTo.trim());
+    const cc = encodeURIComponent(draftCc.replace(/\s+/g, ""));
+    const su = encodeURIComponent(draftSubject);
+    const body = encodeURIComponent(assembleFullBody());
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&cc=${cc}&su=${su}&body=${body}`;
+  };
+
+  const currentStatus = trackedForActive?.status || "DRAFT";
+
   return (
     <div className="space-y-6">
-      {/* Top Official ESPRIT Rules Banner (No Auto-Generated Templates) */}
+      {/* Top Official ESPRIT Rules Banner */}
       <div className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-display font-bold text-ink flex items-center gap-2">
               <Mail className="w-4 h-4 text-ast-primary" />
               {isFr
-                ? "Processus Administratif Officiel ESPRIT (Étapes 1/ à 6/ — Sans modèles pré-écrits)"
-                : "Official ESPRIT Administrative Email Process (Steps 1/ to 6/ — No pre-written templates)"}
+                ? "Compositeur d'Emails Administratifs ESPRIT (Étapes 1/ à 6/)"
+                : "Official ESPRIT Administrative Email Composer (Steps 1/ to 6/)"}
             </h3>
             <p className="text-xs text-ink-soft mt-0.5">
               {isFr
-                ? "Rédigez vos propres e-mails directement dans votre messagerie pour éviter toute erreur de modèle, puis cochez l'avancement de chaque étape ci-dessous."
-                : "Write your own emails directly in your mail client to avoid template mistakes, then track the status of each step below."}
+                ? "Destinataire (À), Copie (CC), Objet et Signature du Club sont pré-remplis automatiquement. Rédigez simplement votre message dans la zone vide."
+                : "Recipient (To), CC, Subject, and Club Signature are pre-filled automatically. Simply write your message in the empty content box."}
             </p>
           </div>
 
@@ -690,200 +836,390 @@ export function EmailsTab({
             )}
           </button>
         </div>
-
-        <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-          <p className="font-bold">
-            {isFr
-              ? "NB Obligatoires (M. Zied Saidi — Responsable de la vie étudiante) :"
-              : "Mandatory Notes (Mr. Zied Saidi — Head of Student Life):"}
-          </p>
-          <p>
-            •{" "}
-            {isFr
-              ? "Les réservations doivent se faire au moins 10 jours avant l’évènement (J-10)."
-              : "Reservations must be made at least 10 days before the event (D-10)."}
-          </p>
-          <p>
-            •{" "}
-            {isFr
-              ? "Mettre le responsable de la vie étudiante (zied.saidi@esprit.tn) et M. Faycel Lbabda (faycal.lbabda@esprit.tn) en copie (CC) dans tous les e-mails est souhaité."
-              : "Always CC the Head of Student Life (zied.saidi@esprit.tn) and Mr. Faycel Lbabda (faycal.lbabda@esprit.tn) in all emails."}
-          </p>
-        </div>
       </div>
 
-      {/* 6 Official ESPRIT Contact Cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {OFFICIAL_ESPRIT_STEPS.map((step) => {
-          const tracked = findTrackedEmail(step);
-          const status = tracked?.status || "DRAFT";
-          const isBusy = savingStep === step.officeType;
-          const mailtoHref = `mailto:${step.email}?cc=${encodeURIComponent(
-            step.ccEmails.replace(/\s+/g, "")
-          )}`;
+      {/* Split View: Left 1/3 = 6 Official ESPRIT Steps | Right 2/3 = Live Email Builder */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left 1/3: 6 Official Steps Selector */}
+        <div className="space-y-2.5">
+          <h4 className="text-xs font-display font-bold uppercase tracking-wider text-ink-soft">
+            {isFr
+              ? "Choisir l'Étape Administrative ESPRIT (1/ à 6/)"
+              : "Select ESPRIT Administrative Step (1/ to 6/)"}
+          </h4>
 
-          return (
-            <div
-              key={step.officeType}
-              className={`p-5 rounded-2xl border transition-all space-y-3 ${
-                status === "APPROVED"
-                  ? "bg-emerald-50/40 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800"
-                  : status === "SENT" || status === "REPLIED"
-                  ? "bg-teal-50/30 dark:bg-teal-950/20 border-teal-300 dark:border-teal-800"
-                  : "bg-surface border-line"
-              }`}
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-lg bg-ast-primary text-white text-xs font-mono font-bold">
+          {OFFICIAL_ESPRIT_STEPS.map((step) => {
+            const tracked = findTrackedEmail(step);
+            const st = tracked?.status || "DRAFT";
+            const isSelected = activeStep.officeType === step.officeType;
+
+            return (
+              <button
+                key={step.officeType}
+                type="button"
+                onClick={() => handleSelectStep(step)}
+                className={`w-full text-left p-4 rounded-2xl border transition-all space-y-1.5 ${
+                  isSelected
+                    ? "bg-teal-50/80 dark:bg-teal-950/60 border-ast-primary shadow-sm"
+                    : "bg-surface border-line hover:bg-surface-alt"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded bg-ast-primary text-white text-[10px] font-mono font-bold">
                       {step.stepNumber}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-lg bg-surface-alt border border-line text-[11px] font-mono font-bold text-ink-soft">
+                    <span className="text-[10px] font-mono text-ink-soft">
                       {step.deadlineBadge}
                     </span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold ${
-                        status === "APPROVED"
-                          ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
-                          : status === "SENT" || status === "REPLIED"
-                          ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
-                          : "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
-                      }`}
-                    >
-                      {status === "APPROVED"
-                        ? isFr
-                          ? "VALIDÉ ✓"
-                          : "APPROVED ✓"
-                        : status === "SENT"
-                        ? isFr
-                          ? "ENVOYÉ"
-                          : "SENT"
-                        : isFr
-                        ? "À ENVOYER / SI REQUIS"
-                        : "TO SEND / IF NEEDED"}
-                    </span>
                   </div>
 
-                  <h4 className="text-sm font-display font-bold text-ink">
-                    {isFr ? step.titleFr : step.titleEn}
-                  </h4>
-
-                  <p className="text-xs font-mono text-ast-primary dark:text-ast-light font-semibold">
-                    {step.personName} — {step.email}
-                    {step.phone ? ` · Tél : ${step.phone}` : ""}
-                  </p>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                      st === "APPROVED"
+                        ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
+                        : st === "SENT" || st === "REPLIED"
+                        ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
+                        : "bg-surface-alt border border-line text-ink-soft"
+                    }`}
+                  >
+                    {st === "APPROVED"
+                      ? "VALIDÉ ✓"
+                      : st === "SENT"
+                      ? "ENVOYÉ"
+                      : "BROUILLON"}
+                  </span>
                 </div>
 
-                {/* Copy & Mailto Actions */}
-                <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-bold text-ink">
+                  {isFr ? step.titleFr : step.titleEn}
+                </p>
+
+                <p className="text-[11px] font-mono text-ast-primary dark:text-ast-light truncate">
+                  {step.personName} ({step.email})
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right 2/3: Email Composer for Selected Step */}
+        <div className="lg:col-span-2 p-6 bg-surface rounded-2xl border border-line shadow-sm space-y-4">
+          {/* Step Instruction Header */}
+          <div className="p-3.5 rounded-xl bg-surface-alt border border-line space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-display font-bold text-ink">
+                {isFr ? activeStep.titleFr : activeStep.titleEn}
+              </span>
+              <span className="text-[11px] font-mono font-bold text-ast-primary">
+                {activeStep.deadlineBadge}
+              </span>
+            </div>
+            <p className="text-xs text-ink-soft leading-relaxed">
+              {isFr ? activeStep.instructionFr : activeStep.instructionEn}
+            </p>
+          </div>
+
+          {saveToast && (
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-800 dark:text-emerald-200">
+              {saveToast}
+            </div>
+          )}
+
+          {/* Auto-Filled To & CC */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-ink-soft">
+                  {isFr ? "À (Destinataire Officiel)" : "To (Official Recipient)"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => copyText("TO_FIELD", draftTo)}
+                  className="text-[10px] font-mono font-bold text-ast-primary hover:underline flex items-center gap-1"
+                >
+                  {copiedKey === "TO_FIELD" ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      {isFr ? "Copié" : "Copied"}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      {isFr ? "Copier À" : "Copy To"}
+                    </>
+                  )}
+                </button>
+              </div>
+              <input
+                type="text"
+                disabled={!canEdit}
+                value={draftTo}
+                onChange={(e) => setDraftTo(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-line bg-surface-alt font-mono text-xs text-ink"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-ink-soft">
+                  {isFr
+                    ? "CC (Copie : Zied Saidi & Faycel Lbabda)"
+                    : "CC (Zied Saidi & Faycel Lbabda)"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => copyText("CC_FIELD", draftCc)}
+                  className="text-[10px] font-mono font-bold text-ast-primary hover:underline flex items-center gap-1"
+                >
+                  {copiedKey === "CC_FIELD" ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      {isFr ? "Copié" : "Copied"}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      {isFr ? "Copier CC" : "Copy CC"}
+                    </>
+                  )}
+                </button>
+              </div>
+              <input
+                type="text"
+                disabled={!canEdit}
+                value={draftCc}
+                onChange={(e) => setDraftCc(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-line bg-surface-alt font-mono text-xs text-ink"
+              />
+            </div>
+          </div>
+
+          {/* Auto-Generated Subject (Title) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-ink-soft">
+                {isFr
+                  ? "Objet de l'Email (Généré automatiquement — modifiable)"
+                  : "Email Subject (Auto-generated — editable)"}
+              </label>
+              <button
+                type="button"
+                onClick={() => copyText("SUBJECT_FIELD", draftSubject)}
+                className="text-[10px] font-mono font-bold text-ast-primary hover:underline flex items-center gap-1"
+              >
+                {copiedKey === "SUBJECT_FIELD" ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    {isFr ? "Objet copié" : "Subject copied"}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    {isFr ? "Copier l'Objet" : "Copy Subject"}
+                  </>
+                )}
+              </button>
+            </div>
+            <input
+              type="text"
+              disabled={!canEdit}
+              value={draftSubject}
+              onChange={(e) => setDraftSubject(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-line bg-surface-alt font-body font-bold text-xs text-ink"
+            />
+          </div>
+
+          {/* Empty Content Area for User + Greeting */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-ink-soft">
+                {isFr
+                  ? "Votre Message (Zone vide à remplir par vous-même)"
+                  : "Your Message Content (Empty area for you to fill in)"}
+              </label>
+              <span className="text-[11px] font-mono text-ast-primary">
+                {activeStep.salutation}
+              </span>
+            </div>
+
+            <textarea
+              rows={7}
+              disabled={!canEdit}
+              placeholder={
+                isFr
+                  ? `Écrivez votre message ici (après "${activeStep.salutation}")...\nLa signature officielle d'Asteria Club ESPRIT sera ajoutée automatiquement en bas.`
+                  : `Write your message content here (after "${activeStep.salutation}")...\nThe official Asteria Club ESPRIT signature will be appended automatically below.`
+              }
+              value={draftContent}
+              onChange={(e) => setDraftContent(e.target.value)}
+              className="w-full p-3.5 rounded-xl border border-line bg-surface font-body text-xs text-ink leading-relaxed focus:outline-none focus:ring-2 focus:ring-ast-primary"
+            />
+          </div>
+
+          {/* Automatic Club Signature (Editable) */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-ink-soft">
+              {isFr
+                ? "Signature Officielle du Club (Ajoutée automatiquement à la fin de l'e-mail)"
+                : "Official Club Signature (Automatically appended at the end of the email)"}
+            </label>
+            <textarea
+              rows={4}
+              disabled={!canEdit}
+              value={clubSignature}
+              onChange={(e) => setClubSignature(e.target.value)}
+              className="w-full p-3 rounded-xl border border-line bg-surface-alt font-mono text-[11px] text-ink-soft leading-relaxed focus:outline-none focus:ring-2 focus:ring-ast-primary"
+            />
+          </div>
+
+          {/* Action Bar: Save Draft, Copy Body+Signature, Open Mailto, Open Gmail */}
+          <div className="pt-2 border-t border-line flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={saving}
+                  onClick={() => handleSaveStepEmail()}
+                >
+                  {saving
+                    ? isFr
+                      ? "Enregistrement..."
+                      : "Saving..."
+                    : isFr
+                    ? "Enregistrer le Brouillon"
+                    : "Save Draft"}
+                </Button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => copyText("BODY_SIG", assembleFullBody())}
+                className="px-3 py-1.5 rounded-xl border border-line bg-surface-alt hover:bg-surface text-xs font-semibold text-ink flex items-center gap-1.5 transition-colors"
+              >
+                {copiedKey === "BODY_SIG" ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    {isFr ? "Message + Signature copiés !" : "Body + Signature copied!"}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    {isFr ? "Copier Message + Signature" : "Copy Body + Signature"}
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={buildGmailComposeHref()}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  if (canEdit) {
+                    handleSaveStepEmail(
+                      currentStatus === "DRAFT" ? "SENT" : currentStatus
+                    );
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl border border-ast-primary text-ast-primary dark:text-ast-light hover:bg-teal-50 dark:hover:bg-teal-950/60 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {isFr ? "Ouvrir dans Gmail" : "Open in Gmail"}
+              </a>
+
+              <a
+                href={buildMailtoHref()}
+                onClick={() => {
+                  if (canEdit) {
+                    handleSaveStepEmail(
+                      currentStatus === "DRAFT" ? "SENT" : currentStatus
+                    );
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-ast-primary text-white hover:bg-teal-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Send className="w-3.5 h-3.5" />
+                {isFr
+                  ? "Ouvrir dans Messagerie (mailto:)"
+                  : "Open in Mail App (mailto:)"}
+              </a>
+            </div>
+          </div>
+
+          {/* Step Status Tracker & Admin Reply Note */}
+          <div className="p-4 rounded-xl bg-surface-alt border border-line space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-display font-bold uppercase text-ink">
+                {isFr
+                  ? `Suivi de l'Étape ${activeStep.stepNumber} & Réponse de l'Administration`
+                  : `Step ${activeStep.stepNumber} Status & Administrative Reply`}
+              </span>
+
+              {canEdit && (
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => copyText(`EMAIL_${step.officeType}`, step.email)}
-                    className="px-3 py-1.5 rounded-xl border border-line bg-surface-alt hover:bg-surface text-xs font-mono font-bold text-ink flex items-center gap-1.5 transition-colors"
+                    disabled={saving}
+                    onClick={() => handleSaveStepEmail("DRAFT")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                      currentStatus === "DRAFT"
+                        ? "bg-surface border-ink text-ink"
+                        : "bg-surface border-line text-ink-soft hover:text-ink"
+                    }`}
                   >
-                    {copiedKey === `EMAIL_${step.officeType}` ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        {isFr ? "Email copié !" : "Email copied!"}
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        {step.email}
-                      </>
-                    )}
+                    {isFr ? "Brouillon / À envoyer" : "Draft / To Send"}
                   </button>
-
-                  <a
-                    href={mailtoHref}
-                    onClick={() => {
-                      if (canEdit && status === "DRAFT") {
-                        handleSetStepStatus(step, "SENT");
-                      }
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl bg-ast-primary text-white hover:bg-teal-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleSaveStepEmail("SENT")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                      currentStatus === "SENT"
+                        ? "bg-teal-600 border-teal-600 text-white"
+                        : "bg-surface border-line text-ink-soft hover:text-ink"
+                    }`}
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    {isFr
-                      ? "Ouvrir ma messagerie (mailto:)"
-                      : "Open Mail Client (mailto:)"}
-                  </a>
+                    {isFr ? "Marquer Envoyé" : "Mark Sent"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleSaveStepEmail("APPROVED")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                      currentStatus === "APPROVED"
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "bg-surface border-line text-ink-soft hover:text-ink"
+                    }`}
+                  >
+                    {isFr ? "Validé / Accord Reçu ✓" : "Approved ✓"}
+                  </button>
                 </div>
-              </div>
-
-              <p className="text-xs text-ink-soft leading-relaxed">
-                {isFr ? step.instructionFr : step.instructionEn}
-              </p>
-
-              {/* Status Tracking Buttons & Optional Admin Reply Note */}
-              <div className="pt-3 border-t border-line flex flex-col md:flex-row md:items-center justify-between gap-3">
-                {canEdit && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-mono text-ink-soft">
-                      {isFr ? "Marquer l'état :" : "Mark status:"}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => handleSetStepStatus(step, "DRAFT")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
-                        status === "DRAFT"
-                          ? "bg-surface-alt border-ink text-ink"
-                          : "bg-surface border-line text-ink-soft hover:text-ink"
-                      }`}
-                    >
-                      {isFr ? "À envoyer" : "To Send"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => handleSetStepStatus(step, "SENT")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
-                        status === "SENT"
-                          ? "bg-teal-600 border-teal-600 text-white"
-                          : "bg-surface border-line text-ink-soft hover:text-ink"
-                      }`}
-                    >
-                      {isFr ? "Email Envoyé" : "Email Sent"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => handleSetStepStatus(step, "APPROVED")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
-                        status === "APPROVED"
-                          ? "bg-emerald-600 border-emerald-600 text-white"
-                          : "bg-surface border-line text-ink-soft hover:text-ink"
-                      }`}
-                    >
-                      {isFr ? "Validé / Accord Reçu ✓" : "Approved ✓"}
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex-1 max-w-md">
-                  <input
-                    type="text"
-                    disabled={!canEdit}
-                    placeholder={
-                      isFr
-                        ? "Note / Réponse reçue (ex: Salle B204 confirmée, BC signé...)"
-                        : "Note / Admin reply (e.g. Room B204 confirmed, PO signed...)"
-                    }
-                    defaultValue={tracked?.replySummary || ""}
-                    onBlur={(e) => {
-                      if (e.target.value !== (tracked?.replySummary || "")) {
-                        handleSetStepStatus(step, status, e.target.value);
-                      }
-                    }}
-                    className="w-full px-3 py-1.5 rounded-xl border border-line bg-surface-alt text-xs text-ink focus:outline-none focus:ring-2 focus:ring-ast-primary"
-                  />
-                </div>
-              </div>
+              )}
             </div>
-          );
-        })}
+
+            <Input
+              label={
+                isFr
+                  ? "Note / Réponse reçue de l'administration ESPRIT"
+                  : "Note / Reply received from ESPRIT Administration"
+              }
+              disabled={!canEdit}
+              placeholder={
+                isFr
+                  ? "ex: Accord de M. Zied Saidi reçu, Salle B204 confirmée, BC validé..."
+                  : "e.g. Approved by Mr. Zied Saidi, Room B204 confirmed, PO validated..."
+              }
+              value={draftReplyNotes}
+              onChange={(e) => setDraftReplyNotes(e.target.value)}
+              onBlur={() => {
+                if (canEdit) handleSaveStepEmail();
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -105,6 +105,7 @@ export async function POST(
       adminContactId,
       contactId,
       office,
+      officeType,
       recipientEmail,
       ccEmails,
       renderedSubject,
@@ -121,22 +122,48 @@ export async function POST(
       getAdminContacts(),
     ]);
 
-    const targetOffice = office || "STUDENT_LIFE";
+    const targetOffice = office || officeType || "STUDENT_LIFE";
     const selectedContact =
       adminContactId || contactId
         ? adminContacts.find((c) => c.id === (adminContactId || contactId))
         : adminContacts.find((c) => c.office === targetOffice);
 
-    // If an email tracker for this office already exists, update its status/notes instead of duplicating
+    const finalSubject =
+      renderedSubject ||
+      subject ||
+      `[Asteria Club ESPRIT] ${activity.title}`;
+    const finalBody =
+      renderedBody !== undefined
+        ? renderedBody
+        : rawBody !== undefined
+        ? rawBody
+        : "";
+    const finalCc = Array.isArray(ccEmails)
+      ? ccEmails.join(", ")
+      : ccEmails || "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn";
+
+    // If an email record for this office already exists, update it cleanly
     const existingForOffice = existingEmails.find(
       (e) => e.office === targetOffice
     );
-    if (existingForOffice && !rawBody && !renderedBody) {
+    if (existingForOffice) {
       const nextStatus = status || existingForOffice.status;
       const updates: Record<string, any> = {
         status: nextStatus,
         updated_at: new Date().toISOString(),
       };
+      if (renderedSubject !== undefined || subject !== undefined) {
+        updates.subject = finalSubject;
+      }
+      if (renderedBody !== undefined || rawBody !== undefined) {
+        updates.body = finalBody;
+      }
+      if (recipientEmail !== undefined) {
+        updates.recipient_email = recipientEmail;
+      }
+      if (ccEmails !== undefined) {
+        updates.cc_emails = finalCc;
+      }
       if (nextStatus === "SENT" && !existingForOffice.sentAt) {
         updates.sent_at = new Date().toISOString();
       }
@@ -162,21 +189,13 @@ export async function POST(
       });
     }
 
-    const finalSubject =
-      renderedSubject ||
-      subject ||
-      `[Asteria Club Esprit] ${activity.title}`;
-    const finalBody = renderedBody || rawBody || "Suivi de courrier administratif ESPRIT";
-
     const emailRecord = await createActivityEmail({
       activityId: id,
       templateId: null,
       contactId: selectedContact?.id || null,
       office: targetOffice,
       recipientEmail: recipientEmail || selectedContact?.email || null,
-      ccEmails: Array.isArray(ccEmails)
-        ? ccEmails.join(", ")
-        : ccEmails || "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
+      ccEmails: finalCc,
       subject: finalSubject,
       body: finalBody,
       status: status || "DRAFT",
@@ -187,7 +206,7 @@ export async function POST(
       action: "ACTIVITY_EMAIL_TRACKED",
       entityType: "ACTIVITY_EMAIL",
       entityId: emailRecord.id,
-      details: `Tracked ESPRIT administrative email (${targetOffice}) for "${activity.title}"`,
+      details: `Saved ESPRIT administrative email (${targetOffice}) for "${activity.title}"`,
     });
 
     return NextResponse.json(
