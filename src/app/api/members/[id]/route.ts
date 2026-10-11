@@ -107,21 +107,21 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
-    // Only BOARD can change role, status, or department_id
-    if (
-      (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) &&
-      currentUser.role !== "BOARD"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Only Board members can change role, status, or department" },
-        { status: 403 }
-      );
-    }
-
     const isExecutive =
       currentUser.role === "BOARD" ||
       currentUser.role === "PRESIDENT" ||
       currentUser.role === "VICE_PRESIDENT";
+
+    // Only Executive Leadership can change role, status, or department_id
+    if (
+      (body.role !== undefined || body.status !== undefined || body.departmentId !== undefined) &&
+      !isExecutive
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: Only Executive Leadership can change role, status, or department" },
+        { status: 403 }
+      );
+    }
 
     // Users can only edit their own profile unless they are in Executive Leadership
     if (currentUser.id !== id && !isExecutive) {

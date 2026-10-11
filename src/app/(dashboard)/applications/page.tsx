@@ -1,5 +1,5 @@
 import React from "react";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isManagementRole } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { ApplicationsPipeline } from "@/components/recruitment/ApplicationsPipeline";
 import { redirect } from "next/navigation";
@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 export default async function ApplicationsPage() {
   const user = await getCurrentUser();
 
-  if (user && user.role !== "BOARD" && user.role !== "HOD") {
+  if (!user || !isManagementRole(user.role)) {
     redirect("/dashboard");
   }
 

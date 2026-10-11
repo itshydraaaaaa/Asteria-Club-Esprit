@@ -126,7 +126,7 @@ export function PlatformGuideModal({ user, isOpen, onClose }: PlatformGuideModal
       id: "role_briefing",
       badge: isFr ? "Spécificités de Rôle" : "Role Guide",
       title:
-        role === "BOARD"
+        role === "BOARD" || role === "PRESIDENT" || role === "VICE_PRESIDENT"
           ? isFr
             ? "Guide Exécutif · Bureau"
             : "Executive Board Controls"
@@ -138,7 +138,7 @@ export function PlatformGuideModal({ user, isOpen, onClose }: PlatformGuideModal
           ? "Guide Membre & Qualification Freelance"
           : "Member Guide & Freelance Readiness",
       subtitle:
-        role === "BOARD"
+        role === "BOARD" || role === "PRESIDENT" || role === "VICE_PRESIDENT"
           ? isFr
             ? "Gouvernance globale, validation des recrutements et gestion des cycles."
             : "Global club governance, recruitment approvals, and cycle rollovers."
@@ -200,7 +200,7 @@ export function PlatformGuideModal({ user, isOpen, onClose }: PlatformGuideModal
             </div>
           )}
 
-          {role === "BOARD" && (
+          {(role === "BOARD" || role === "PRESIDENT" || role === "VICE_PRESIDENT") && (
             <div className="space-y-2">
               <div className="p-3 rounded-2xl bg-surface dark:bg-[#052024] border border-line dark:border-teal-900/60 space-y-1">
                 <span className="font-bold text-ink dark:text-white font-display block">
