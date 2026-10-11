@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApplicationById, updateApplication, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/server";
 import { sendAcceptanceEmail, sendInterviewInvitationEmail } from "@/lib/email";
 import { getAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
@@ -71,7 +70,7 @@ export async function PATCH(
       } else {
         // Provision new Supabase Auth account
         try {
-          const supabaseAdmin = await createAdminClient();
+          const supabaseAdmin = getAdminClient();
           const studentEmail = application.student_email || application.studentEmail || null;
           const { data: authUser, error: authError } =
             await supabaseAdmin.auth.admin.createUser({
@@ -179,7 +178,7 @@ export async function PATCH(
         }).eq("id", existingProf.id);
 
         try {
-          const supabaseAdmin = await createAdminClient();
+          const supabaseAdmin = getAdminClient();
           await supabaseAdmin.auth.admin.updateUserById(existingProf.id, {
             user_metadata: {
               name: application.name,
@@ -193,7 +192,7 @@ export async function PATCH(
       } else {
         // Direct acceptance without prior interview account
         try {
-          const supabaseAdmin = await createAdminClient();
+          const supabaseAdmin = getAdminClient();
           const studentEmail = application.student_email || application.studentEmail || null;
           const { data: authUser, error: authError } =
             await supabaseAdmin.auth.admin.createUser({

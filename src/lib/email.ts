@@ -418,6 +418,7 @@ export interface SendInterviewEmailParams {
   portalUrl?: string;
   interviewDate?: string;
   interviewLocation?: string;
+  bookingUrl?: string;
 }
 
 /**
@@ -431,8 +432,10 @@ export function buildInterviewEmailHtml({
   portalUrl,
   interviewDate,
   interviewLocation,
+  bookingUrl,
 }: SendInterviewEmailParams): string {
   const loginUrl = portalUrl || `${process.env.NEXT_PUBLIC_APP_URL || APP_METADATA.defaultSiteUrl}/login`;
+  const bookingLink = bookingUrl || CLUB_LINKS.interviewBooking;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -509,6 +512,46 @@ export function buildInterviewEmailHtml({
                 ` : ""}
               </div>
 
+              <!-- Highlighted Cally Booking Action Box -->
+              <div style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 2px solid #E5A93C; border-radius: 18px; padding: 24px; margin-bottom: 28px; box-shadow: 0 8px 24px -4px rgba(229, 169, 60, 0.25);">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td>
+                      <div style="display: inline-block; background-color: #E5A93C; color: #0A3A40; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 9999px; font-family: monospace; margin-bottom: 12px;">
+                        ⚡ ÉTAPE OBLIGATOIRE · CHOIX DU CRÉNEAU
+                      </div>
+                      <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 900; color: #78350F; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Fixez votre Date & Heure d'Entretien
+                      </h2>
+                      <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #92400E;">
+                        Pour valider votre passage devant le jury d'Asteria Club, veuillez réserver impérativement votre date et créneau horaire sur notre planning officiel Cally :
+                      </p>
+
+                      <!-- Highlighted Action CTA Button -->
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                        <tr>
+                          <td>
+                            <a href="${bookingLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0A3A40; color: #FFFFFF; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; padding: 14px 28px; border-radius: 12px; border: 2px solid #E5A93C; box-shadow: 0 4px 14px rgba(10, 58, 64, 0.25); font-family: monospace;">
+                              📅 Choisir mon créneau d'entretien sur Cally →
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Highlighted Direct URL Callout Box -->
+                      <div style="background-color: #FFFFFF; border: 1px solid #FCD34D; border-radius: 10px; padding: 12px 14px;">
+                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #B45309; display: block; margin-bottom: 4px;">
+                          🔗 Lien direct mis en évidence :
+                        </span>
+                        <a href="${bookingLink}" target="_blank" rel="noopener noreferrer" style="font-size: 13px; font-weight: 800; font-family: monospace; color: #0A3A40; background-color: #FEF08A; padding: 3px 8px; border-radius: 4px; text-decoration: underline; word-break: break-all; display: inline-block; border: 1px solid #FACC15;">
+                          ${bookingLink}
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
               <!-- Credentials Box -->
               <div style="background: #0A3A40; border: 1px solid #11606E; border-radius: 18px; padding: 24px; margin-bottom: 28px; color: #FFFFFF;">
                 <div style="border-bottom: 1px solid rgba(96, 200, 212, 0.2); padding-bottom: 12px; margin-bottom: 16px;">
@@ -560,11 +603,19 @@ export function buildInterviewEmailHtml({
                   Conseils pour réussir votre entretien :
                 </h3>
                 <ul style="margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.8; color: #4A6B70;">
+                  <li><strong>Fixez votre créneau immédiatement</strong> sur le lien Cally mis en évidence ci-dessus.</li>
                   <li><strong>Connectez-vous</strong> dès maintenant avec vos identifiants pour valider votre accès.</li>
                   <li><strong>Préparez votre présentation :</strong> vos motivations, vos projets passés (GitHub, Behance, vidéos, réalisations).</li>
                   <li><strong>Soyez ponctuel(le) :</strong> présentez-vous 10 minutes avant l'heure indiquée.</li>
                   <li>À l'issue de cet entretien, votre rôle sera promu en <strong>MEMBER</strong> en cas de validation finale.</li>
                 </ul>
+              </div>
+
+              <!-- English Summary Section -->
+              <div style="border-top: 1px dashed #D2E4E6; padding-top: 20px; margin-top: 20px; margin-bottom: 20px;">
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #4A6B70; line-height: 1.5;">
+                  <strong>English Summary:</strong> Congratulations ${memberName}! Your application has been shortlisted for an interview with Asteria Club Esprit (${departmentName}). Please book your interview date and time slot using the official Cally link: <a href="${bookingLink}" style="color: #B45309; font-weight: 700; text-decoration: underline;">${bookingLink}</a>. Use your temporary credentials above to sign in at <a href="${loginUrl}" style="color: #11606E;">${loginUrl}</a>.
+                </p>
               </div>
 
               <p style="margin: 0; font-size: 13px; color: #4A6B70; line-height: 1.6;">
@@ -598,6 +649,53 @@ export function buildInterviewEmailHtml({
 }
 
 /**
+ * Builds a plain text version of the interview email
+ */
+export function buildInterviewEmailText({
+  toEmail,
+  memberName,
+  departmentName,
+  temporaryPassword,
+  portalUrl,
+  bookingUrl,
+}: SendInterviewEmailParams): string {
+  const loginUrl = portalUrl || `${process.env.NEXT_PUBLIC_APP_URL || APP_METADATA.defaultSiteUrl}/login`;
+  const bookingLink = bookingUrl || CLUB_LINKS.interviewBooking;
+
+  return `ASTERIA CLUB ESPRIT — CONVOCATION À L'ENTRETIEN
+==================================================
+
+Bonjour ${memberName},
+
+Félicitations ! Votre candidature pour rejoindre le pôle "${departmentName}" a été retenue pour l'épreuve des entretiens de sélection chez Asteria Club Esprit.
+
+--------------------------------------------------
+📅 DATE ET HEURE D'ENTRETIEN (ACTION REQUISE) :
+Fixez obligatoirement votre date et heure d'entretien sur le lien Cally ci-dessous :
+${bookingLink}
+--------------------------------------------------
+
+VOS IDENTIFIANTS D'ACCÈS AU PORTAIL CANDIDAT :
+--------------------------------------------------
+- Portail : ${loginUrl}
+- Email : ${toEmail}
+- Mot de Passe Provisoire : ${temporaryPassword}
+
+CONSEILS POUR RÉUSSIR VOTRE ENTRETIEN :
+1. Choisissez votre date et créneau dès maintenant sur le lien Cally : ${bookingLink}
+2. Connectez-vous sur votre espace portail pour découvrir l'environnement du club.
+3. Préparez votre présentation et vos projets passés.
+
+Pour toute question, contactez-nous à ${CLUB_LINKS.email}.
+
+Bonne chance pour votre entretien !
+Le Bureau Exécutif & Ressources Humaines (HR)
+Asteria Club Esprit
+https://asteria-club-esprit.vercel.app
+`;
+}
+
+/**
  * Dispatches an official interview invitation email with candidate portal credentials
  */
 export async function sendInterviewInvitationEmail(
@@ -605,7 +703,7 @@ export async function sendInterviewInvitationEmail(
 ): Promise<EmailDeliveryResult> {
   const subject = `Asteria Club Esprit · Convocation à l'Entretien & Accès Portail (${params.memberName})`;
   const html = buildInterviewEmailHtml(params);
-  const text = `Bonjour ${params.memberName},\n\nVotre candidature chez Asteria Club Esprit a été retenue pour l'étape des entretiens !\n\nPôle: ${params.departmentName}\nStatut: En Attente d'Entretien (WAITING_FOR_INTERVIEW)\n\nVos identifiants de connexion au portail:\nURL: ${params.portalUrl || "https://asteria-club-esprit.vercel.app/login"}\nEmail: ${params.toEmail}\nMot de passe temporaire: ${params.temporaryPassword}\n\nBonne chance pour votre entretien !\nLe Bureau Exécutif · Asteria Club Esprit`;
+  const text = buildInterviewEmailText(params);
 
   return dispatchEmailMessage({
     toEmail: params.toEmail,
@@ -702,6 +800,7 @@ function getRoleDisplayInfo(role: string, boardTitle?: string | null) {
         englishTitle: "Applicant — Waiting for Interview",
         accent: "#F59E0B",
         responsibilities: [
+          `Fixez obligatoirement votre date et heure d'entretien sur Cally : ${CLUB_LINKS.interviewBooking}`,
           "Votre compte portail a été créé avec succès pour suivre votre progression.",
           "Préparation de votre dossier / portfolio pour l'entretien d'évaluation avec nos leads.",
           "Suivi des annonces et rendez-vous du club directement depuis votre espace.",
@@ -815,6 +914,36 @@ export function buildRoleUpdateEmailHtml({
                     : ""
                 }
               </div>
+
+              ${
+                newRole === "WAITING_FOR_INTERVIEW"
+                  ? `<!-- Highlighted Cally Booking Box -->
+              <div style="background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border: 2px solid #E5A93C; border-radius: 18px; padding: 22px; margin-bottom: 28px; box-shadow: 0 8px 24px -4px rgba(229, 169, 60, 0.25);">
+                <span style="display: inline-block; background-color: #E5A93C; color: #0A3A40; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 9999px; font-family: monospace; margin-bottom: 10px;">
+                  ⚡ ÉTAPE OBLIGATOIRE · CHOIX DU CRÉNEAU
+                </span>
+                <h3 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 900; color: #78350F; text-transform: uppercase; letter-spacing: 0.5px;">
+                  Fixez votre Date & Heure d'Entretien
+                </h3>
+                <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #92400E;">
+                  Veuillez réserver votre créneau de passage devant le jury sur notre planning officiel Cally :
+                </p>
+                <div style="margin-bottom: 14px;">
+                  <a href="${CLUB_LINKS.interviewBooking}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0A3A40; color: #FFFFFF; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; padding: 12px 24px; border-radius: 12px; border: 2px solid #E5A93C; font-family: monospace;">
+                    📅 Choisir mon créneau sur Cally →
+                  </a>
+                </div>
+                <div style="background-color: #FFFFFF; border: 1px solid #FCD34D; border-radius: 10px; padding: 10px 12px;">
+                  <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #B45309; display: block; margin-bottom: 4px;">
+                    🔗 Lien direct mis en évidence :
+                  </span>
+                  <a href="${CLUB_LINKS.interviewBooking}" target="_blank" rel="noopener noreferrer" style="font-size: 13px; font-weight: 800; font-family: monospace; color: #0A3A40; background-color: #FEF08A; padding: 2px 6px; border-radius: 4px; text-decoration: underline; word-break: break-all;">
+                    ${CLUB_LINKS.interviewBooking}
+                  </a>
+                </div>
+              </div>`
+                  : ""
+              }
 
               <!-- Responsibilities / Key Privileges -->
               <div style="background-color: #F4F9FA; border-radius: 16px; padding: 20px; margin-bottom: 28px; border: 1px solid #D2E4E6;">

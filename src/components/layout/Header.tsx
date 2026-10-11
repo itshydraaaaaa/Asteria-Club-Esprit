@@ -25,7 +25,20 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [bulletins, setBulletins] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
+  const fetchNotifications = () => {
+    setLoadingNotifications(true);
+    fetch("/api/notifications")
+      .then((res) => (res.ok ? res.json() : { notifications: [], unreadCount: 0 }))
+      .then((data) => {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingNotifications(false));
+  };
 
   useEffect(() => {
     // Check if user has seen onboarding guide
@@ -36,16 +49,38 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
       }
     }
 
-    // Fetch dynamic announcements for notifications popover
-    fetch("/api/announcements")
-      .then((res) => (res.ok ? res.json() : { announcements: [] }))
-      .then((data) => {
-        const list = data.announcements || [];
-        setBulletins(list.slice(0, 3));
-        setUnreadCount(Math.min(list.length, 3));
-      })
-      .catch(() => {});
+    fetchNotifications();
   }, []);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isRead: true }),
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (e) {
+      console.error("Failed to mark notification read:", e);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true }),
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (e) {
+      console.error("Failed to mark all notifications read:", e);
+    }
+  };
 
   return (
     <header className="bg-white/85 dark:bg-[#052024]/90 backdrop-blur-md border-b border-line dark:border-teal-900/80 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-colors duration-300">
@@ -135,40 +170,81 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#08262b] border border-line dark:border-teal-800 rounded-2xl shadow-xl z-50 p-2 animate-vague-in">
-              <div className="px-3 py-2 border-b border-line dark:border-teal-900 flex items-center justify-between">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#08262b] border border-line dark:border-teal-800 rounded-2xl shadow-xl z-50 p-2 animate-vague-in">
+              <div className="px-3 py-2 border-b border-line dark:border-teal-900 flex items-center justify-between gap-2">
                 <span className="font-display font-bold uppercase text-xs tracking-wider text-ink dark:text-white">
-                  {isFr ? "Bulletins en Temps Réel" : "Real-Time Bulletins"}
+                  {isFr ? "Notifications" : "Notifications"}
                 </span>
-                <span className="text-[10px] text-ast-primary dark:text-ast-light font-mono font-bold bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
-                  Supabase Live
-                </span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="text-[10px] text-ast-primary dark:text-ast-light font-semibold hover:underline bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 transition-colors"
+                  >
+                    {isFr ? "Tout marquer lu" : "Mark all read"}
+                  </button>
+                )}
               </div>
-              <div className="p-2 space-y-1.5 max-h-64 overflow-y-auto">
-                {bulletins.length > 0 ? (
-                  bulletins.map((b) => (
-                    <Link
-                      key={b.id}
-                      href="/announcements"
-                      onClick={() => setShowNotifications(false)}
-                      className="block p-2 rounded-xl hover:bg-surface-alt dark:hover:bg-teal-950/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className="font-bold text-xs text-ink dark:text-white line-clamp-1">
-                          {b.title}
-                        </span>
-                        <span className="text-[9px] font-mono text-ink-soft dark:text-teal-300/60 shrink-0">
-                          {new Date(b.createdAt).toLocaleDateString()}
-                        </span>
+              <div className="p-2 space-y-1.5 max-h-72 overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications.map((n) => {
+                    const content = (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          if (!n.isRead) handleMarkAsRead(n.id);
+                          if (!n.link) setShowNotifications(false);
+                        }}
+                        className={`block p-2.5 rounded-xl transition-all cursor-pointer ${
+                          !n.isRead
+                            ? "bg-teal-50/70 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-800/80"
+                            : "hover:bg-surface-alt dark:hover:bg-teal-950/30 opacity-80"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {!n.isRead && (
+                              <span className="w-2 h-2 rounded-full bg-ast-light shrink-0" />
+                            )}
+                            <span className="font-bold text-xs text-ink dark:text-white truncate">
+                              {n.title}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-mono text-ink-soft dark:text-teal-300/60 shrink-0">
+                            {new Date(n.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-2">
+                          {n.body}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-ink-soft dark:text-teal-200/70 line-clamp-2">
-                        {b.body}
-                      </p>
-                    </Link>
-                  ))
+                    );
+
+                    if (n.link) {
+                      return (
+                        <Link
+                          key={n.id}
+                          href={n.link}
+                          onClick={() => {
+                            if (!n.isRead) handleMarkAsRead(n.id);
+                            setShowNotifications(false);
+                          }}
+                        >
+                          {content}
+                        </Link>
+                      );
+                    }
+
+                    return content;
+                  })
                 ) : (
-                  <p className="py-4 text-center text-xs text-ink-soft dark:text-teal-200/70">
-                    {isFr ? "Aucun nouveau bulletin." : "No new bulletins."}
+                  <p className="py-6 text-center text-xs text-ink-soft dark:text-teal-200/70">
+                    {loadingNotifications
+                      ? isFr
+                        ? "Chargement..."
+                        : "Loading..."
+                      : isFr
+                      ? "Aucune notification pour le moment."
+                      : "No notifications right now."}
                   </p>
                 )}
                 <div className="pt-2 border-t border-line dark:border-teal-900 text-center">
@@ -177,7 +253,7 @@ export function Header({ user = null, title, subtitle }: HeaderProps) {
                     onClick={() => setShowNotifications(false)}
                     className="text-xs text-ast-primary dark:text-ast-light font-semibold hover:underline"
                   >
-                    {isFr ? "Voir tous les bulletins →" : "View All Bulletins →"}
+                    {isFr ? "Voir les annonces officielles →" : "View Announcements →"}
                   </Link>
                 </div>
               </div>

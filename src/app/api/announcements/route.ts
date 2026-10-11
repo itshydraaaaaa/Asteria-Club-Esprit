@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { announcement, discordSynced: syncDiscord },
+      { announcement, discordSynced: false },
       { status: 201 }
     );
   } catch (error) {

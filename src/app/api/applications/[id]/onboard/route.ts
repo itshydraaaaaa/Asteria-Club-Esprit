@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApplicationById, updateApplication, createAuditLog } from "@/lib/supabase/queries";
 import { getCurrentUser } from "@/lib/auth";
-import { createAdminClient } from "@/lib/supabase/server";
 import { sendInterviewInvitationEmail } from "@/lib/email";
 import { getAdminClient } from "@/lib/supabase/admin";
 import crypto from "crypto";
@@ -49,7 +48,7 @@ export async function POST(
     let supabaseUserId: string | null = null;
     const studentEmail = application.student_email || application.studentEmail || null;
     try {
-      const supabaseAdmin = await createAdminClient();
+      const supabaseAdmin = getAdminClient();
       const { data: authUser, error: authError } =
         await supabaseAdmin.auth.admin.createUser({
           email: cleanEmail,

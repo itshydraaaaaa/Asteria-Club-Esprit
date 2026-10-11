@@ -585,15 +585,15 @@ export default function AdminPage() {
                 <div className="flex items-center gap-1.5">
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      healthData?.supabase?.realtime
+                      healthData?.supabase?.configured
                         ? "bg-emerald-500"
                         : "bg-amber-500"
                     }`}
                   />
                   <span className="font-mono text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    {healthData?.supabase?.realtime
-                      ? "Realtime WebSockets Synchronized"
-                      : "Realtime Initializing"}
+                    {healthData?.supabase?.configured
+                      ? isFr ? "API Supabase Configurée" : "Supabase API Configured"
+                      : isFr ? "Configuration En Attente" : "Configuration Pending"}
                   </span>
                 </div>
               </div>
@@ -613,8 +613,8 @@ export default function AdminPage() {
                   }`}
                 />{" "}
                 {healthData?.status === "healthy"
-                  ? isFr ? "En Ligne & Sécurisé" : "Live & Protected"
-                  : isFr ? "Configuration Validée" : "Config Verified"}
+                  ? isFr ? "Base Opérationnelle" : "Database Operational"
+                  : isFr ? "Connexion En Cours" : "Connecting"}
               </span>
             </div>
           </div>

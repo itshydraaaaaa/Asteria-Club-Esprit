@@ -58,6 +58,8 @@ export const config = {
     "/announcements/:path*",
     "/calendar/:path*",
     "/applications/:path*",
+    "/planner/:path*",
+    "/api/planner/:path*",
     "/admin/:path*",
     "/api/admin/:path*",
   ],

@@ -350,3 +350,14 @@ export interface ConnectionModerationLogItem {
   createdAt: string;
 }
 
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  type: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+

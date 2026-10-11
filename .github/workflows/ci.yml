@@ -24,18 +24,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
       - name: Typecheck & Lint
         run: npm run lint
 
       - name: Build Next.js Application
         run: npm run build
         env:
-          DATABASE_URL: "postgresql://postgres:dummy@localhost:5432/asteria_test?schema=public"
-          DIRECT_URL: "postgresql://postgres:dummy@localhost:5432/asteria_test?schema=public"
-          JWT_SECRET: "ci-test-jwt-secret-key-for-asteria-2026"
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "ey-dummy-anon-key"
           SUPABASE_SERVICE_ROLE_KEY: "ey-dummy-service-role-key"
+          NEXT_PUBLIC_APP_URL: "https://asteria-club-esprit.vercel.app"
+          JWT_SECRET: "ci-test-jwt-secret-key-for-asteria-2026"

@@ -292,11 +292,19 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
                       onClick={() => setSelectedTask(task)}
                       className="p-4 bg-surface border border-line rounded-xl shadow-sm hover:shadow-md hover:border-ast-light/70 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer space-y-3 group"
                     >
-                      <div className="flex items-center justify-between gap-1">
-                        <PriorityBadge priority={task.priority} />
-                        {task.department && (
+                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <PriorityBadge priority={task.priority} />
+                          {(task.activity_id || task.activityId) && (
+                            <span className="text-[9px] font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-300/70 dark:border-amber-700/60 flex items-center gap-1">
+                              <Sparkles className="w-2.5 h-2.5" />
+                              {task.phase || (isFr ? "Activité" : "Activity")}
+                            </span>
+                          )}
+                        </div>
+                        {(task.department || task.departments) && (
                           <span className="text-[10px] font-mono font-bold text-ast-primary bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200 truncate max-w-[120px]">
-                            {task.department.name}
+                            {(task.department || task.departments).name}
                           </span>
                         )}
                       </div>
@@ -462,11 +470,21 @@ export function KanbanBoard({ currentUser }: KanbanBoardProps) {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {(selectedTask.activity_id || selectedTask.activityId) && (
+                  <a
+                    href={`/planner/activities/${selectedTask.activity_id || selectedTask.activityId}`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-teal-50 dark:bg-teal-950/70 text-ast-primary dark:text-ast-light border border-teal-200 dark:border-teal-700 hover:bg-teal-100 transition-colors"
+                  >
+                    <Layers className="w-3 h-3" />
+                    {isFr ? "Voir l'Activité" : "Open Activity"}
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+                )}
                 <PriorityBadge priority={selectedTask.priority} />
-                {selectedTask.dueDate && (
+                {(selectedTask.dueDate || selectedTask.due_date) && (
                   <span className="text-xs text-ink-soft font-mono">
-                    Due: {formatDate(selectedTask.dueDate)}
+                    Due: {formatDate(selectedTask.dueDate || selectedTask.due_date)}
                   </span>
                 )}
               </div>

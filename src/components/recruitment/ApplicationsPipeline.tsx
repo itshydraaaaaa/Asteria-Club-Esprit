@@ -154,7 +154,7 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://asteria-club-esprit.vercel.app/login";
     const isInterview = createdCredentials.stage === "INTERVIEW";
     const text = isInterview
-      ? `Asteria Club Esprit — Convocation Entretien & Accès Candidat\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nPôle: ${createdCredentials.department}\nStatut: Entretien Programmé (Rôle: WAITING_FOR_INTERVIEW)`
+      ? `Asteria Club Esprit — Convocation Entretien & Accès Candidat\n\nFixer votre date et heure d'entretien (Lien Cally) :\nhttps://cally.com/p4xaq6duarbxjfxu\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nPôle: ${createdCredentials.department}\nStatut: Entretien Programmé (Rôle: WAITING_FOR_INTERVIEW)`
       : `Asteria Club Esprit — Vos Identifiants Membre Officiel\n\nPortail: ${portalUrl}\nEmail: ${createdCredentials.email}\nMot de passe temporaire: ${createdCredentials.temporaryPassword}\n\nBienvenue dans le pôle ${createdCredentials.department} !`;
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -519,6 +519,34 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                     {isFr ? "Vous pouvez copier les identifiants ci-dessous pour les transmettre au candidat." : "You can copy the credentials below to share them directly with the candidate."}
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Cally Interview Scheduling Callout (for interview stage) */}
+            {createdCredentials.stage === "INTERVIEW" && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs">
+                <div className="space-y-1">
+                  <span className="font-bold text-amber-700 dark:text-amber-400 block font-mono text-[11px] uppercase tracking-wider">
+                    {isFr ? "📅 Lien Fixation Entretien (Cally)" : "📅 Interview Scheduling Link (Cally)"}
+                  </span>
+                  <a
+                    href="https://cally.com/p4xaq6duarbxjfxu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-xs text-amber-800 dark:text-amber-300 underline font-semibold hover:text-amber-900 break-all"
+                  >
+                    https://cally.com/p4xaq6duarbxjfxu
+                  </a>
+                </div>
+                <a
+                  href="https://cally.com/p4xaq6duarbxjfxu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 text-stone-900 hover:bg-amber-400 flex items-center gap-1.5 shrink-0 transition shadow-sm"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {isFr ? "Ouvrir" : "Open"}
+                </a>
               </div>
             )}
 

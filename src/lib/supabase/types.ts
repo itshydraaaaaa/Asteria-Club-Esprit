@@ -365,6 +365,8 @@ export type Database = {
           user_id: string | null;
           action: string;
           details: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
           created_at: string;
         };
         Insert: {
@@ -372,6 +374,8 @@ export type Database = {
           user_id?: string | null;
           action: string;
           details: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -379,6 +383,40 @@ export type Database = {
           user_id?: string | null;
           action?: string;
           details?: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          created_at?: string;
+        };
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          body: string;
+          type: string;
+          link: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          body: string;
+          type: string;
+          link?: string | null;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          body?: string;
+          type?: string;
+          link?: string | null;
+          is_read?: boolean;
           created_at?: string;
         };
       };
@@ -393,6 +431,10 @@ export type Database = {
       };
       is_board: {
         Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      is_hod_of: {
+        Args: { dept: string };
         Returns: boolean;
       };
     };

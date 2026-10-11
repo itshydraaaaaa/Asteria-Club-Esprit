@@ -27,6 +27,7 @@ import {
   HelpCircle,
   BookOpen,
   Link2,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlatformGuideModal } from "@/components/dashboard/PlatformGuideModal";
@@ -47,6 +48,12 @@ export function Sidebar({ user }: SidebarProps) {
       href: "/dashboard",
       icon: LayoutDashboard,
       roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER", "WAITING_FOR_INTERVIEW", "DECLINED", "APPLICANT"],
+    },
+    {
+      label: isFr ? "Planificateur Exécutif" : "Activity Planner",
+      href: "/planner",
+      icon: Compass,
+      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD"],
     },
     {
       label: isFr ? "Annuaire des Membres" : "Members Directory",

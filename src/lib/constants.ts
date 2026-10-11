@@ -36,6 +36,7 @@ export const CLUB_LINKS = {
   instagram: "https://instagram.com/asteria.club",
   linkedin: "https://linkedin.com/company/asteria-club",
   freelancePlatform: "https://asteria-freelance-prelaunch.vercel.app/",
+  interviewBooking: "https://cally.com/p4xaq6duarbxjfxu",
 } as const;
 
 export const APP_METADATA = {
