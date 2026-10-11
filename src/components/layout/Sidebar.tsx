@@ -95,7 +95,7 @@ export function Sidebar({ user }: SidebarProps) {
       label: isFr ? "Administration & Audit" : "Admin & Governance",
       href: "/admin",
       icon: Settings,
-      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT"],
     },
   ];
 

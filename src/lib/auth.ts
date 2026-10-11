@@ -37,15 +37,28 @@ export const getCurrentUser = cache(async (): Promise<UserSession | null> => {
     if (!profile) return null;
 
     const p = profile as any;
+    const boardTitle: string | null = p.board_seats?.title ?? null;
+    let resolvedRole = p.role as UserRole;
+    if (resolvedRole === "BOARD" && boardTitle) {
+      const lowerTitle = boardTitle.toLowerCase();
+      if (lowerTitle.includes("vice")) {
+        resolvedRole = "VICE_PRESIDENT";
+      } else if (
+        lowerTitle.includes("president") ||
+        lowerTitle.includes("président")
+      ) {
+        resolvedRole = "PRESIDENT";
+      }
+    }
 
     return {
       id: p.id,
       name: p.name,
       email: p.email,
-      role: p.role as UserRole,
+      role: resolvedRole,
       departmentId: p.department_id,
       departmentName: p.departments?.name ?? null,
-      boardTitle: p.board_seats?.title ?? null,
+      boardTitle,
       avatarUrl: p.avatar_url ?? null,
       bio: p.bio ?? null,
       skills: parseSkills(p.skills),
@@ -60,6 +73,11 @@ export const getCurrentUser = cache(async (): Promise<UserSession | null> => {
 // ---------------------------------------------------------------------------
 // Role permission checks & helpers
 // ---------------------------------------------------------------------------
+
+export function isPresidencyRole(role?: UserRole | string | null): boolean {
+  if (!role) return false;
+  return role === "PRESIDENT" || role === "VICE_PRESIDENT";
+}
 
 export function isExecutiveRole(role?: UserRole | string | null): boolean {
   if (!role) return false;

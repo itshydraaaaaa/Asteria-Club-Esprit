@@ -96,7 +96,7 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
       label: isFr ? "Administration & Audit" : "Admin & Governance",
       href: "/admin",
       icon: Settings,
-      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD"],
+      roles: ["PRESIDENT", "VICE_PRESIDENT"],
     },
   ];
 

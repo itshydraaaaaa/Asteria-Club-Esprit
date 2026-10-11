@@ -9,7 +9,7 @@ import {
   createDepartment,
 } from "@/lib/supabase/queries";
 import { getAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isPresidencyRole } from "@/lib/auth";
 import { DEFAULT_ACADEMIC_CYCLE } from "@/lib/constants";
 import { sendRoleUpdateEmail } from "@/lib/email";
 
@@ -19,9 +19,11 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const isExecutive = user.role === "BOARD" || user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT";
-    if (!isExecutive) {
-      return NextResponse.json({ error: "Forbidden: Executive Board access required" }, { status: 403 });
+    if (!isPresidencyRole(user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: President or Vice President access required" },
+        { status: 403 }
+      );
     }
 
     const [boardSeats, departments, auditLogs, members] = await Promise.all([
@@ -99,9 +101,11 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const isExecutive = user.role === "BOARD" || user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT";
-    if (!isExecutive) {
-      return NextResponse.json({ error: "Forbidden: Executive Board access required" }, { status: 403 });
+    if (!isPresidencyRole(user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: President or Vice President access required" },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
