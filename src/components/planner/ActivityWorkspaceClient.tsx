@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -70,6 +71,7 @@ export function ActivityWorkspaceClient({
   activityId,
   currentUser,
 }: ActivityWorkspaceClientProps) {
+  const router = useRouter();
   const { language } = useLanguage();
   const isFr = language === "fr";
 
@@ -86,6 +88,8 @@ export function ActivityWorkspaceClient({
   } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [savingBrief, setSavingBrief] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showEspritGuide, setShowEspritGuide] = useState(true);
 
   // Brief Form State
   const [briefForm, setBriefForm] = useState<any>(null);
@@ -205,8 +209,68 @@ export function ActivityWorkspaceClient({
   const canEdit = Boolean(permissions.canEdit);
   const canApproveOrPublish = Boolean(permissions.canApproveOrPublish);
   const isBoard = Boolean(permissions.isBoard);
+  const canDelete =
+    canEdit ||
+    isBoard ||
+    activity.ownerId === currentUser?.id ||
+    activity.createdById === currentUser?.id;
+
+  const daysUntilStart = activity.startAt
+    ? Math.ceil(
+        (new Date(activity.startAt).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
+
+  const studentLifeApproved = emails.some(
+    (e: any) =>
+      (e.recipientEmail || "")
+        .toLowerCase()
+        .includes("zied.saidi@esprit.tn") &&
+      (e.status === "APPROVED" || e.status === "SENT" || e.status === "REPLIED")
+  );
 
   // Handlers
+  const handleDeleteActivity = async () => {
+    const confirmed = window.confirm(
+      isFr
+        ? `Voulez-vous vraiment supprimer définitivement l'activité "${activity.title}" ?`
+        : `Are you sure you want to permanently delete the activity "${activity.title}"?`
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setActionBanner(null);
+    try {
+      const res = await fetch(`/api/planner/activities/${activity.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionBanner({
+          type: "ERROR",
+          text:
+            data.error ||
+            (isFr
+              ? "Impossible de supprimer cette activité."
+              : "Failed to delete activity."),
+        });
+      } else {
+        router.push("/planner");
+        router.refresh();
+      }
+    } catch {
+      setActionBanner({
+        type: "ERROR",
+        text: isFr
+          ? "Erreur réseau lors de la suppression."
+          : "Network error while deleting activity.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleStatusChange = async (
     newStatus: string,
     forceOverride = false
@@ -499,7 +563,7 @@ export function ActivityWorkspaceClient({
             </div>
           </div>
 
-          {/* Lifecycle Status Selector & Calendar Publication Handoff */}
+          {/* Lifecycle Status Selector, Calendar Handoff & Delete Activity */}
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-ink-soft">
@@ -573,6 +637,29 @@ export function ActivityWorkspaceClient({
                 </div>
               )
             )}
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={handleDeleteActivity}
+                disabled={deleting}
+                className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/70 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                title={
+                  isFr
+                    ? "Supprimer définitivement cette activité"
+                    : "Permanently delete this activity"
+                }
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deleting
+                  ? isFr
+                    ? "Suppression..."
+                    : "Deleting..."
+                  : isFr
+                  ? "Supprimer l'Activité"
+                  : "Delete Activity"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -590,32 +677,32 @@ export function ActivityWorkspaceClient({
                 {[
                   {
                     ok: readiness.checklist.briefComplete,
-                    labelFr: "Brief",
-                    labelEn: "Brief",
+                    labelFr: "Brief & Objectifs",
+                    labelEn: "Brief & Goals",
                     tab: "BRIEF" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.tasksReady,
-                    labelFr: "Tâches",
-                    labelEn: "Tasks",
+                    labelFr: "Plan d'Action",
+                    labelEn: "Action Plan",
                     tab: "TASKS" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.adminEmailsApproved,
-                    labelFr: "Emails Admin",
-                    labelEn: "Admin Emails",
+                    labelFr: "Emails ESPRIT (1/ à 6/)",
+                    labelEn: "ESPRIT Emails (1/ to 6/)",
                     tab: "EMAILS" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.logisticsConfirmed,
-                    labelFr: "Logistique & Salle",
-                    labelEn: "Logistics & Space",
+                    labelFr: "Logistique & Devis",
+                    labelEn: "Logistics & Quotes",
                     tab: "LOGISTICS" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.reportSubmitted,
-                    labelFr: "Bilan",
-                    labelEn: "Report",
+                    labelFr: "Rapport (≤3j)",
+                    labelEn: "Report (≤3d)",
                     tab: "REPORT" as WorkspaceTabId,
                   },
                 ].map((item, i) => (
@@ -633,20 +720,161 @@ export function ActivityWorkspaceClient({
                 ))}
               </div>
 
-              {readiness.blockers?.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  {readiness.blockers.map((b: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveTab(b.tab as WorkspaceTabId)}
-                      className="text-[11px] font-body text-amber-800 dark:text-amber-300 hover:underline flex items-center gap-1"
-                    >
-                      <AlertTriangle className="w-3 h-3 text-amber-600" />
-                      <span>{isFr ? b.messageFr : b.messageEn}</span>
-                    </button>
-                  ))}
+              <button
+                type="button"
+                onClick={() => setShowEspritGuide((v) => !v)}
+                className="text-[11px] font-mono font-bold text-ast-primary dark:text-ast-light hover:underline"
+              >
+                {showEspritGuide
+                  ? isFr
+                    ? "Masquer ce qui est requis (Processus ESPRIT)"
+                    : "Hide ESPRIT Requirements Checklist"
+                  : isFr
+                  ? "Voir ce qui est requis pour finaliser ce projet (Processus ESPRIT)"
+                  : "Show ESPRIT Requirements Checklist"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Official ESPRIT Project Completion Checklist (M. Zied Saidi) */}
+        {showEspritGuide && (
+          <div className="p-4 rounded-xl bg-surface-alt border border-line space-y-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-display font-bold text-ink flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-ast-primary" />
+                {isFr
+                  ? "Ce qui est requis pour finaliser ce projet d'activité (Processus Administratif ESPRIT & 7 Règles d'Or)"
+                  : "What is required to complete this activity project (Official ESPRIT Procedure & 7 Golden Rules)"}
+              </p>
+              <span className="text-[11px] font-mono text-ink-soft">
+                SAIDI ZIED · Vie Étudiante · Tél 92234330 · zied.saidi@esprit.tn
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {/* Step 1: Règles d'Or 1, 2, 3 */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("BRIEF")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  readiness?.checklist?.briefComplete &&
+                  (activity.members || []).length > 0
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">
+                    {isFr ? "RÈGLES D'OR 1, 2 & 3" : "GOLDEN RULES 1, 2 & 3"}
+                  </span>
+                  <span>
+                    {readiness?.checklist?.briefComplete ? "✓" : "À compléter"}
+                  </span>
                 </div>
-              )}
+                <p className="font-bold text-ink">
+                  {isFr
+                    ? "1. Objectifs, Public Cible & Comité"
+                    : "1. Objectives, Audience & Committee"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? `Définir objectifs, résultat escompté, lieu et comité d'organisation (${
+                        (activity.members || []).length
+                      } membre(s)). Réservations ≥ 10j à l'avance${
+                        daysUntilStart !== null ? ` (J-${daysUntilStart})` : ""
+                      }.`
+                    : `Define goals, target audience, venue & organizing committee (${
+                        (activity.members || []).length
+                      } member(s)). Book ≥ 10d ahead.`}
+                </p>
+              </button>
+
+              {/* Step 2: Processus Emails 1/ à 6/ */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("EMAILS")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  studentLifeApproved
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">
+                    {isFr ? "PROCESSUS EMAILS 1/ À 6/" : "ADMIN EMAILS 1/ TO 6/"}
+                  </span>
+                  <span>{studentLifeApproved ? "✓" : "J-7 / J-10"}</span>
+                </div>
+                <p className="font-bold text-ink">
+                  {isFr
+                    ? "2. Validation Vie Étudiante & Réservations"
+                    : "2. Student Life Approval & Bookings"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? "1/ Email descriptif (J-7) à zied.saidi@esprit.tn. Si validé (J-10) : 2/ Scolarité, 3/ Technique, 4/ Logistique, 5/ Promotion, 6/ Achats. (CC: Zied Saidi & Faycel Lbabda)."
+                    : "1/ Descriptive email (D-7) to zied.saidi@esprit.tn. Once approved (D-10): 2/ Scolarité, 3/ Tech, 4/ Logistics, 5/ Promo, 6/ Purchases."}
+                </p>
+              </button>
+
+              {/* Step 3: Plan d'Action, Chronogramme & Devis */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("LOGISTICS")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  tasks.length > 0 && agenda.length > 0
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">
+                    {isFr ? "RÈGLES D'OR 4, 5 & 6 + DEVIS" : "RULES 4, 5 & 6 + QUOTES"}
+                  </span>
+                  <span>
+                    {tasks.length} tâches · {agenda.length} créneaux
+                  </span>
+                </div>
+                <p className="font-bold text-ink">
+                  {isFr
+                    ? "3. Plan d'Action, Chronogramme & Devis"
+                    : "3. Action Plan, Schedule & Quotes"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? "Plan d'action + chronogramme Jour J. Devis au nom d'Esprit (MF : 830 823 C PM 000) avec coordonnées complètes + MF du prestataire et mode de paiement."
+                    : "Action plan + Run-of-Show. Quotes in Esprit's name (Tax ID: 830 823 C PM 000) with vendor details & payment method."}
+                </p>
+              </button>
+
+              {/* Step 4: Post-Event <= 3 Days */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("REPORT")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  report
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">
+                    {isFr ? "RÈGLE D'OR 7 (≤ 3 JOURS MAX)" : "RULE 7 (≤ 3 DAYS MAX)"}
+                  </span>
+                  <span>{report ? "✓" : "Post-évent ≤ 3j"}</span>
+                </div>
+                <p className="font-bold text-ink">
+                  {isFr
+                    ? "4. Facture Originale & Rapport (≤ 3j)"
+                    : "4. Original Invoice & Report (≤ 3d)"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? "Facture originale cachetée (+ devis initial) à souhail.mezzi@esprit.tn. Rapport d'action ≤ 3j (et rapport de collecte d'argent ≤ 3j si applicable) à zied.saidi@esprit.tn."
+                    : "Stamped original invoice (+ quote) to souhail.mezzi@esprit.tn. Action report ≤ 3d (and fundraising report ≤ 3d if applicable) to zied.saidi@esprit.tn."}
+                </p>
+              </button>
             </div>
           </div>
         )}

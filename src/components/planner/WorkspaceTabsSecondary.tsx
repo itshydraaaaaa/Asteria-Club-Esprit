@@ -121,10 +121,83 @@ export function LogisticsTab({
     onRefresh();
   };
 
+  const [copiedMf, setCopiedMf] = useState(false);
   const conflictList = Object.values(resourceConflicts || {});
+
+  const handleCopyMf = () => {
+    navigator.clipboard.writeText("830 823 C PM 000");
+    setCopiedMf(true);
+    setTimeout(() => setCopiedMf(false), 2000);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Official ESPRIT Devis, Achats & Factures Rules Banner */}
+      <div className="p-4 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 space-y-2.5 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="font-display font-bold text-ink flex items-center gap-2">
+            <FileText className="w-4 h-4 text-ast-primary" />
+            {isFr
+              ? "Règles Officielles Devis, Achats & Factures ESPRIT (6/ M. Souhail Mezzi — souhail.mezzi@esprit.tn)"
+              : "Official ESPRIT Quotes, Purchases & Invoice Rules (6/ Mr. Souhail Mezzi — souhail.mezzi@esprit.tn)"}
+          </h4>
+
+          <button
+            type="button"
+            onClick={handleCopyMf}
+            className="px-3 py-1 rounded-xl bg-surface border border-line hover:border-ast-primary text-xs font-mono font-bold text-ast-primary flex items-center gap-1.5 transition-colors"
+          >
+            {copiedMf ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {isFr ? "MF Copié !" : "Tax ID Copied!"}
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                Matricule Fiscal Esprit : 830 823 C PM 000
+              </>
+            )}
+          </button>
+        </div>
+
+        <ul className="space-y-1 text-ink-soft leading-relaxed list-disc pl-4">
+          <li>
+            {isFr ? (
+              <>
+                <strong>Subventions prioritaires :</strong> Il faut toujours privilégier les subventions et autres donations en nature et ne recourir à Esprit que si on n&apos;a plus le choix.
+              </>
+            ) : (
+              <>
+                <strong>Sponsorships first:</strong> Always prioritize grants and in-kind donations, and only resort to Esprit funding as a last resort.
+              </>
+            )}
+          </li>
+          <li>
+            {isFr ? (
+              <>
+                <strong>Conformité du Devis :</strong> Le devis détaillé doit être bien étudié, établi <strong>au nom d&apos;Esprit</strong> avec le <strong>Matricule Fiscal d&apos;Esprit : <code className="font-mono font-bold text-ink">830 823 C PM 000</code></strong>, comporter les <strong>coordonnées complètes du prestataire</strong> (nom, prénom, contacts + <strong>son matricule fiscal</strong>) ainsi que le <strong>mode de paiement</strong>.
+              </>
+            ) : (
+              <>
+                <strong>Quote Requirements:</strong> Detailed quote must be in <strong>Esprit&apos;s name</strong> with <strong>Esprit Tax ID: <code className="font-mono font-bold text-ink">830 823 C PM 000</code></strong>, full vendor contact info (first/last name + vendor tax ID), and payment method.
+              </>
+            )}
+          </li>
+          <li>
+            {isFr ? (
+              <>
+                <strong>Après l&apos;action (Facture Originale) :</strong> Une fois l&apos;action terminée, remettre la <strong>facture originale (avec cachet, pas de copie !)</strong> accompagnée du <strong>devis initial</strong> au responsable du service achat (<strong>M. Souhail Mezzi — souhail.mezzi@esprit.tn</strong>).
+              </>
+            ) : (
+              <>
+                <strong>Post-Event Original Invoice:</strong> Once completed, hand over the <strong>stamped original invoice (no copies!)</strong> with the initial quote to the Purchasing Manager (<strong>Mr. Souhail Mezzi — souhail.mezzi@esprit.tn</strong>).
+              </>
+            )}
+          </li>
+        </ul>
+      </div>
+
       {/* Budget & Logistics Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="p-4 rounded-2xl bg-surface border border-line">
@@ -396,14 +469,106 @@ export function LogisticsTab({
 }
 
 // ============================================================================
-// TAB 4: COMMUNICATIONS & ADMIN EMAILS
+// TAB 4: OFFICIAL ESPRIT ADMINISTRATIVE EMAILS CHECKLIST (1/ TO 6/)
 // ============================================================================
+
+const OFFICIAL_ESPRIT_STEPS = [
+  {
+    stepNumber: "1/",
+    officeType: "STUDENT_LIFE",
+    deadlineBadge: "J-7 min (1 semaine à l'avance)",
+    titleFr: "1/ Département de la Vie Estudiantine (Validation de l'évènement)",
+    titleEn: "1/ Student Life Department (Event Validation)",
+    personName: "M. Zied Saidi (Responsable de la vie étudiante)",
+    email: "zied.saidi@esprit.tn",
+    phone: "92234330",
+    instructionFr:
+      "Envoyer un e-mail descriptif de l’évènement une semaine à l’avance au responsable du département de la vie estudiantine. Si l’événement est validé, passer aux étapes 2/ à 6/.",
+    instructionEn:
+      "Send a descriptive email of the event at least 1 week in advance to the Head of Student Life. Once validated, proceed to steps 2/ to 6/.",
+    ccEmails: "faycal.lbabda@esprit.tn",
+  },
+  {
+    stepNumber: "2/",
+    officeType: "SCOLARITE",
+    deadlineBadge: "J-10 min (Après validation 1/)",
+    titleFr: "2/ Service de la Scolarité (Espace & Vidéoprojecteurs)",
+    titleEn: "2/ Academic Affairs / Scolarité (Space & Projectors)",
+    personName: "M. Mohamed Ali Bouakline",
+    email: "mohamedali.bouakline@Esprit.tn",
+    phone: "",
+    instructionFr:
+      "Si l’événement est validé : envoyer un e-mail au service de la scolarité pour réserver l’espace et les vidéo projecteurs (au moins 10 jours avant l’évènement).",
+    instructionEn:
+      "Once validated: send an email to Scolarité to book the venue/room and video projectors (at least 10 days before the event).",
+    ccEmails: "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
+  },
+  {
+    stepNumber: "3/",
+    officeType: "TECHNICAL_EQUIPMENT",
+    deadlineBadge: "J-10 min (Après validation 1/)",
+    titleFr: "3/ Matériel Technique (Sono ou autres)",
+    titleEn: "3/ Technical Equipment (Sound system & AV)",
+    personName: "M. Faycel Lbabda",
+    email: "faycal.lbabda@esprit.tn",
+    phone: "",
+    instructionFr:
+      "Envoyer un e-mail à M. Faycel Lbabda pour réserver le matériel technique (sono ou autres) au moins 10 jours avant l’évènement.",
+    instructionEn:
+      "Send an email to Mr. Faycel Lbabda to reserve technical equipment (sound system or other) at least 10 days before the event.",
+    ccEmails: "zied.saidi@esprit.tn",
+  },
+  {
+    stepNumber: "4/",
+    officeType: "LOGISTICS",
+    deadlineBadge: "J-10 min (Après validation 1/)",
+    titleFr: "4/ Logistique Générale",
+    titleEn: "4/ General Logistics",
+    personName: "M. Hazem Hajji",
+    email: "hazem.hajji@esprit.tn",
+    phone: "",
+    instructionFr:
+      "Envoyer un e-mail à M. Hazem Hajji pour tout ce qui concerne la logistique (au moins 10 jours avant l’évènement).",
+    instructionEn:
+      "Send an email to Mr. Hazem Hajji regarding all logistics requirements (at least 10 days before the event).",
+    ccEmails: "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
+  },
+  {
+    stepNumber: "5/",
+    officeType: "PROMOTION",
+    deadlineBadge: "J-10 min (Après validation 1/)",
+    titleFr: "5/ Publication & Promotion des Évènements",
+    titleEn: "5/ Event Publication & Promotion",
+    personName: "Mme Nadia Ajailia",
+    email: "Nadia.ajailia@Esprit.tn",
+    phone: "",
+    instructionFr:
+      "Envoyer un e-mail à Mme Nadia Ajailia pour tout ce qui est publication et promotion des évènements.",
+    instructionEn:
+      "Send an email to Mrs. Nadia Ajailia for all event publication and promotion.",
+    ccEmails: "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
+  },
+  {
+    stepNumber: "6/",
+    officeType: "PURCHASES",
+    deadlineBadge: "J-10 min + Facture originale post-évent",
+    titleFr: "6/ Service Achats (Négociation fournisseurs, Devis & BC)",
+    titleEn: "6/ Purchasing Office (Vendors, Quotes & Purchase Orders)",
+    personName: "M. Souhail Mezzi",
+    email: "souhail.mezzi@esprit.tn",
+    phone: "",
+    instructionFr:
+      "Envoyer un e-mail à M. Souhail Mezzi pour traiter tous vos achats (négociation avec les fournisseurs + envoi du BC). Devis au nom d'Esprit (MF : 830 823 C PM 000). Remettre la facture originale cachetée après l'action.",
+    instructionEn:
+      "Send an email to Mr. Souhail Mezzi to process purchases (vendor negotiation + PO). Quotes must be in Esprit's name (Tax ID: 830 823 C PM 000). Submit stamped original invoice after the event.",
+    ccEmails: "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
+  },
+];
 
 export function EmailsTab({
   isFr,
   activity,
   emails,
-  emailTemplates,
   adminContacts,
   canEdit,
   onRefresh,
@@ -411,391 +576,314 @@ export function EmailsTab({
   isFr: boolean;
   activity: any;
   emails: any[];
-  emailTemplates: any[];
+  emailTemplates?: any[];
   adminContacts: any[];
   canEdit: boolean;
   onRefresh: () => void;
 }) {
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(
-    emails[0]?.id || null
-  );
-  const [creatingTemplateId, setCreatingTemplateId] = useState<string>("");
-  const [creatingLang, setCreatingLang] = useState<"fr" | "en">("fr");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [savingStep, setSavingStep] = useState<string | null>(null);
 
-  const activeEmail =
-    emails.find((e) => e.id === selectedEmailId) || emails[0] || null;
-
-  const handleGenerateFromTemplate = async () => {
-    if (!creatingTemplateId) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/planner/activities/${activity.id}/emails`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId: creatingTemplateId,
-          language: creatingLang,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.email) {
-        setSelectedEmailId(data.email.id);
-        onRefresh();
-      }
-    } finally {
-      setSaving(false);
-    }
+  const copyText = (key: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleUpdateEmail = async (
-    emailId: string,
-    updates: Record<string, any>
+  const findTrackedEmail = (step: (typeof OFFICIAL_ESPRIT_STEPS)[number]) => {
+    const targetEmail = step.email.toLowerCase();
+    return (
+      emails.find(
+        (e) =>
+          (e.recipientEmail || e.adminContact?.email || "").toLowerCase() ===
+            targetEmail ||
+          e.adminContact?.officeType === step.officeType
+      ) || null
+    );
+  };
+
+  const handleSetStepStatus = async (
+    step: (typeof OFFICIAL_ESPRIT_STEPS)[number],
+    status: string,
+    replySummary?: string
   ) => {
-    setSaving(true);
+    setSavingStep(step.officeType);
     try {
-      await fetch(`/api/planner/activities/${activity.id}/emails`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailId, ...updates }),
-      });
+      const existing = findTrackedEmail(step);
+      if (existing) {
+        await fetch(`/api/planner/activities/${activity.id}/emails`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            emailId: existing.id,
+            status,
+            ...(replySummary !== undefined ? { replySummary } : {}),
+          }),
+        });
+      } else {
+        const matchedContact = adminContacts.find(
+          (c) =>
+            (c.email || "").toLowerCase() === step.email.toLowerCase() ||
+            c.officeType === step.officeType
+        );
+        await fetch(`/api/planner/activities/${activity.id}/emails`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            adminContactId: matchedContact?.id || null,
+            officeType: step.officeType,
+            recipientEmail: step.email,
+            ccEmails: step.ccEmails,
+            subject: `${step.stepNumber} ${activity.title}`,
+            status,
+            replySummary: replySummary || "",
+          }),
+        });
+      }
       onRefresh();
     } finally {
-      setSaving(false);
+      setSavingStep(null);
     }
-  };
-
-  const handleCopy = (em: any) => {
-    const text = `Subject: ${em.renderedSubject}\nTo: ${
-      em.recipientEmail || em.adminContact?.email || ""
-    }\n\n${em.renderedBody}`;
-    navigator.clipboard.writeText(text);
-    setCopiedId(em.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const buildMailtoHref = (em: any) => {
-    const to = em.recipientEmail || em.adminContact?.email || "";
-    const cc = (em.ccEmails || []).join(",");
-    const subject = encodeURIComponent(em.renderedSubject || "");
-    const body = encodeURIComponent(em.renderedBody || "");
-    return `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${subject}&body=${body}`;
   };
 
   return (
     <div className="space-y-6">
-      {/* Top Generator Bar */}
-      {canEdit && (
-        <div className="p-4 bg-surface rounded-2xl border border-line shadow-sm flex flex-col md:flex-row items-stretch md:items-end justify-between gap-3">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label={
-                isFr
-                  ? "Générer une Demande Officielle ESPRIT"
-                  : "Generate Official ESPRIT Admin Request"
-              }
-              value={creatingTemplateId}
-              onChange={(e) => setCreatingTemplateId(e.target.value)}
-            >
-              <option value="">
-                {isFr
-                  ? "— Choisir un modèle administratif —"
-                  : "— Select an admin email template —"}
-              </option>
-              {emailTemplates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  [{t.language.toUpperCase()}] {t.name} ({t.category})
-                </option>
-              ))}
-            </Select>
-
-            <Select
-              label={isFr ? "Langue de Rédaction" : "Draft Language"}
-              value={creatingLang}
-              onChange={(e) => setCreatingLang(e.target.value as "fr" | "en")}
-            >
-              <option value="fr">Français (Officiel ESPRIT)</option>
-              <option value="en">English</option>
-            </Select>
+      {/* Top Official ESPRIT Rules Banner (No Auto-Generated Templates) */}
+      <div className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-display font-bold text-ink flex items-center gap-2">
+              <Mail className="w-4 h-4 text-ast-primary" />
+              {isFr
+                ? "Processus Administratif Officiel ESPRIT (Étapes 1/ à 6/ — Sans modèles pré-écrits)"
+                : "Official ESPRIT Administrative Email Process (Steps 1/ to 6/ — No pre-written templates)"}
+            </h3>
+            <p className="text-xs text-ink-soft mt-0.5">
+              {isFr
+                ? "Rédigez vos propres e-mails directement dans votre messagerie pour éviter toute erreur de modèle, puis cochez l'avancement de chaque étape ci-dessous."
+                : "Write your own emails directly in your mail client to avoid template mistakes, then track the status of each step below."}
+            </p>
           </div>
 
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={!creatingTemplateId || saving}
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={handleGenerateFromTemplate}
+          <button
+            type="button"
+            onClick={() =>
+              copyText(
+                "CC_ALL",
+                "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn"
+              )
+            }
+            className="px-3.5 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/70 border border-teal-200 dark:border-teal-800 text-xs font-mono font-bold text-ast-primary dark:text-ast-light flex items-center gap-1.5 hover:bg-teal-100 transition-colors self-start"
           >
-            {isFr ? "Générer le Brouillon" : "Generate Draft"}
-          </Button>
+            {copiedKey === "CC_ALL" ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                {isFr ? "Adresses CC copiées !" : "CC addresses copied!"}
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                {isFr
+                  ? "Copier CC : zied.saidi@esprit.tn, faycal.lbabda@esprit.tn"
+                  : "Copy CC: zied.saidi@esprit.tn, faycal.lbabda@esprit.tn"}
+              </>
+            )}
+          </button>
         </div>
-      )}
 
-      {/* Split View: Emails List (Left 1/3) + Active Email Editor & Status Workflow (Right 2/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <div className="space-y-2.5">
-          <h4 className="text-xs font-display font-bold uppercase tracking-wider text-ink-soft">
+        <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+          <p className="font-bold">
             {isFr
-              ? `Demandes Administratives (${emails.length})`
-              : `Administrative Requests (${emails.length})`}
-          </h4>
+              ? "NB Obligatoires (M. Zied Saidi — Responsable de la vie étudiante) :"
+              : "Mandatory Notes (Mr. Zied Saidi — Head of Student Life):"}
+          </p>
+          <p>
+            •{" "}
+            {isFr
+              ? "Les réservations doivent se faire au moins 10 jours avant l’évènement (J-10)."
+              : "Reservations must be made at least 10 days before the event (D-10)."}
+          </p>
+          <p>
+            •{" "}
+            {isFr
+              ? "Mettre le responsable de la vie étudiante (zied.saidi@esprit.tn) et M. Faycel Lbabda (faycal.lbabda@esprit.tn) en copie (CC) dans tous les e-mails est souhaité."
+              : "Always CC the Head of Student Life (zied.saidi@esprit.tn) and Mr. Faycel Lbabda (faycal.lbabda@esprit.tn) in all emails."}
+          </p>
+        </div>
+      </div>
 
-          {emails.length === 0 ? (
-            <div className="p-6 bg-surface rounded-2xl border border-dashed border-line text-center text-xs text-ink-soft">
-              {isFr
-                ? "Aucun email administratif généré. Sélectionnez un modèle ci-dessus."
-                : "No admin emails generated yet. Select a template above."}
-            </div>
-          ) : (
-            emails.map((em) => {
-              const isSelected = activeEmail?.id === em.id;
-              return (
-                <button
-                  key={em.id}
-                  onClick={() => setSelectedEmailId(em.id)}
-                  className={`w-full text-left p-3.5 rounded-2xl border transition-all space-y-1.5 ${
-                    isSelected
-                      ? "bg-teal-50/70 dark:bg-teal-950/60 border-ast-primary shadow-sm"
-                      : "bg-surface border-line hover:bg-surface-alt"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface-alt border border-line">
-                      {em.status}
+      {/* 6 Official ESPRIT Contact Cards */}
+      <div className="grid grid-cols-1 gap-4">
+        {OFFICIAL_ESPRIT_STEPS.map((step) => {
+          const tracked = findTrackedEmail(step);
+          const status = tracked?.status || "DRAFT";
+          const isBusy = savingStep === step.officeType;
+          const mailtoHref = `mailto:${step.email}?cc=${encodeURIComponent(
+            step.ccEmails.replace(/\s+/g, "")
+          )}`;
+
+          return (
+            <div
+              key={step.officeType}
+              className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                status === "APPROVED"
+                  ? "bg-emerald-50/40 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800"
+                  : status === "SENT" || status === "REPLIED"
+                  ? "bg-teal-50/30 dark:bg-teal-950/20 border-teal-300 dark:border-teal-800"
+                  : "bg-surface border-line"
+              }`}
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-lg bg-ast-primary text-white text-xs font-mono font-bold">
+                      {step.stepNumber}
                     </span>
-                    <span className="text-[10px] font-mono uppercase text-ast-primary font-bold">
-                      {em.language}
+                    <span className="px-2.5 py-0.5 rounded-lg bg-surface-alt border border-line text-[11px] font-mono font-bold text-ink-soft">
+                      {step.deadlineBadge}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold ${
+                        status === "APPROVED"
+                          ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
+                          : status === "SENT" || status === "REPLIED"
+                          ? "bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200"
+                          : "bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200"
+                      }`}
+                    >
+                      {status === "APPROVED"
+                        ? isFr
+                          ? "VALIDÉ ✓"
+                          : "APPROVED ✓"
+                        : status === "SENT"
+                        ? isFr
+                          ? "ENVOYÉ"
+                          : "SENT"
+                        : isFr
+                        ? "À ENVOYER / SI REQUIS"
+                        : "TO SEND / IF NEEDED"}
                     </span>
                   </div>
-                  <p className="text-xs font-bold text-ink line-clamp-1">
-                    {em.renderedSubject}
-                  </p>
-                  <p className="text-[11px] font-mono text-ink-soft truncate">
-                    {em.recipientEmail ||
-                      em.adminContact?.email ||
-                      (isFr ? "Destinataire à définir" : "Recipient TBD")}
-                  </p>
-                </button>
-              );
-            })
-          )}
-        </div>
 
-        {/* Active Email Editor */}
-        <div className="lg:col-span-2">
-          {!activeEmail ? (
-            <div className="p-12 bg-surface rounded-2xl border border-line text-center text-xs text-ink-soft">
-              {isFr
-                ? "Sélectionnez un email à gauche pour le modifier, l'envoyer ou enregistrer la réponse."
-                : "Select an email on the left to edit, send, or record the administrative reply."}
-            </div>
-          ) : (
-            <div
-              key={activeEmail.id}
-              className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-4"
-            >
-              {/* Status & Quick Actions Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-ink-soft">
-                    {isFr ? "Statut :" : "Status:"}
-                  </span>
-                  <select
-                    disabled={!canEdit}
-                    value={activeEmail.status}
-                    onChange={(e) =>
-                      handleUpdateEmail(activeEmail.id, {
-                        status: e.target.value,
-                      })
-                    }
-                    className="px-3 py-1.5 rounded-xl border border-line bg-surface-alt text-xs font-mono font-bold text-ink"
-                  >
-                    <option value="DRAFT">DRAFT (Brouillon)</option>
-                    <option value="READY">READY (Prêt à envoyer)</option>
-                    <option value="SENT">SENT (Envoyé)</option>
-                    <option value="REPLIED">REPLIED (Réponse reçue)</option>
-                    <option value="APPROVED">APPROVED (Autorisé ✓)</option>
-                    <option value="REJECTED">REJECTED (Refusé ✕)</option>
-                  </select>
+                  <h4 className="text-sm font-display font-bold text-ink">
+                    {isFr ? step.titleFr : step.titleEn}
+                  </h4>
+
+                  <p className="text-xs font-mono text-ast-primary dark:text-ast-light font-semibold">
+                    {step.personName} — {step.email}
+                    {step.phone ? ` · Tél : ${step.phone}` : ""}
+                  </p>
                 </div>
 
+                {/* Copy & Mailto Actions */}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => handleCopy(activeEmail)}
-                    className="px-3 py-1.5 rounded-xl border border-line bg-surface-alt hover:bg-surface text-xs font-semibold text-ink flex items-center gap-1.5 transition-colors"
+                    type="button"
+                    onClick={() => copyText(`EMAIL_${step.officeType}`, step.email)}
+                    className="px-3 py-1.5 rounded-xl border border-line bg-surface-alt hover:bg-surface text-xs font-mono font-bold text-ink flex items-center gap-1.5 transition-colors"
                   >
-                    {copiedId === activeEmail.id ? (
+                    {copiedKey === `EMAIL_${step.officeType}` ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        {isFr ? "Copié !" : "Copied!"}
+                        {isFr ? "Email copié !" : "Email copied!"}
                       </>
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        {isFr ? "Copier Texte" : "Copy Text"}
+                        {step.email}
                       </>
                     )}
                   </button>
 
                   <a
-                    href={buildMailtoHref(activeEmail)}
+                    href={mailtoHref}
                     onClick={() => {
-                      if (
-                        canEdit &&
-                        (activeEmail.status === "DRAFT" ||
-                          activeEmail.status === "READY")
-                      ) {
-                        handleUpdateEmail(activeEmail.id, { status: "SENT" });
+                      if (canEdit && status === "DRAFT") {
+                        handleSetStepStatus(step, "SENT");
                       }
                     }}
                     className="px-3.5 py-1.5 rounded-xl bg-ast-primary text-white hover:bg-teal-800 text-xs font-bold flex items-center gap-1.5 transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    {isFr ? "Ouvrir Messagerie (mailto:)" : "Open Mail Client"}
+                    {isFr
+                      ? "Ouvrir ma messagerie (mailto:)"
+                      : "Open Mail Client (mailto:)"}
                   </a>
                 </div>
               </div>
 
-              {/* Recipient & Subject */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Select
-                  label={isFr ? "Bureau Destinataire ESPRIT" : "ESPRIT Admin Office"}
-                  disabled={!canEdit}
-                  value={activeEmail.adminContactId || ""}
-                  onChange={(e) => {
-                    const c = adminContacts.find(
-                      (ct) => ct.id === e.target.value
-                    );
-                    handleUpdateEmail(activeEmail.id, {
-                      adminContactId: e.target.value || null,
-                      recipientEmail: c?.email || activeEmail.recipientEmail,
-                    });
-                  }}
-                >
-                  <option value="">
-                    {isFr ? "— Destinataire personnalisé —" : "— Custom Recipient —"}
-                  </option>
-                  {adminContacts.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.officeName} ({c.email})
-                    </option>
-                  ))}
-                </Select>
+              <p className="text-xs text-ink-soft leading-relaxed">
+                {isFr ? step.instructionFr : step.instructionEn}
+              </p>
 
-                <Input
-                  label={isFr ? "Email Destinataire" : "Recipient Email"}
-                  disabled={!canEdit}
-                  defaultValue={
-                    activeEmail.recipientEmail ||
-                    activeEmail.adminContact?.email ||
-                    ""
-                  }
-                  onBlur={(e) =>
-                    handleUpdateEmail(activeEmail.id, {
-                      recipientEmail: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <Input
-                label={isFr ? "Objet de l'Email" : "Email Subject"}
-                disabled={!canEdit}
-                defaultValue={activeEmail.renderedSubject}
-                onBlur={(e) =>
-                  handleUpdateEmail(activeEmail.id, {
-                    renderedSubject: e.target.value,
-                  })
-                }
-              />
-
-              <div>
-                <label className="block text-xs font-semibold text-ink-soft mb-1">
-                  {isFr ? "Corps du Message Officiel" : "Official Email Body"}
-                </label>
-                <textarea
-                  rows={11}
-                  disabled={!canEdit}
-                  defaultValue={activeEmail.renderedBody}
-                  onBlur={(e) =>
-                    handleUpdateEmail(activeEmail.id, {
-                      renderedBody: e.target.value,
-                    })
-                  }
-                  className="w-full p-3.5 rounded-xl border border-line bg-surface-alt font-mono text-xs text-ink leading-relaxed focus:outline-none focus:ring-2 focus:ring-ast-primary"
-                />
-              </div>
-
-              {/* Admin Reply & Approval Notes */}
-              <div className="p-4 rounded-xl bg-surface-alt border border-line space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-display font-bold uppercase text-ink">
-                    {isFr
-                      ? "Suivi de la Réponse Administrative ESPRIT"
-                      : "ESPRIT Administrative Reply & Approval"}
-                  </span>
-                  {activeEmail.sentAt && (
-                    <span className="text-[11px] font-mono text-ink-soft">
-                      {isFr ? "Envoyé le :" : "Sent:"}{" "}
-                      {formatDate(activeEmail.sentAt)}
-                    </span>
-                  )}
-                </div>
-
-                <Textarea
-                  label={
-                    isFr
-                      ? "Résumé de la réponse / Conditions de l'administration"
-                      : "Reply Summary / Administrative Conditions"
-                  }
-                  placeholder={
-                    isFr
-                      ? "ex: Accord confirmé par M. le Responsable des Salles pour l'Amphi B de 14h à 17h."
-                      : "e.g. Approved by Room Office for Amphitheater B from 14:00 to 17:00."
-                  }
-                  defaultValue={activeEmail.replySummary || ""}
-                  onBlur={(e) =>
-                    handleUpdateEmail(activeEmail.id, {
-                      replySummary: e.target.value,
-                    })
-                  }
-                />
-
+              {/* Status Tracking Buttons & Optional Admin Reply Note */}
+              <div className="pt-3 border-t border-line flex flex-col md:flex-row md:items-center justify-between gap-3">
                 {canEdit && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      leftIcon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                      onClick={() =>
-                        handleUpdateEmail(activeEmail.id, {
-                          status: "APPROVED",
-                        })
-                      }
+                    <span className="text-[11px] font-mono text-ink-soft">
+                      {isFr ? "Marquer l'état :" : "Mark status:"}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleSetStepStatus(step, "DRAFT")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                        status === "DRAFT"
+                          ? "bg-surface-alt border-ink text-ink"
+                          : "bg-surface border-line text-ink-soft hover:text-ink"
+                      }`}
                     >
-                      {isFr
-                        ? "Marquer Accord Reçu (APPROVED)"
-                        : "Mark Approved by Admin"}
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        handleUpdateEmail(activeEmail.id, {
-                          status: "SENT",
-                        })
-                      }
+                      {isFr ? "À envoyer" : "To Send"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleSetStepStatus(step, "SENT")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                        status === "SENT"
+                          ? "bg-teal-600 border-teal-600 text-white"
+                          : "bg-surface border-line text-ink-soft hover:text-ink"
+                      }`}
                     >
-                      {isFr ? "Marquer Envoyé" : "Mark Sent"}
-                    </Button>
+                      {isFr ? "Email Envoyé" : "Email Sent"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleSetStepStatus(step, "APPROVED")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border transition-colors ${
+                        status === "APPROVED"
+                          ? "bg-emerald-600 border-emerald-600 text-white"
+                          : "bg-surface border-line text-ink-soft hover:text-ink"
+                      }`}
+                    >
+                      {isFr ? "Validé / Accord Reçu ✓" : "Approved ✓"}
+                    </button>
                   </div>
                 )}
+
+                <div className="flex-1 max-w-md">
+                  <input
+                    type="text"
+                    disabled={!canEdit}
+                    placeholder={
+                      isFr
+                        ? "Note / Réponse reçue (ex: Salle B204 confirmée, BC signé...)"
+                        : "Note / Admin reply (e.g. Room B204 confirmed, PO signed...)"
+                    }
+                    defaultValue={tracked?.replySummary || ""}
+                    onBlur={(e) => {
+                      if (e.target.value !== (tracked?.replySummary || "")) {
+                        handleSetStepStatus(step, status, e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 rounded-xl border border-line bg-surface-alt text-xs text-ink focus:outline-none focus:ring-2 focus:ring-ast-primary"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1390,8 +1478,96 @@ export function ReportAndClosureTab({
     }
   };
 
+  const [copiedPostKey, setCopiedPostKey] = useState<string | null>(null);
+
+  const copyPostEmail = (key: string, email: string) => {
+    navigator.clipboard.writeText(email);
+    setCopiedPostKey(key);
+    setTimeout(() => setCopiedPostKey(null), 2000);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Official ESPRIT Post-Event Obligations Banner (<= 3 Days Max) */}
+      <div className="p-5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 space-y-3 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 className="font-display font-bold text-amber-950 dark:text-amber-200 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            {isFr
+              ? "Obligations Post-Évènement ESPRIT (Délai ≤ 3 Jours Maximum — Règle d'Or 7)"
+              : "Official ESPRIT Post-Event Obligations (≤ 3 Days Maximum — Golden Rule 7)"}
+          </h4>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => copyPostEmail("ZIED", "zied.saidi@esprit.tn")}
+              className="px-2.5 py-1 rounded-lg bg-surface border border-line text-[11px] font-mono font-bold text-ink flex items-center gap-1 hover:border-ast-primary"
+            >
+              {copiedPostKey === "ZIED" ? (
+                <Check className="w-3 h-3 text-emerald-600" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+              zied.saidi@esprit.tn
+            </button>
+            <button
+              type="button"
+              onClick={() => copyPostEmail("SOUHAIL", "souhail.mezzi@esprit.tn")}
+              className="px-2.5 py-1 rounded-lg bg-surface border border-line text-[11px] font-mono font-bold text-ink flex items-center gap-1 hover:border-ast-primary"
+            >
+              {copiedPostKey === "SOUHAIL" ? (
+                <Check className="w-3 h-3 text-emerald-600" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+              souhail.mezzi@esprit.tn
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-surface border border-line space-y-1">
+            <p className="font-bold text-ink">
+              {isFr
+                ? "1. Rapport d'Action (≤ 3 jours post-évent)"
+                : "1. Action Report (≤ 3 days post-event)"}
+            </p>
+            <p className="text-[11px] text-ink-soft leading-relaxed">
+              {isFr
+                ? "Dans un délai ne dépassant pas les 3 jours post-évènement, faire parvenir au responsable de la vie étudiante (M. Zied Saidi — zied.saidi@esprit.tn) un rapport d'action."
+                : "Within no more than 3 days after the event, submit an action report to the Head of Student Life (Mr. Zied Saidi — zied.saidi@esprit.tn)."}
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-surface border border-line space-y-1">
+            <p className="font-bold text-ink">
+              {isFr
+                ? "2. Facture Originale Cachetée + Devis Initial"
+                : "2. Stamped Original Invoice + Initial Quote"}
+            </p>
+            <p className="text-[11px] text-ink-soft leading-relaxed">
+              {isFr
+                ? "Une fois l'action terminée, remettre la facture originale (avec cachet, pas de copie !) accompagnée du devis initial (MF Esprit : 830 823 C PM 000) à M. Souhail Mezzi (souhail.mezzi@esprit.tn)."
+                : "Once completed, hand over the stamped original invoice (no copies!) with the initial quote (Esprit Tax ID: 830 823 C PM 000) to Mr. Souhail Mezzi (souhail.mezzi@esprit.tn)."}
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-surface border border-rose-200 dark:border-rose-800 space-y-1">
+            <p className="font-bold text-rose-700 dark:text-rose-300">
+              {isFr
+                ? "3. Collecte d'Argent (OBLIGATOIRE ≤ 3 jours)"
+                : "3. Fundraising / Money Collection (MANDATORY ≤ 3 days)"}
+            </p>
+            <p className="text-[11px] text-ink-soft leading-relaxed">
+              {isFr
+                ? "Dès que vous effectuez une opération de collecte d'argent, il est OBLIGATOIRE de faire parvenir à M. Zied Saidi (zied.saidi@esprit.tn) dans un délai ≤ 3 jours après la fin de la collecte un rapport détaillé avec les montants et leurs affectations."
+                : "Whenever a money collection/fundraising operation takes place, it is MANDATORY to send Mr. Zied Saidi (zied.saidi@esprit.tn) within ≤ 3 days after collection ends a detailed report with amounts and allocations."}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Live Attendance Sync Banner */}
       <div className="p-4 bg-surface rounded-2xl border border-line shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

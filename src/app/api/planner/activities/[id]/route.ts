@@ -666,12 +666,6 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!isExecutiveRole(user.role)) {
-      return NextResponse.json(
-        { error: "Only Executive Board can delete activities" },
-        { status: 403 }
-      );
-    }
 
     const { id } = await context.params;
     const existing = await getActivityById(id);
@@ -679,12 +673,37 @@ export async function DELETE(
       return NextResponse.json({ error: "Activity not found" }, { status: 404 });
     }
 
-    if (existing.eventId) {
-      await handleCancelledActivityEvent(id);
+    const canDelete =
+      isExecutiveRole(user.role) ||
+      existing.ownerId === user.id ||
+      existing.createdById === user.id ||
+      canEditActivity(user, existing);
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "Forbidden: You do not have permission to delete this activity" },
+        { status: 403 }
+      );
     }
 
-    const supabase = await createClient();
-    const { error } = await (supabase as any)
+    const { getAdminClient } = await import("@/lib/supabase/admin");
+    const admin = getAdminClient() as any;
+
+    if (existing.eventId) {
+      await admin
+        .from("activities")
+        .update({ event_id: null })
+        .eq("id", id);
+      await admin
+        .from("events")
+        .delete()
+        .eq("id", existing.eventId);
+    }
+
+    // Also delete any tasks linked to this activity
+    await admin.from("tasks").delete().eq("activity_id", id);
+
+    const { error } = await admin
       .from("activities")
       .delete()
       .eq("id", id);

@@ -29,6 +29,8 @@ import {
   Layers,
   ExternalLink,
   RefreshCw,
+  Trash2,
+  Award,
 } from "lucide-react";
 
 interface PlannerOverviewClientProps {
@@ -670,13 +672,47 @@ export function PlannerOverviewClient({ currentUser }: PlannerOverviewClientProp
                         </div>
                       </div>
 
-                      <Link
-                        href={`/planner/activities/${act.id}`}
-                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold font-body bg-ast-primary text-white hover:bg-teal-800 transition-colors shrink-0"
-                      >
-                        {isFr ? "Espace de Travail" : "Open Workspace"}
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/planner/activities/${act.id}`}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold font-body bg-ast-primary text-white hover:bg-teal-800 transition-colors"
+                        >
+                          {isFr ? "Ouvrir le Projet" : "Open Project"}
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const ok = window.confirm(
+                              isFr
+                                ? `Voulez-vous vraiment supprimer l'activité "${act.title}" ?`
+                                : `Are you sure you want to delete activity "${act.title}"?`
+                            );
+                            if (!ok) return;
+                            const res = await fetch(
+                              `/api/planner/activities/${act.id}`,
+                              { method: "DELETE" }
+                            );
+                            if (res.ok) {
+                              fetchOverview();
+                            } else {
+                              const err = await res.json().catch(() => ({}));
+                              alert(
+                                err.error ||
+                                  (isFr
+                                    ? "Impossible de supprimer cette activité."
+                                    : "Failed to delete activity.")
+                              );
+                            }
+                          }}
+                          title={
+                            isFr ? "Supprimer cette activité" : "Delete activity"
+                          }
+                          className="p-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/50 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/70 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Readiness Progress & Operational Sub-Counters */}
@@ -829,6 +865,59 @@ export function PlannerOverviewClient({ currentUser }: PlannerOverviewClientProp
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Official ESPRIT Administrative Process & 7 Golden Rules Card */}
+          <div className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-3">
+            <h3 className="text-xs font-display font-bold uppercase tracking-wider text-ast-primary flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-500" />
+              {isFr
+                ? "Processus Officiel ESPRIT (M. Zied Saidi)"
+                : "Official ESPRIT Procedure (M. Zied Saidi)"}
+            </h3>
+            <ol className="space-y-1.5 text-[11px] text-ink-soft font-body list-decimal list-inside">
+              <li>
+                <strong className="text-ink">Vie Estudiantine (J-7) :</strong>{" "}
+                <span className="font-mono">zied.saidi@esprit.tn</span> (Tél:
+                92234330)
+              </li>
+              <li>
+                <strong className="text-ink">Scolarité / Salles (J-10) :</strong>{" "}
+                <span className="font-mono">mohamedali.bouakline@Esprit.tn</span>
+              </li>
+              <li>
+                <strong className="text-ink">Matériel & Sono (J-10) :</strong>{" "}
+                <span className="font-mono">faycal.lbabda@esprit.tn</span>
+              </li>
+              <li>
+                <strong className="text-ink">Logistique (J-10) :</strong>{" "}
+                <span className="font-mono">hazem.hajji@esprit.tn</span>
+              </li>
+              <li>
+                <strong className="text-ink">Promotion :</strong>{" "}
+                <span className="font-mono">Nadia.ajailia@Esprit.tn</span>
+              </li>
+              <li>
+                <strong className="text-ink">Achats & BC :</strong>{" "}
+                <span className="font-mono">souhail.mezzi@esprit.tn</span>
+              </li>
+            </ol>
+            <div className="p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
+              <p>
+                • <strong>CC souhaité dans tous les mails :</strong>{" "}
+                <span className="font-mono">
+                  zied.saidi@esprit.tn, faycal.lbabda@esprit.tn
+                </span>
+              </p>
+              <p>
+                • <strong>Devis au nom d’Esprit :</strong> MF{" "}
+                <span className="font-mono font-bold">830 823 C PM 000</span>
+              </p>
+              <p>
+                • <strong>Post-évent (≤ 3j) :</strong> Rapport d’action + rapport
+                de collecte + facture originale cachetée.
+              </p>
             </div>
           </div>
         </div>

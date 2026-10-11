@@ -227,13 +227,13 @@ export async function POST(req: Request) {
     const slug = `${slugBase}-${Date.now().toString(36)}`;
 
     const normalizedObjectives = Array.isArray(objectives)
-      ? objectives
+      ? objectives.filter((s: any) => typeof s === "string" && s.trim())
       : typeof objectives === "string" && objectives.trim()
       ? objectives
           .split("\n")
           .map((s: string) => s.trim())
           .filter(Boolean)
-      : ["Exécution réussie de l'activité"];
+      : [];
 
     const activity = await createActivity({
       title: title.trim(),
@@ -242,17 +242,17 @@ export async function POST(req: Request) {
       departmentId: resolvedDeptId,
       ownerId: ownerId || user.id,
       status: status === "SUBMITTED" ? "SUBMITTED" : "IDEA",
-      idea: idea || description || `${title.trim()} — Activité Asteria Club Esprit`,
+      idea: (idea || description || "").trim() || null,
       objectives: normalizedObjectives,
-      audience: audience || audienceScope || "CLUB",
-      expectedAttendance: Number(expectedAttendance || 30),
+      audience: (audience || audienceScope || "").trim() || null,
+      expectedAttendance: Number(expectedAttendance || 0),
       format: format || "IN_PERSON",
-      location: location || "Campus ESPRIT",
+      location: (location || "").trim() || null,
       startsAt: new Date(finalStartsAt).toISOString(),
       endsAt: new Date(finalEndsAt).toISOString(),
       budgetEstimate: Number(budgetEstimate ?? budgetRequested ?? 0),
-      facilitators: facilitators || null,
-      templateId: templateId || null,
+      facilitators: (facilitators || "").trim() || null,
+      templateId: null,
       userId: user.id,
     });
 
@@ -275,158 +275,12 @@ export async function POST(req: Request) {
       }
     }
 
-    let instantiationSummary = {
-      tasksCreated: 0,
-      requirementsCreated: 0,
-      emailsCreated: 0,
-    };
-
-    const hasCustomWizardItems =
-      Array.isArray(customTasks) ||
-      Array.isArray(customRequirements) ||
-      Array.isArray(customEmails);
-
-    if (hasCustomWizardItems) {
-      if (Array.isArray(customTasks)) {
-        for (let idx = 0; idx < customTasks.length; idx++) {
-          const t = customTasks[idx];
-          if (t.enabled === false) continue;
-          await createActivityTask({
-            activityId: activity.id,
-            title: t.title,
-            description: t.description || "",
-            departmentId: t.departmentId || resolvedDeptId,
-            assigneeId: t.assigneeId || activity.ownerId,
-            createdById: user.id,
-            status: "TODO",
-            priority: t.priority || "MEDIUM",
-            dueDate: t.dueDate ? new Date(t.dueDate).toISOString() : null,
-            offsetDays:
-              typeof t.offsetDays === "number"
-                ? Math.abs(t.offsetDays)
-                : typeof t.offset_days === "number"
-                ? t.offset_days
-                : 7,
-            section: t.phase || t.section || "PREPARATION",
-            sortOrder: idx + 1,
-            isCompressed: Boolean(t.wasClamped || t.isCompressed),
-          });
-          instantiationSummary.tasksCreated++;
-        }
-      }
-
-      if (Array.isArray(customRequirements)) {
-        for (const r of customRequirements) {
-          if (r.enabled === false) continue;
-          await createActivityRequirement({
-            activityId: activity.id,
-            category: r.category || "EQUIPMENT",
-            title: r.title || r.name || "Besoin logistique",
-            quantity: Number(r.quantity || 1),
-            resourceId: r.resourceId || null,
-            status: "NEEDED",
-            ownerId: r.assignedToId || activity.ownerId,
-            neededBy: activity.startsAt,
-            estCost: Number(r.estimatedCost ?? r.estCost ?? 0),
-            notes: r.notes || "",
-          });
-          instantiationSummary.requirementsCreated++;
-        }
-      }
-
-      if (Array.isArray(customEmails)) {
-        const [allEmailTemplates, allContacts] = await Promise.all([
-          getEmailTemplates(),
-          getAdminContacts(),
-        ]);
-        const lang =
-          String(defaultEmailLanguage || "FR").toUpperCase() === "EN"
-            ? "EN"
-            : "FR";
-        const startObj = new Date(activity.startsAt);
-        const endObj = new Date(activity.endsAt);
-
-        for (const em of customEmails) {
-          if (em.enabled === false) continue;
-          const office = em.office || em.category || "STUDENT_LIFE";
-          const matchingTpl = allEmailTemplates.find(
-            (et) =>
-              (em.templateId && et.id === em.templateId) ||
-              (et.office === office && et.language === lang)
-          );
-          const matchingContact = allContacts.find((c) => c.office === office);
-
-          const contextVars = {
-            activity_title: activity.title,
-            activity_type: activity.type?.name || "Activité",
-            date: startObj.toLocaleDateString(lang === "FR" ? "fr-FR" : "en-US"),
-            start_time: startObj.toLocaleTimeString(
-              lang === "FR" ? "fr-FR" : "en-US",
-              { hour: "2-digit", minute: "2-digit" }
-            ),
-            end_time: endObj.toLocaleTimeString(
-              lang === "FR" ? "fr-FR" : "en-US",
-              { hour: "2-digit", minute: "2-digit" }
-            ),
-            location: activity.location || "Campus ESPRIT",
-            expected_attendance: activity.expectedAttendance || 30,
-            host_name: activity.owner?.name || user.name,
-            lead_organizer: activity.owner?.name || user.name,
-            department: activity.department?.name || "Asteria Club Esprit",
-            club_name: "Asteria Club Esprit",
-            needs_list:
-              (customRequirements || [])
-                .map((r: any) => `${r.name || r.title} (x${r.quantity || 1})`)
-                .join(", ") || "Standard",
-            deadline: startObj.toLocaleDateString(
-              lang === "FR" ? "fr-FR" : "en-US"
-            ),
-          };
-
-          let subject = `[Asteria Club] ${activity.title}`;
-          let bodyText = activity.idea || activity.title;
-
-          if (matchingTpl) {
-            try {
-              subject = renderEmailTemplate(matchingTpl.subject, contextVars);
-              bodyText = renderEmailTemplate(matchingTpl.body, contextVars);
-            } catch {
-              subject = matchingTpl.subject;
-              bodyText = matchingTpl.body;
-            }
-          }
-
-          await createActivityEmail({
-            activityId: activity.id,
-            templateId: matchingTpl?.id || null,
-            contactId: matchingContact?.id || null,
-            office,
-            recipientEmail: matchingContact?.email || null,
-            ccEmails: "contact@asteria.tn",
-            subject,
-            body: bodyText,
-            status: "DRAFT",
-          });
-          instantiationSummary.emailsCreated++;
-        }
-      }
-    } else if (templateId) {
-      instantiationSummary = await instantiateActivityFromTemplate({
-        activityId: activity.id,
-        templateId,
-        activityStartDate: activity.startsAt,
-        ownerId: activity.ownerId,
-        departmentId: resolvedDeptId,
-        createdById: user.id,
-      });
-    }
-
     await recordPlannerAuditLog({
       userId: user.id,
       action: "ACTIVITY_CREATED",
       entityType: "ACTIVITY",
       entityId: activity.id,
-      details: `Created activity "${activity.title}" (${activity.status}) with ${instantiationSummary.tasksCreated} tasks, ${instantiationSummary.requirementsCreated} requirements, ${instantiationSummary.emailsCreated} emails.`,
+      details: `Created activity "${activity.title}" (${activity.status}).`,
     });
 
     if (activity.ownerId && activity.ownerId !== user.id) {
@@ -444,7 +298,6 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         activity: fullActivity || activity,
-        instantiation: instantiationSummary,
       },
       { status: 201 }
     );

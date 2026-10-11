@@ -102,116 +102,92 @@ export async function POST(
 
     const body = await req.json();
     const {
-      templateId,
       adminContactId,
       contactId,
       office,
       recipientEmail,
       ccEmails,
-      language,
       renderedSubject,
       subject,
       renderedBody,
       body: rawBody,
+      status,
+      replySummary,
+      replyNotes,
     } = body;
 
-    const lang = String(language || "FR").toUpperCase() === "EN" ? "EN" : "FR";
-    const [emailTemplates, adminContacts, requirements] = await Promise.all([
-      getEmailTemplates(),
+    const [existingEmails, adminContacts] = await Promise.all([
+      getActivityEmails(id),
       getAdminContacts(),
-      getActivityRequirements(id),
     ]);
 
-    const selectedTemplate = templateId
-      ? emailTemplates.find((t) => t.id === templateId)
-      : null;
-
-    const targetOffice =
-      office || selectedTemplate?.office || "STUDENT_LIFE";
-
+    const targetOffice = office || "STUDENT_LIFE";
     const selectedContact =
       adminContactId || contactId
         ? adminContacts.find((c) => c.id === (adminContactId || contactId))
         : adminContacts.find((c) => c.office === targetOffice);
 
-    let finalSubject = renderedSubject || subject || "";
-    let finalBody = renderedBody || rawBody || "";
-
-    if (selectedTemplate && (!finalSubject || !finalBody)) {
-      const startObj = new Date(activity.startsAt);
-      const endObj = new Date(activity.endsAt);
-      const equipList =
-        requirements
-          .map((r) => `${r.title} (x${r.quantity})`)
-          .join(", ") || "Standard";
-
-      const contextVars = {
-        activity_title: activity.title,
-        activity_type: activity.type?.name || "Activité",
-        date: startObj.toLocaleDateString(lang === "FR" ? "fr-FR" : "en-US"),
-        start_time: startObj.toLocaleTimeString(
-          lang === "FR" ? "fr-FR" : "en-US",
-          { hour: "2-digit", minute: "2-digit" }
-        ),
-        end_time: endObj.toLocaleTimeString(
-          lang === "FR" ? "fr-FR" : "en-US",
-          { hour: "2-digit", minute: "2-digit" }
-        ),
-        location: activity.location || "Campus ESPRIT",
-        expected_attendance: activity.expectedAttendance || 30,
-        host_name: activity.owner?.name || user.name,
-        lead_organizer: activity.owner?.name || user.name,
-        department: activity.department?.name || "Asteria Club Esprit",
-        club_name: "Asteria Club Esprit",
-        needs_list: equipList,
-        deadline: startObj.toLocaleDateString(
-          lang === "FR" ? "fr-FR" : "en-US"
-        ),
+    // If an email tracker for this office already exists, update its status/notes instead of duplicating
+    const existingForOffice = existingEmails.find(
+      (e) => e.office === targetOffice
+    );
+    if (existingForOffice && !rawBody && !renderedBody) {
+      const nextStatus = status || existingForOffice.status;
+      const updates: Record<string, any> = {
+        status: nextStatus,
+        updated_at: new Date().toISOString(),
       };
-
-      try {
-        if (!finalSubject) {
-          finalSubject = renderEmailTemplate(
-            selectedTemplate.subject,
-            contextVars
-          );
-        }
-        if (!finalBody) {
-          finalBody = renderEmailTemplate(selectedTemplate.body, contextVars);
-        }
-      } catch {
-        if (!finalSubject) finalSubject = selectedTemplate.subject;
-        if (!finalBody) finalBody = selectedTemplate.body;
+      if (nextStatus === "SENT" && !existingForOffice.sentAt) {
+        updates.sent_at = new Date().toISOString();
       }
+      if (
+        (nextStatus === "REPLIED" || nextStatus === "APPROVED") &&
+        !existingForOffice.repliedAt
+      ) {
+        updates.replied_at = new Date().toISOString();
+      }
+      if (replySummary !== undefined || replyNotes !== undefined) {
+        updates.reply_notes = replySummary ?? replyNotes ?? null;
+      }
+
+      const updated = await updateActivityEmail(existingForOffice.id, updates);
+      return NextResponse.json({
+        email: {
+          ...updated,
+          adminContactId: updated.contactId,
+          renderedSubject: updated.subject,
+          renderedBody: updated.body,
+          replySummary: updated.replyNotes,
+        },
+      });
     }
 
-    if (!finalSubject || !finalBody) {
-      return NextResponse.json(
-        { error: "Subject and body are required" },
-        { status: 400 }
-      );
-    }
+    const finalSubject =
+      renderedSubject ||
+      subject ||
+      `[Asteria Club Esprit] ${activity.title}`;
+    const finalBody = renderedBody || rawBody || "Suivi de courrier administratif ESPRIT";
 
     const emailRecord = await createActivityEmail({
       activityId: id,
-      templateId: selectedTemplate?.id || null,
+      templateId: null,
       contactId: selectedContact?.id || null,
       office: targetOffice,
       recipientEmail: recipientEmail || selectedContact?.email || null,
       ccEmails: Array.isArray(ccEmails)
-        ? ccEmails.join(",")
-        : ccEmails || "contact@asteria.tn",
+        ? ccEmails.join(", ")
+        : ccEmails || "zied.saidi@esprit.tn, faycal.lbabda@esprit.tn",
       subject: finalSubject,
       body: finalBody,
-      status: "DRAFT",
+      status: status || "DRAFT",
     });
 
     await recordPlannerAuditLog({
       userId: user.id,
-      action: "ACTIVITY_EMAIL_CREATED",
+      action: "ACTIVITY_EMAIL_TRACKED",
       entityType: "ACTIVITY_EMAIL",
       entityId: emailRecord.id,
-      details: `Generated admin email draft "${emailRecord.subject}" (${lang}) for "${activity.title}"`,
+      details: `Tracked ESPRIT administrative email (${targetOffice}) for "${activity.title}"`,
     });
 
     return NextResponse.json(
@@ -222,7 +198,7 @@ export async function POST(
           renderedSubject: emailRecord.subject,
           renderedBody: emailRecord.body,
           replySummary: emailRecord.replyNotes,
-          language: lang.toLowerCase(),
+          language: "fr",
         },
       },
       { status: 201 }

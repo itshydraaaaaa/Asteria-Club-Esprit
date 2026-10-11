@@ -442,15 +442,15 @@ VALUES
     ('Pack Micros Sans-Fil & Sono Mobile', 'EQUIPMENT', NULL, '2 microphones main sans fil, récepteur et enceinte amplifiée')
 ON CONFLICT (name) DO NOTHING;
 
--- 6. DEFAULT ESPRIT ADMINISTRATIVE CONTACTS (6 Offices)
+-- 6. OFFICIAL ESPRIT ADMINISTRATIVE CONTACTS (6 Offices)
 INSERT INTO public.admin_contacts (id, office, name, role_title, email, phone, notes, is_active)
 VALUES
-    ('33333333-0000-0000-0000-000000000001', 'STUDENT_LIFE', 'Direction Vie Étudiante ESPRIT', 'Responsable Vie Étudiante & Clubs', 'vie.etudiante@esprit.tn', '+216 70 250 000', 'Autorisations officielles d''événements et activités associatives', true),
-    ('33333333-0000-0000-0000-000000000002', 'SCOLARITE', 'Service Scolarité & Planning', 'Responsable Réservation des Salles', 'scolarite.planning@esprit.tn', '+216 70 250 010', 'Attribution des salles de cours, laboratoires et amphithéâtres', true),
-    ('33333333-0000-0000-0000-000000000003', 'TECHNICAL_EQUIPMENT', 'Service Audiovisuel & IT', 'Responsable Régie & Matériel Technique', 'support.technique@esprit.tn', '+216 70 250 020', 'Sonorisation, microphones, projecteurs et réseau Wi-Fi événementiel', true),
-    ('33333333-0000-0000-0000-000000000004', 'LOGISTICS', 'Direction Logistique & Moyens Généraux', 'Coordinateur Logistique & Sécurité', 'logistique@esprit.tn', '+216 70 250 030', 'Accès campus, mobilier, sécurité et aménagement des espaces', true),
-    ('33333333-0000-0000-0000-000000000005', 'PROMOTION', 'Cellule Communication ESPRIT', 'Responsable Communication Institutionnelle', 'communication@esprit.tn', '+216 70 250 040', 'Validation affichage campus et relais réseaux sociaux officiels', true),
-    ('33333333-0000-0000-0000-000000000006', 'PURCHASES', 'Direction Financière & Achats', 'Responsable Achats & Subventions Clubs', 'achats.clubs@esprit.tn', '+216 70 250 050', 'Validation des devis, bons de commande et budgets événementiels', true)
+    ('33333333-0000-0000-0000-000000000001', 'STUDENT_LIFE', 'M. Zied Saidi', 'Responsable du département de la vie étudiante', 'zied.saidi@esprit.tn', '92234330', '1/ Envoyer un e-mail descriptif de l''évènement au moins 1 semaine à l''avance. Rapport d''action et rapport de collecte <= 3 jours post-évent.', true),
+    ('33333333-0000-0000-0000-000000000002', 'SCOLARITE', 'M. Mohamed Ali Bouakline', 'Service de la Scolarité (Espace & Vidéoprojecteurs)', 'mohamedali.bouakline@Esprit.tn', NULL, '2/ Si l''événement est validé : réserver l''espace et les vidéoprojecteurs (au moins 10 jours à l''avance). CC: zied.saidi@esprit.tn, faycal.lbabda@esprit.tn', true),
+    ('33333333-0000-0000-0000-000000000003', 'TECHNICAL_EQUIPMENT', 'M. Faycel Lbabda', 'Responsable Matériel Technique (Sono & autres)', 'faycal.lbabda@esprit.tn', NULL, '3/ Réserver le matériel technique (sono ou autres) au moins 10 jours à l''avance. Mettre en copie dans tous les e-mails.', true),
+    ('33333333-0000-0000-0000-000000000004', 'LOGISTICS', 'M. Hazem Hajji', 'Responsable Logistique', 'hazem.hajji@esprit.tn', NULL, '4/ Tout ce qui concerne la logistique (au moins 10 jours à l''avance). CC: zied.saidi@esprit.tn, faycal.lbabda@esprit.tn', true),
+    ('33333333-0000-0000-0000-000000000005', 'PROMOTION', 'Mme Nadia Ajailia', 'Responsable Publication & Promotion des Évènements', 'Nadia.ajailia@Esprit.tn', NULL, '5/ Tout ce qui est publication et promotion des évènements. CC: zied.saidi@esprit.tn, faycal.lbabda@esprit.tn', true),
+    ('33333333-0000-0000-0000-000000000006', 'PURCHASES', 'M. Souhail Mezzi', 'Responsable Service Achats (Fournisseurs & BC)', 'souhail.mezzi@esprit.tn', NULL, '6/ Traiter tous vos achats (négociation fournisseurs + envoi du BC). Devis au nom d''Esprit (MF: 830 823 C PM 000). Remettre facture originale cachetée après l''action.', true)
 ON CONFLICT (id) DO UPDATE SET
     office = EXCLUDED.office,
     name = EXCLUDED.name,
