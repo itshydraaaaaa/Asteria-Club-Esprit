@@ -75,12 +75,6 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
       roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
-      label: isFr ? "Tableau Kanban" : "Task Kanban",
-      href: "/tasks",
-      icon: KanbanSquare,
-      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
-    },
-    {
       label: isFr ? "Présence & QR" : "Attendance & QR",
       href: "/attendance",
       icon: QrCode,
@@ -107,8 +101,7 @@ export function MobileDrawer({ user }: MobileDrawerProps) {
   ];
 
   const allowedNav = navItems.filter((item) => {
-    if (!user) return true;
-    if (user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT") return true;
+    if (!user) return false;
     return item.roles.includes(user.role);
   });
 

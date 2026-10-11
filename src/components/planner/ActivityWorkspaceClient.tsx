@@ -1226,258 +1226,168 @@ export function ActivityWorkspaceClient({
       {/* TAB 2: ACTION PLAN & TASKS */}
       {activeTab === "TASKS" && (
         <div className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-xl border border-line bg-surface p-1">
-              <button
-                onClick={() => setTaskViewMode("PHASE")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  taskViewMode === "PHASE"
-                    ? "bg-ast-primary text-white"
-                    : "text-ink-soft hover:text-ink"
-                }`}
-              >
-                {isFr ? "Liste par Phase (J-X)" : "Phase Checklist (T-Minus)"}
-              </button>
-              <button
-                onClick={() => setTaskViewMode("KANBAN")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  taskViewMode === "KANBAN"
-                    ? "bg-ast-primary text-white"
-                    : "text-ink-soft hover:text-ink"
-                }`}
-              >
-                {isFr ? "Vue Kanban 4 Colonnes" : "4-Column Kanban"}
-              </button>
-            </div>
-
-            <Link
-              href="/tasks"
-              className="text-xs font-mono font-bold text-ast-primary hover:underline flex items-center gap-1"
-            >
-              {isFr
-                ? "Voir dans le Tableau Kanban Global"
-                : "Open in Global Club Kanban"}
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {taskViewMode === "PHASE" ? (
-            <div className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-3">
-              {tasks.length === 0 ? (
-                <p className="text-xs text-ink-soft py-6 text-center">
-                  {isFr ? "Aucune tâche planifiée." : "No tasks scheduled."}
-                </p>
-              ) : (
-                tasks.map((t: any) => (
-                  <div
-                    key={t.id}
-                    className="p-3.5 rounded-xl bg-surface-alt border border-line flex flex-col md:flex-row md:items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {typeof t.offsetDays === "number" && (
-                          <span className="px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950 text-ast-primary text-[10px] font-mono font-bold">
-                            {t.offsetDays >= 0
-                              ? `J+${t.offsetDays}`
-                              : `J${t.offsetDays}`}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-surface border border-line">
-                          {t.phase || "PREPARATION"}
-                        </span>
-                        {t.wasShifted && (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
-                            {isFr ? "Vendredi (Week-end évité)" : "Friday Shift"}
-                          </span>
-                        )}
-                        <span
-                          className={`text-xs font-bold ${
-                            t.status === "DONE"
-                              ? "line-through text-ink-faint"
-                              : "text-ink"
-                          }`}
-                        >
-                          {t.title}
-                        </span>
-                      </div>
-                      {t.description && (
-                        <p className="text-[11px] text-ink-soft">
-                          {t.description}
-                        </p>
-                      )}
-                    </div>
-
+          <div className="p-5 bg-surface rounded-2xl border border-line shadow-sm space-y-3">
+            {tasks.length === 0 ? (
+              <p className="text-xs text-ink-soft py-6 text-center">
+                {isFr ? "Aucune tâche planifiée." : "No tasks scheduled."}
+              </p>
+            ) : (
+              tasks.map((t: any) => (
+                <div
+                  key={t.id}
+                  className="p-3.5 rounded-xl bg-surface-alt border border-line flex flex-col md:flex-row md:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      {t.dueDate && (
-                        <span className="text-[11px] font-mono text-ink-soft">
-                          {formatDate(t.dueDate)}
+                      {typeof t.offsetDays === "number" && (
+                        <span className="px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950 text-ast-primary text-[10px] font-mono font-bold">
+                          {t.offsetDays >= 0
+                            ? `J+${t.offsetDays}`
+                            : `J${t.offsetDays}`}
                         </span>
                       )}
-
-                      <select
-                        disabled={!canEdit && t.assigneeId !== currentUser?.id}
-                        value={t.assigneeId || ""}
-                        onChange={(e) =>
-                          handleUpdateTask(t.id, {
-                            assigneeId: e.target.value || null,
-                          })
-                        }
-                        className="px-2 py-1 rounded-lg border border-line bg-surface text-xs font-body text-ink max-w-[150px]"
-                      >
-                        <option value="">Unassigned</option>
-                        {members.map((m: any) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        disabled={!canEdit && t.assigneeId !== currentUser?.id}
-                        value={t.status}
-                        onChange={(e) =>
-                          handleUpdateTask(t.id, { status: e.target.value })
-                        }
-                        className="px-2.5 py-1 rounded-lg border border-line bg-surface text-xs font-mono font-bold text-ink"
-                      >
-                        <option value="TODO">TODO</option>
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="REVIEW">REVIEW</option>
-                        <option value="DONE">DONE ✓</option>
-                      </select>
-
-                      {canEdit && (
-                        <button
-                          onClick={() => handleDeleteTask(t.id)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-surface border border-line">
+                        {t.phase || "PREPARATION"}
+                      </span>
+                      {t.wasShifted && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                          {isFr ? "Vendredi (Week-end évité)" : "Friday Shift"}
+                        </span>
                       )}
+                      <span
+                        className={`text-xs font-bold ${
+                          t.status === "DONE"
+                            ? "line-through text-ink-faint"
+                            : "text-ink"
+                        }`}
+                      >
+                        {t.title}
+                      </span>
                     </div>
+                    {t.description && (
+                      <p className="text-[11px] text-ink-soft">
+                        {t.description}
+                      </p>
+                    )}
                   </div>
-                ))
-              )}
 
-              {/* Add Task Form */}
-              {canEdit && (
-                <div className="pt-4 border-t border-line space-y-3">
-                  <h4 className="text-xs font-display font-bold uppercase text-ink-soft">
-                    {isFr ? "Ajouter une Tâche au Plan d'Action" : "Add Task to Action Plan"}
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                    <div className="lg:col-span-2">
-                      <Input
-                        placeholder={isFr ? "Titre de la tâche *" : "Task title *"}
-                        value={newTask.title}
-                        onChange={(e) =>
-                          setNewTask({ ...newTask, title: e.target.value })
-                        }
-                      />
-                    </div>
-                    <Select
-                      value={newTask.phase}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {t.dueDate && (
+                      <span className="text-[11px] font-mono text-ink-soft">
+                        {formatDate(t.dueDate)}
+                      </span>
+                    )}
+
+                    <select
+                      disabled={!canEdit && t.assigneeId !== currentUser?.id}
+                      value={t.assigneeId || ""}
                       onChange={(e) =>
-                        setNewTask({ ...newTask, phase: e.target.value })
+                        handleUpdateTask(t.id, {
+                          assigneeId: e.target.value || null,
+                        })
                       }
+                      className="px-2 py-1 rounded-lg border border-line bg-surface text-xs font-body text-ink max-w-[150px]"
                     >
-                      <option value="PREPARATION">PREPARATION</option>
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="LOGISTICS">LOGISTICS</option>
-                      <option value="PROMOTION">PROMOTION</option>
-                      <option value="EXECUTION">EXECUTION</option>
-                      <option value="CLOSURE">CLOSURE</option>
-                    </Select>
-                    <Select
-                      value={newTask.assigneeId}
-                      onChange={(e) =>
-                        setNewTask({ ...newTask, assigneeId: e.target.value })
-                      }
-                    >
-                      <option value="">
-                        {isFr ? "— Responsable —" : "— Assignee —"}
-                      </option>
+                      <option value="">Unassigned</option>
                       {members.map((m: any) => (
                         <option key={m.id} value={m.id}>
                           {m.name}
                         </option>
                       ))}
-                    </Select>
-                    <Input
-                      type="date"
-                      value={newTask.dueDate}
+                    </select>
+
+                    <select
+                      disabled={!canEdit && t.assigneeId !== currentUser?.id}
+                      value={t.status}
                       onChange={(e) =>
-                        setNewTask({ ...newTask, dueDate: e.target.value })
+                        handleUpdateTask(t.id, { status: e.target.value })
+                      }
+                      className="px-2.5 py-1 rounded-lg border border-line bg-surface text-xs font-mono font-bold text-ink"
+                    >
+                      <option value="TODO">TODO</option>
+                      <option value="IN_PROGRESS">IN_PROGRESS</option>
+                      <option value="REVIEW">REVIEW</option>
+                      <option value="DONE">DONE ✓</option>
+                    </select>
+
+                    {canEdit && (
+                      <button
+                        onClick={() => handleDeleteTask(t.id)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Add Task Form */}
+            {canEdit && (
+              <div className="pt-4 border-t border-line space-y-3">
+                <h4 className="text-xs font-display font-bold uppercase text-ink-soft">
+                  {isFr ? "Ajouter une Tâche au Plan d'Action" : "Add Task to Action Plan"}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                  <div className="lg:col-span-2">
+                    <Input
+                      placeholder={isFr ? "Titre de la tâche *" : "Task title *"}
+                      value={newTask.title}
+                      onChange={(e) =>
+                        setNewTask({ ...newTask, title: e.target.value })
                       }
                     />
                   </div>
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      leftIcon={<Plus className="w-3.5 h-3.5" />}
-                      onClick={handleCreateTask}
-                    >
-                      {isFr ? "Créer la Tâche" : "Create Task"}
-                    </Button>
-                  </div>
+                  <Select
+                    value={newTask.phase}
+                    onChange={(e) =>
+                      setNewTask({ ...newTask, phase: e.target.value })
+                    }
+                  >
+                    <option value="PREPARATION">PREPARATION</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="LOGISTICS">LOGISTICS</option>
+                    <option value="PROMOTION">PROMOTION</option>
+                    <option value="EXECUTION">EXECUTION</option>
+                    <option value="CLOSURE">CLOSURE</option>
+                  </Select>
+                  <Select
+                    value={newTask.assigneeId}
+                    onChange={(e) =>
+                      setNewTask({ ...newTask, assigneeId: e.target.value })
+                    }
+                  >
+                    <option value="">
+                      {isFr ? "— Responsable —" : "— Assignee —"}
+                    </option>
+                    {members.map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(e) =>
+                      setNewTask({ ...newTask, dueDate: e.target.value })
+                    }
+                  />
                 </div>
-              )}
-            </div>
-          ) : (
-            /* 4-COLUMN KANBAN VIEW */
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {(["TODO", "IN_PROGRESS", "REVIEW", "DONE"] as const).map(
-                (col) => {
-                  const colTasks = tasks.filter((t: any) => t.status === col);
-                  return (
-                    <div
-                      key={col}
-                      className="p-4 rounded-2xl bg-surface border border-line space-y-3 min-h-[320px]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-display font-bold text-ink">
-                          {col}
-                        </span>
-                        <span className="text-xs font-mono text-ink-soft">
-                          {colTasks.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2.5">
-                        {colTasks.map((t: any) => (
-                          <div
-                            key={t.id}
-                            className="p-3 rounded-xl bg-surface-alt border border-line space-y-2"
-                          >
-                            <p className="text-xs font-bold text-ink">
-                              {t.title}
-                            </p>
-                            <div className="flex items-center justify-between text-[10px] font-mono text-ink-soft">
-                              <span>{t.phase}</span>
-                              <select
-                                value={t.status}
-                                onChange={(e) =>
-                                  handleUpdateTask(t.id, {
-                                    status: e.target.value,
-                                  })
-                                }
-                                className="bg-surface border border-line rounded px-1.5 py-0.5 text-[10px]"
-                              >
-                                <option value="TODO">TODO</option>
-                                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                                <option value="REVIEW">REVIEW</option>
-                                <option value="DONE">DONE</option>
-                              </select>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          )}
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={handleCreateTask}
+                  >
+                    {isFr ? "Créer la Tâche" : "Create Task"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

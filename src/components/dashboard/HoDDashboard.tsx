@@ -63,9 +63,9 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Link href="/tasks">
+            <Link href="/planner">
               <Button variant="accent" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />} className="font-bold">
-                {isFr ? "Créer une Tâche" : "Create Task"}
+                {isFr ? "Planificateur d'Activités" : "Activity Planner"}
               </Button>
             </Link>
             <Link href={`/departments/${dept?.id}`}>
@@ -128,12 +128,12 @@ export function HoDDashboard({ data, user }: HoDDashboardProps) {
             <div>
               <CardTitle>{isFr ? "Tâches Actives du Pôle" : "Active Department Tasks"}</CardTitle>
               <p className="text-xs text-ink-soft dark:text-teal-300/70 font-body mt-0.5">
-                {isFr ? "Tâches de sprint en cours assignées aux membres" : "Current sprint tasks assigned to members"}
+                {isFr ? "Tâches en cours assignées aux membres" : "Current tasks assigned to members"}
               </p>
             </div>
-            <Link href="/tasks">
+            <Link href="/planner">
               <Button variant="outline" size="sm" className="text-xs">
-                {isFr ? "Vue Kanban" : "Kanban View"}
+                {isFr ? "Planificateur" : "Activity Planner"}
               </Button>
             </Link>
           </CardHeader>

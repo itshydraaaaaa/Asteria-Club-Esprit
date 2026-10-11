@@ -191,16 +191,11 @@ export function MemberDashboard({ data, user }: MemberDashboardProps) {
         <Card className="lg:col-span-2 bg-white/95 dark:bg-[#062428]/90 border-line dark:border-teal-900/80 shadow-sm dark:shadow-[0_12px_40px_rgba(2,18,20,0.6)] backdrop-blur-md">
           <CardHeader>
             <div>
-              <CardTitle>{isFr ? "Mes Tâches de Sprint" : "My Sprint Tasks"}</CardTitle>
+              <CardTitle>{isFr ? "Mes Tâches Assignées" : "My Assigned Tasks"}</CardTitle>
               <p className="text-xs text-ink-soft dark:text-teal-200/70 font-body mt-0.5">
                 {isFr ? "Tâches en cours assignées à votre profil" : "Tasks currently assigned to you across departments"}
               </p>
             </div>
-            <Link href="/tasks">
-              <Button variant="outline" size="sm" className="text-xs">
-                {isFr ? "Ouvrir Kanban" : "Open Kanban"}
-              </Button>
-            </Link>
           </CardHeader>
           <CardContent className="space-y-3">
             {myTasks.length > 0 ? (

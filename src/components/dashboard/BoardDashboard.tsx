@@ -94,9 +94,9 @@ export function BoardDashboard({ data }: BoardDashboardProps) {
               : "Welcome to the club executive operating system. Oversee departmental sprints, monitor member attendance health, review talent recruitment, and graduate creators into Asteria Freelance PreLaunch."}
           </p>
           <div className="flex items-center gap-3 pt-2 flex-wrap">
-            <Link href="/tasks">
+            <Link href="/planner">
               <Button variant="accent" size="sm" className="font-bold shadow-md">
-                {isFr ? "Ouvrir le Kanban" : "Open Kanban Board"}
+                {isFr ? "Planificateur Exécutif" : "Activity Planner"}
               </Button>
             </Link>
             <Link href="/departments">

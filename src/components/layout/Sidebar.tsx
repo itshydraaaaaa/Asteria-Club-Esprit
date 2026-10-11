@@ -74,12 +74,6 @@ export function Sidebar({ user }: SidebarProps) {
       roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
     },
     {
-      label: isFr ? "Tableau Kanban" : "Task Kanban",
-      href: "/tasks",
-      icon: KanbanSquare,
-      roles: ["PRESIDENT", "VICE_PRESIDENT", "BOARD", "HOD", "MEMBER"],
-    },
-    {
       label: isFr ? "Présence & QR" : "Attendance & QR",
       href: "/attendance",
       icon: QrCode,
@@ -106,8 +100,7 @@ export function Sidebar({ user }: SidebarProps) {
   ];
 
   const allowedNav = navItems.filter((item) => {
-    if (!user) return true;
-    if (user.role === "PRESIDENT" || user.role === "VICE_PRESIDENT") return true;
+    if (!user) return false;
     return item.roles.includes(user.role);
   });
 
