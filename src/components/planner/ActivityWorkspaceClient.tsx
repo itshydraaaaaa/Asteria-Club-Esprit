@@ -155,6 +155,18 @@ export function ActivityWorkspaceClient({
   }, [activityId]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab")?.toUpperCase();
+      if (
+        tabParam &&
+        ["BRIEF", "TASKS", "FILES", "EMAILS", "LOGISTICS", "REPORT"].includes(
+          tabParam
+        )
+      ) {
+        setActiveTab(tabParam as WorkspaceTabId);
+      }
+    }
     fetchWorkspace();
   }, [fetchWorkspace]);
 
@@ -462,14 +474,14 @@ export function ActivityWorkspaceClient({
   }[] = [
     {
       id: "BRIEF",
-      labelFr: "1. Vue d'Ensemble & Brief",
-      labelEn: "1. Overview & Brief",
+      labelFr: "1. Vue d'Ensemble (Overview)",
+      labelEn: "1. Overview",
       icon: Sparkles,
     },
     {
       id: "TASKS",
-      labelFr: "2. Plan d'Action & Tâches",
-      labelEn: "2. Action Plan & Tasks",
+      labelFr: "2. Tâches (Tasks)",
+      labelEn: "2. Tasks",
       icon: Layers,
       badge: `${tasks.filter((t: any) => t.status === "DONE").length}/${
         tasks.length
@@ -477,29 +489,29 @@ export function ActivityWorkspaceClient({
     },
     {
       id: "FILES",
-      labelFr: "3. Fichiers & Discussion",
-      labelEn: "3. Files & Comments",
+      labelFr: "3. Fichiers (Files)",
+      labelEn: "3. Files",
       icon: FileText,
       badge: files.length + comments.length,
     },
     {
       id: "EMAILS",
-      labelFr: "4. Emails Administratifs",
-      labelEn: "4. Admin Emails",
+      labelFr: "4. Emails",
+      labelEn: "4. Emails",
       icon: Mail,
       badge: emails.length,
     },
     {
       id: "LOGISTICS",
-      labelFr: "5. Logistique & Besoins",
-      labelEn: "5. Logistics & Needs",
+      labelFr: "5. Logistique (Logistics)",
+      labelEn: "5. Logistics",
       icon: Package,
       badge: requirements.length,
     },
     {
       id: "REPORT",
-      labelFr: "6. Rapport & Clôture",
-      labelEn: "6. Report & Closure",
+      labelFr: "6. Rapports (Reports)",
+      labelEn: "6. Reports",
       icon: BarChart3,
       badge: report ? "✓" : "!",
     },
@@ -667,32 +679,38 @@ export function ActivityWorkspaceClient({
                 {[
                   {
                     ok: readiness.checklist.briefComplete,
-                    labelFr: "Brief & Objectifs",
-                    labelEn: "Brief & Goals",
+                    labelFr: "1. Overview",
+                    labelEn: "1. Overview",
                     tab: "BRIEF" as WorkspaceTabId,
                   },
                   {
-                    ok: readiness.checklist.tasksReady,
-                    labelFr: "Plan d'Action",
-                    labelEn: "Action Plan",
+                    ok: readiness.checklist.tasksReady && tasks.length > 0,
+                    labelFr: "2. Tasks",
+                    labelEn: "2. Tasks",
                     tab: "TASKS" as WorkspaceTabId,
                   },
                   {
+                    ok: files.length > 0,
+                    labelFr: "3. Files",
+                    labelEn: "3. Files",
+                    tab: "FILES" as WorkspaceTabId,
+                  },
+                  {
                     ok: readiness.checklist.adminEmailsApproved,
-                    labelFr: "Emails ESPRIT (1/ à 6/)",
-                    labelEn: "ESPRIT Emails (1/ to 6/)",
+                    labelFr: "4. Emails",
+                    labelEn: "4. Emails",
                     tab: "EMAILS" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.logisticsConfirmed,
-                    labelFr: "Logistique & Devis",
-                    labelEn: "Logistics & Quotes",
+                    labelFr: "5. Logistics",
+                    labelEn: "5. Logistics",
                     tab: "LOGISTICS" as WorkspaceTabId,
                   },
                   {
                     ok: readiness.checklist.reportSubmitted,
-                    labelFr: "Rapport (≤3j)",
-                    labelEn: "Report (≤3d)",
+                    labelFr: "6. Reports",
+                    labelEn: "6. Reports",
                     tab: "REPORT" as WorkspaceTabId,
                   },
                 ].map((item, i) => (
@@ -727,23 +745,23 @@ export function ActivityWorkspaceClient({
           </div>
         )}
 
-        {/* Official ESPRIT Project Completion Checklist (M. Zied Saidi) */}
+        {/* Official ESPRIT Project Completion Checklist (M. Zied Saidi) — Ordered (Overview, Tasks, Files, Emails, Logistics, Reports) */}
         {showEspritGuide && (
           <div className="p-4 rounded-xl bg-surface-alt border border-line space-y-3 text-xs">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-display font-bold text-ink flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-ast-primary" />
                 {isFr
-                  ? "Ce qui est requis pour finaliser ce projet d'activité (Processus Administratif ESPRIT & 7 Règles d'Or)"
-                  : "What is required to complete this activity project (Official ESPRIT Procedure & 7 Golden Rules)"}
+                  ? "Étapes du Projet d'Activité (Overview · Tasks · Files · Emails · Logistics · Reports)"
+                  : "Activity Project Stages (Overview · Tasks · Files · Emails · Logistics · Reports)"}
               </p>
               <span className="text-[11px] font-mono text-ink-soft">
                 SAIDI ZIED · Vie Étudiante · Tél 92234330 · zied.saidi@esprit.tn
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {/* Step 1: Règles d'Or 1, 2, 3 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+              {/* 1. Overview */}
               <button
                 type="button"
                 onClick={() => setActiveTab("BRIEF")}
@@ -755,32 +773,77 @@ export function ActivityWorkspaceClient({
                 }`}
               >
                 <div className="flex items-center justify-between font-mono text-[10px] font-bold">
-                  <span className="text-ast-primary">
-                    {isFr ? "RÈGLES D'OR 1, 2 & 3" : "GOLDEN RULES 1, 2 & 3"}
-                  </span>
+                  <span className="text-ast-primary">1. OVERVIEW</span>
                   <span>
                     {readiness?.checklist?.briefComplete ? "✓" : "À compléter"}
                   </span>
                 </div>
                 <p className="font-bold text-ink">
-                  {isFr
-                    ? "1. Objectifs, Public Cible & Comité"
-                    : "1. Objectives, Audience & Committee"}
+                  {isFr ? "Vue d'Ensemble & Comité" : "Overview & Committee"}
                 </p>
                 <p className="text-[11px] text-ink-soft">
                   {isFr
-                    ? `Définir objectifs, résultat escompté, lieu et comité d'organisation (${
+                    ? `Objectifs, public cible, salle et comité (${
                         (activity.members || []).length
-                      } membre(s)). Réservations ≥ 10j à l'avance${
-                        daysUntilStart !== null ? ` (J-${daysUntilStart})` : ""
-                      }.`
-                    : `Define goals, target audience, venue & organizing committee (${
+                      } membre(s)).`
+                    : `Goals, target audience, venue & committee (${
                         (activity.members || []).length
-                      } member(s)). Book ≥ 10d ahead.`}
+                      } member(s)).`}
                 </p>
               </button>
 
-              {/* Step 2: Processus Emails 1/ à 6/ */}
+              {/* 2. Tasks */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("TASKS")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  tasks.length > 0 && readiness?.checklist?.tasksReady
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">2. TASKS</span>
+                  <span>
+                    {tasks.filter((t: any) => t.status === "DONE").length}/
+                    {tasks.length}
+                  </span>
+                </div>
+                <p className="font-bold text-ink">
+                  {isFr ? "Plan d'Action & Tâches" : "Action Plan & Tasks"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? "Chronogramme et répartition des tâches par membre."
+                    : "Action plan timeline and member task assignments."}
+                </p>
+              </button>
+
+              {/* 3. Files */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("FILES")}
+                className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
+                  files.length > 0
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                    : "bg-surface border-line hover:border-ast-primary"
+                }`}
+              >
+                <div className="flex items-center justify-between font-mono text-[10px] font-bold">
+                  <span className="text-ast-primary">3. FILES</span>
+                  <span>{files.length}</span>
+                </div>
+                <p className="font-bold text-ink">
+                  {isFr ? "Fichiers & Devis" : "Files & Quotes"}
+                </p>
+                <p className="text-[11px] text-ink-soft">
+                  {isFr
+                    ? "Devis, affiches, factures scannées et discussion d'équipe."
+                    : "Quotes, posters, scanned invoices, and team comments."}
+                </p>
+              </button>
+
+              {/* 4. Emails */}
               <button
                 type="button"
                 onClick={() => setActiveTab("EMAILS")}
@@ -791,54 +854,45 @@ export function ActivityWorkspaceClient({
                 }`}
               >
                 <div className="flex items-center justify-between font-mono text-[10px] font-bold">
-                  <span className="text-ast-primary">
-                    {isFr ? "PROCESSUS EMAILS 1/ À 6/" : "ADMIN EMAILS 1/ TO 6/"}
-                  </span>
-                  <span>{studentLifeApproved ? "✓" : "J-7 / J-10"}</span>
+                  <span className="text-ast-primary">4. EMAILS</span>
+                  <span>{studentLifeApproved ? "✓" : "1/ à 6/"}</span>
                 </div>
                 <p className="font-bold text-ink">
-                  {isFr
-                    ? "2. Validation Vie Étudiante & Réservations"
-                    : "2. Student Life Approval & Bookings"}
+                  {isFr ? "Emails Administratifs" : "ESPRIT Admin Emails"}
                 </p>
                 <p className="text-[11px] text-ink-soft">
                   {isFr
-                    ? "1/ Email descriptif (J-7) à zied.saidi@esprit.tn. Si validé (J-10) : 2/ Scolarité, 3/ Technique, 4/ Logistique, 5/ Promotion, 6/ Achats. (CC: Zied Saidi & Faycel Lbabda)."
-                    : "1/ Descriptive email (D-7) to zied.saidi@esprit.tn. Once approved (D-10): 2/ Scolarité, 3/ Tech, 4/ Logistics, 5/ Promo, 6/ Purchases."}
+                    ? "1/ Vie Étudiante (J-7), puis 2/ Scolarité, 3/ Tech, 4/ Logistique, 5/ Promo, 6/ Achats."
+                    : "1/ Student Life (D-7), then 2/ Scolarité, 3/ Tech, 4/ Logistics, 5/ Promo, 6/ Purchases."}
                 </p>
               </button>
 
-              {/* Step 3: Plan d'Action & Devis */}
+              {/* 5. Logistics */}
               <button
                 type="button"
                 onClick={() => setActiveTab("LOGISTICS")}
                 className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
-                  tasks.length > 0 && requirements.length > 0
+                  requirements.length > 0 &&
+                  readiness?.checklist?.logisticsConfirmed
                     ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
                     : "bg-surface border-line hover:border-ast-primary"
                 }`}
               >
                 <div className="flex items-center justify-between font-mono text-[10px] font-bold">
-                  <span className="text-ast-primary">
-                    {isFr ? "RÈGLES D'OR 4, 5 & 6 + DEVIS" : "RULES 4, 5 & 6 + QUOTES"}
-                  </span>
-                  <span>
-                    {tasks.length} tâches · {requirements.length} besoins
-                  </span>
+                  <span className="text-ast-primary">5. LOGISTICS</span>
+                  <span>{requirements.length}</span>
                 </div>
                 <p className="font-bold text-ink">
-                  {isFr
-                    ? "3. Plan d'Action, Logistique & Devis"
-                    : "3. Action Plan, Logistics & Quotes"}
+                  {isFr ? "Logistique & Besoins" : "Logistics & Needs"}
                 </p>
                 <p className="text-[11px] text-ink-soft">
                   {isFr
-                    ? "Plan d'action + préparation Jour J. Devis au nom d'Esprit (MF : 830 823 C PM 000) avec coordonnées complètes + MF du prestataire et mode de paiement."
-                    : "Action plan + event-day readiness. Quotes in Esprit's name (Tax ID: 830 823 C PM 000) with vendor details & payment method."}
+                    ? "Salles, matériel et devis au nom d'Esprit (MF : 830 823 C PM 000)."
+                    : "Rooms, equipment, and quotes in Esprit's name (Tax ID: 830 823 C PM 000)."}
                 </p>
               </button>
 
-              {/* Step 4: Post-Event <= 3 Days */}
+              {/* 6. Reports */}
               <button
                 type="button"
                 onClick={() => setActiveTab("REPORT")}
@@ -849,20 +903,16 @@ export function ActivityWorkspaceClient({
                 }`}
               >
                 <div className="flex items-center justify-between font-mono text-[10px] font-bold">
-                  <span className="text-ast-primary">
-                    {isFr ? "RÈGLE D'OR 7 (≤ 3 JOURS MAX)" : "RULE 7 (≤ 3 DAYS MAX)"}
-                  </span>
-                  <span>{report ? "✓" : "Post-évent ≤ 3j"}</span>
+                  <span className="text-ast-primary">6. REPORTS</span>
+                  <span>{report ? "✓" : "≤ 3j"}</span>
                 </div>
                 <p className="font-bold text-ink">
-                  {isFr
-                    ? "4. Facture Originale & Rapport (≤ 3j)"
-                    : "4. Original Invoice & Report (≤ 3d)"}
+                  {isFr ? "Rapports & Clôture" : "Reports & Closure"}
                 </p>
                 <p className="text-[11px] text-ink-soft">
                   {isFr
-                    ? "Facture originale cachetée (+ devis initial) à souhail.mezzi@esprit.tn. Rapport d'action ≤ 3j (et rapport de collecte d'argent ≤ 3j si applicable) à zied.saidi@esprit.tn."
-                    : "Stamped original invoice (+ quote) to souhail.mezzi@esprit.tn. Action report ≤ 3d (and fundraising report ≤ 3d if applicable) to zied.saidi@esprit.tn."}
+                    ? "Rapport d'action ≤ 3j, rapport de collecte ≤ 3j et facture originale."
+                    : "Action report ≤ 3d, fundraising report ≤ 3d, and original invoice."}
                 </p>
               </button>
             </div>
@@ -889,7 +939,7 @@ export function ActivityWorkspaceClient({
         </div>
       )}
 
-      {/* 7-Tab Navigation Bar */}
+      {/* 6-Tab Navigation Bar: (Overview, Tasks, Files, Emails, Logistics, Reports) */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-line">
         {tabs.map((tab) => {
           const Icon = tab.icon;

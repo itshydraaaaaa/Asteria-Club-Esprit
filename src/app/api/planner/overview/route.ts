@@ -11,6 +11,7 @@ import {
   getPlannerSettings,
   getMyActivityTasks,
   getActivityTasks,
+  getActivityFiles,
   getActivityEmails,
   getActivityRequirements,
   getActivityReport,
@@ -58,8 +59,9 @@ export async function GET() {
     const enrichedActivities = await Promise.all(
       activities.map(async (act) => {
         try {
-          const [tasks, emails, requirements, report] = await Promise.all([
+          const [tasks, files, emails, requirements, report] = await Promise.all([
             getActivityTasks(act.id),
+            getActivityFiles(act.id),
             getActivityEmails(act.id),
             getActivityRequirements(act.id),
             getActivityReport(act.id),
@@ -184,6 +186,7 @@ export async function GET() {
               totalTasks: tasks.length,
               completedTasks: tasks.filter((t) => t.status === "DONE").length,
               overdueTasks: att.overdueTasks.length,
+              totalFiles: files.length,
               totalEmails: emails.length,
               approvedEmails: emails.filter(
                 (e) => e.status === "APPROVED" || e.status === "REPLIED"
@@ -212,6 +215,7 @@ export async function GET() {
               totalTasks: 0,
               completedTasks: 0,
               overdueTasks: 0,
+              totalFiles: 0,
               totalEmails: 0,
               approvedEmails: 0,
               totalRequirements: 0,

@@ -16,7 +16,7 @@ export default async function ActivityWorkspacePage({
       <Header
         user={user}
         title="Activity Workspace · 360° Operations"
-        subtitle="Brief, T-minus action plan, ESPRIT admin requests, logistics, run-of-show, files, and closure report"
+        subtitle="Overview, Tasks, Files, Emails, Logistics, and Reports"
       />
 
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
