@@ -12,7 +12,6 @@ import { formatDate } from "@/lib/utils";
 import {
   LogisticsTab,
   EmailsTab,
-  AgendaTab,
   FilesAndCommentsTab,
   ReportAndClosureTab,
 } from "./WorkspaceTabsSecondary";
@@ -26,7 +25,6 @@ import {
   Layers,
   Package,
   Mail,
-  Clock,
   FileText,
   BarChart3,
   Sparkles,
@@ -46,10 +44,9 @@ interface ActivityWorkspaceClientProps {
 type WorkspaceTabId =
   | "BRIEF"
   | "TASKS"
-  | "LOGISTICS"
-  | "EMAILS"
-  | "AGENDA"
   | "FILES"
+  | "EMAILS"
+  | "LOGISTICS"
   | "REPORT";
 
 const LIFECYCLE_STATUSES = [
@@ -479,11 +476,11 @@ export function ActivityWorkspaceClient({
       }`,
     },
     {
-      id: "LOGISTICS",
-      labelFr: "3. Logistique & Besoins",
-      labelEn: "3. Logistics & Needs",
-      icon: Package,
-      badge: requirements.length,
+      id: "FILES",
+      labelFr: "3. Fichiers & Discussion",
+      labelEn: "3. Files & Comments",
+      icon: FileText,
+      badge: files.length + comments.length,
     },
     {
       id: "EMAILS",
@@ -493,23 +490,16 @@ export function ActivityWorkspaceClient({
       badge: emails.length,
     },
     {
-      id: "AGENDA",
-      labelFr: "5. Déroulé (Agenda)",
-      labelEn: "5. Run-of-Show Agenda",
-      icon: Clock,
-      badge: agenda.length,
-    },
-    {
-      id: "FILES",
-      labelFr: "6. Fichiers & Discussion",
-      labelEn: "6. Files & Comments",
-      icon: FileText,
-      badge: files.length + comments.length,
+      id: "LOGISTICS",
+      labelFr: "5. Logistique & Besoins",
+      labelEn: "5. Logistics & Needs",
+      icon: Package,
+      badge: requirements.length,
     },
     {
       id: "REPORT",
-      labelFr: "7. Rapport & Clôture",
-      labelEn: "7. Report & Closure",
+      labelFr: "6. Rapport & Clôture",
+      labelEn: "6. Report & Closure",
       icon: BarChart3,
       badge: report ? "✓" : "!",
     },
@@ -818,12 +808,12 @@ export function ActivityWorkspaceClient({
                 </p>
               </button>
 
-              {/* Step 3: Plan d'Action, Chronogramme & Devis */}
+              {/* Step 3: Plan d'Action & Devis */}
               <button
                 type="button"
                 onClick={() => setActiveTab("LOGISTICS")}
                 className={`text-left p-3 rounded-xl border transition-all space-y-1 ${
-                  tasks.length > 0 && agenda.length > 0
+                  tasks.length > 0 && requirements.length > 0
                     ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
                     : "bg-surface border-line hover:border-ast-primary"
                 }`}
@@ -833,18 +823,18 @@ export function ActivityWorkspaceClient({
                     {isFr ? "RÈGLES D'OR 4, 5 & 6 + DEVIS" : "RULES 4, 5 & 6 + QUOTES"}
                   </span>
                   <span>
-                    {tasks.length} tâches · {agenda.length} créneaux
+                    {tasks.length} tâches · {requirements.length} besoins
                   </span>
                 </div>
                 <p className="font-bold text-ink">
                   {isFr
-                    ? "3. Plan d'Action, Chronogramme & Devis"
-                    : "3. Action Plan, Schedule & Quotes"}
+                    ? "3. Plan d'Action, Logistique & Devis"
+                    : "3. Action Plan, Logistics & Quotes"}
                 </p>
                 <p className="text-[11px] text-ink-soft">
                   {isFr
-                    ? "Plan d'action + chronogramme Jour J. Devis au nom d'Esprit (MF : 830 823 C PM 000) avec coordonnées complètes + MF du prestataire et mode de paiement."
-                    : "Action plan + Run-of-Show. Quotes in Esprit's name (Tax ID: 830 823 C PM 000) with vendor details & payment method."}
+                    ? "Plan d'action + préparation Jour J. Devis au nom d'Esprit (MF : 830 823 C PM 000) avec coordonnées complètes + MF du prestataire et mode de paiement."
+                    : "Action plan + event-day readiness. Quotes in Esprit's name (Tax ID: 830 823 C PM 000) with vendor details & payment method."}
                 </p>
               </button>
 
@@ -1391,15 +1381,13 @@ export function ActivityWorkspaceClient({
         </div>
       )}
 
-      {/* TAB 3: LOGISTICS & REQUIREMENTS */}
-      {activeTab === "LOGISTICS" && (
-        <LogisticsTab
+      {/* TAB 3: FILES & COMMENTS */}
+      {activeTab === "FILES" && (
+        <FilesAndCommentsTab
           isFr={isFr}
           activity={activity}
-          requirements={requirements}
-          resources={lookup.resources || []}
-          resourceConflicts={resourceConflicts}
-          members={members}
+          files={files}
+          comments={comments}
           canEdit={canEdit}
           onRefresh={fetchWorkspace}
         />
@@ -1418,32 +1406,21 @@ export function ActivityWorkspaceClient({
         />
       )}
 
-      {/* TAB 5: AGENDA & RUN-OF-SHOW */}
-      {activeTab === "AGENDA" && (
-        <AgendaTab
+      {/* TAB 5: LOGISTICS & REQUIREMENTS */}
+      {activeTab === "LOGISTICS" && (
+        <LogisticsTab
           isFr={isFr}
           activity={activity}
-          agenda={agenda}
-          agendaConflicts={agendaConflicts}
+          requirements={requirements}
+          resources={lookup.resources || []}
+          resourceConflicts={resourceConflicts}
           members={members}
           canEdit={canEdit}
           onRefresh={fetchWorkspace}
         />
       )}
 
-      {/* TAB 6: FILES & COMMENTS */}
-      {activeTab === "FILES" && (
-        <FilesAndCommentsTab
-          isFr={isFr}
-          activity={activity}
-          files={files}
-          comments={comments}
-          canEdit={canEdit}
-          onRefresh={fetchWorkspace}
-        />
-      )}
-
-      {/* TAB 7: REPORT & CLOSURE */}
+      {/* TAB 6: REPORT & CLOSURE */}
       {activeTab === "REPORT" && (
         <ReportAndClosureTab
           isFr={isFr}

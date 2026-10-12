@@ -627,18 +627,6 @@ export function evaluateActivityReadiness(params: {
     });
   }
 
-  // Agenda warning
-  if ((params.agendaCount ?? 0) === 0) {
-    blockers.push({
-      code: "AGENDA_EMPTY",
-      tab: "agenda",
-      severity: "WARNING",
-      title: "Déroulé (Agenda) non défini",
-      description: "Aucun créneau n'a encore été ajouté au conducteur du jour J.",
-      actionLabel: "Structurer l'Agenda",
-    });
-  }
-
   // Closure check
   const closureGuard = canTransitionToClosed(params.hasReport, params.activity.closureSkipReason);
 
