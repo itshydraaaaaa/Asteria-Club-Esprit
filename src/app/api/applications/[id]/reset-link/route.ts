@@ -64,26 +64,20 @@ export async function POST(
         .single();
 
       if (oldProf) {
-        await admin.auth.admin.updateUserById(oldProf.id, {
-          email: cleanEmail,
-          email_confirm: true,
-        });
-        await (admin as any)
-          .from("profiles")
-          .update({ email: cleanEmail, updated_at: new Date().toISOString() })
-          .eq("id", oldProf.id);
+        try {
+          await admin.auth.admin.updateUserById(oldProf.id, {
+            email: cleanEmail,
+            email_confirm: true,
+          });
+          await (admin as any)
+            .from("profiles")
+            .update({ email: cleanEmail, updated_at: new Date().toISOString() })
+            .eq("id", oldProf.id);
+        } catch (e) {
+          console.warn("Could not rename old auth account:", e);
+        }
       }
     }
-
-    // Check if account already exists in profiles
-    const { data: existingProf } = await (admin as any)
-      .from("profiles")
-      .select("id, role, email")
-      .eq("email", cleanEmail)
-      .single();
-
-    let authUserId: string | null = existingProf?.id ?? null;
-    const secureTemporaryPassword = `Ast_${crypto.randomBytes(8).toString("base64url")}!`;
 
     // Match department if needed
     const { data: dept } = await (admin as any)
@@ -93,57 +87,45 @@ export async function POST(
       .single();
     const matchedDept = dept as any;
 
-    if (!authUserId) {
-      try {
-        const studentEmail = application.student_email || application.studentEmail || null;
-        const targetRole = application.status === "ACCEPTED" ? "MEMBER" : "WAITING_FOR_INTERVIEW";
+    const secureTemporaryPassword = `Ast_${crypto.randomBytes(8).toString("base64url")}!`;
+    const studentEmail = application.student_email || application.studentEmail || null;
+    const targetRole = application.status === "ACCEPTED" ? "MEMBER" : "WAITING_FOR_INTERVIEW";
 
-        const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
-          email: cleanEmail,
-          password: secureTemporaryPassword,
-          email_confirm: true,
-          user_metadata: {
-            name: application.name,
-            role: targetRole,
-            department_id: matchedDept?.id,
-            student_email: studentEmail,
-          },
-        });
+    let authUserId: string | null = null;
 
-        if (authUser?.user) {
-          authUserId = authUser.user.id;
-        } else if (authErr) {
-          // If already exists in auth, find user by email
-          const { data: userList } = await admin.auth.admin.listUsers();
-          const found = userList?.users?.find(
-            (u) => u.email?.toLowerCase().trim() === cleanEmail
-          );
-          if (found) {
-            authUserId = found.id;
-          }
-        }
+    // Check if account already exists in profiles
+    const { data: existingProf } = await (admin as any)
+      .from("profiles")
+      .select("id, role, email")
+      .eq("email", cleanEmail)
+      .single();
 
-        if (authUserId) {
-          const profilePayload: any = {
-            id: authUserId,
-            name: application.name,
-            email: cleanEmail,
-            role: targetRole,
-            department_id: matchedDept?.id ?? null,
-            bio: application.motivation,
-            status: "ACTIVE",
-            freelance_ready: false,
-            skills: ["Applicant", application.department_preference || "Candidate"],
-          };
-          if (studentEmail) profilePayload.student_email = studentEmail;
-          await (admin as any).from("profiles").upsert(profilePayload);
-        }
-      } catch (err) {
-        console.warn("User provisioning warning:", err);
-      }
+    if (existingProf) {
+      authUserId = existingProf.id;
     }
 
-    // Update password to the new secure temporary password
+    // Provision or verify auth user
+    try {
+      const { data: authUser, error: createAuthErr } = await admin.auth.admin.createUser({
+        email: cleanEmail,
+        password: secureTemporaryPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: application.name,
+          role: targetRole,
+          department_id: matchedDept?.id,
+          student_email: studentEmail,
+        },
+      });
+
+      if (authUser?.user) {
+        authUserId = authUser.user.id;
+      }
+    } catch (createErr) {
+      console.warn("Notice: createUser attempt completed:", createErr);
+    }
+
+    // If auth user exists, sync password
     if (authUserId) {
       try {
         await admin.auth.admin.updateUserById(authUserId, {
@@ -151,30 +133,87 @@ export async function POST(
           email_confirm: true,
         });
       } catch (updateErr) {
-        console.warn("Password update warning:", updateErr);
+        console.warn("Password sync warning:", updateErr);
       }
     }
 
-    // Generate recovery link
+    // Generate redirect link
     const origin =
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://asteria-club-esprit.vercel.app";
     const redirectTo = `${origin}/auth/callback?next=/auth/reset-password`;
 
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: cleanEmail,
-      options: {
-        redirectTo,
-      },
-    });
+    let actionLink: string | null = null;
 
-    if (linkErr) {
-      console.error("Supabase generateLink error:", linkErr);
+    // Strategy 1: Recovery link
+    try {
+      const recRes = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: cleanEmail,
+        options: { redirectTo },
+      });
+      if (recRes.data?.properties?.action_link) {
+        actionLink = recRes.data.properties.action_link;
+        if (recRes.data.user?.id) authUserId = recRes.data.user.id;
+      }
+    } catch {}
+
+    // Strategy 2: Invite link (auto-creates / activates user if missing)
+    if (!actionLink) {
+      try {
+        const invRes = await admin.auth.admin.generateLink({
+          type: "invite",
+          email: cleanEmail,
+          options: { redirectTo },
+        });
+        if (invRes.data?.properties?.action_link) {
+          actionLink = invRes.data.properties.action_link;
+          if (invRes.data.user?.id) authUserId = invRes.data.user.id;
+        }
+      } catch {}
+    }
+
+    // Strategy 3: Magic link
+    if (!actionLink) {
+      try {
+        const magRes = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          email: cleanEmail,
+          options: { redirectTo },
+        });
+        if (magRes.data?.properties?.action_link) {
+          actionLink = magRes.data.properties.action_link;
+          if (magRes.data.user?.id) authUserId = magRes.data.user.id;
+        }
+      } catch {}
+    }
+
+    // Sync profile if authUserId resolved
+    if (authUserId) {
+      try {
+        const profilePayload: any = {
+          id: authUserId,
+          name: application.name,
+          email: cleanEmail,
+          role: targetRole,
+          department_id: matchedDept?.id ?? null,
+          bio: application.motivation,
+          status: "ACTIVE",
+          freelance_ready: false,
+          skills: ["Applicant", application.department_preference || "Candidate"],
+        };
+        if (studentEmail) profilePayload.student_email = studentEmail;
+        await (admin as any).from("profiles").upsert(profilePayload);
+      } catch (upsertErr) {
+        console.warn("Profile upsert warning:", upsertErr);
+      }
+    }
+
+    if (!actionLink) {
       return NextResponse.json(
         {
-          error: `Failed to generate recovery link: ${linkErr.message}`,
+          error: "Impossible de générer le lien de réinitialisation. Veuillez vérifier que l'adresse email est valide.",
           temporaryPassword: secureTemporaryPassword,
           email: cleanEmail,
         },
@@ -185,7 +224,7 @@ export async function POST(
     await createAuditLog({
       user_id: user.id,
       action: "GENERATE_RESET_LINK",
-      details: `Generated password reset link for applicant ${cleanEmail}`,
+      details: `Generated access link for applicant ${cleanEmail}`,
     });
 
     return NextResponse.json({
@@ -193,7 +232,7 @@ export async function POST(
       name: application.name,
       email: cleanEmail,
       department: application.department_preference || "Asteria Club",
-      actionLink: linkData?.properties?.action_link,
+      actionLink,
       temporaryPassword: secureTemporaryPassword,
       stage: application.status,
     });
