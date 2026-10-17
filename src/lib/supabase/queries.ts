@@ -5,6 +5,7 @@
  */
 import { createClient } from "./server";
 import { getAdminClient } from "./admin";
+import { broadcastRealtime } from "./realtime";
 import type { Database } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -1367,6 +1368,7 @@ export async function createAnnouncement(data: Record<string, any>): Promise<any
     department_id: data.department_id || null,
     author_id: data.author_id,
     is_pinned: Boolean(data.is_pinned),
+    event_id: data.event_id || null,
   };
 
   const { data: announcement, error } = await (admin as any)
@@ -1380,6 +1382,16 @@ export async function createAnnouncement(data: Record<string, any>): Promise<any
     .single();
 
   if (error) throw error;
+
+  try {
+    await broadcastRealtime("announcements_realtime", "announcement_updated", {
+      announcementId: announcement.id,
+      scope: announcement.scope,
+    });
+  } catch (bErr) {
+    console.warn("Notice: Realtime broadcast failed in createAnnouncement:", bErr);
+  }
+
   return normalizeAnnouncement(announcement);
 }
 
@@ -1395,6 +1407,7 @@ export async function updateAnnouncementByEventId(eventId: string, updates: Reco
   const payload: any = {
     updated_at: new Date().toISOString(),
     body,
+    event_id: eventId,
   };
   if (updates.title) payload.title = updates.title;
   if (updates.scope) payload.scope = updates.scope;
@@ -1404,10 +1417,24 @@ export async function updateAnnouncementByEventId(eventId: string, updates: Reco
     .from("announcements")
     .update(payload)
     .eq("id", linked.id)
-    .select()
+    .select(`
+      *,
+      departments:department_id (id, name),
+      author:author_id (id, name, role, avatar_url)
+    `)
     .single();
 
   if (error) return null;
+
+  try {
+    await broadcastRealtime("announcements_realtime", "announcement_updated", {
+      announcementId: linked.id,
+      scope: updated?.scope || linked.scope,
+    });
+  } catch (bErr) {
+    console.warn("Notice: Realtime broadcast failed in updateAnnouncementByEventId:", bErr);
+  }
+
   return normalizeAnnouncement(updated);
 }
 

@@ -39,3 +39,4 @@ prisma/dev.db
 *.db-journal
 
 .vercel
+supabase/.temp/

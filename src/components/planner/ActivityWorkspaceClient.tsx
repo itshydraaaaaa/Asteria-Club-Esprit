@@ -34,6 +34,7 @@ import {
   ExternalLink,
   RefreshCw,
   ShieldCheck,
+  Megaphone,
 } from "lucide-react";
 
 interface ActivityWorkspaceClientProps {
@@ -333,8 +334,8 @@ export function ActivityWorkspaceClient({
         setActionBanner({
           type: "SUCCESS",
           text: isFr
-            ? "Activité publiée et synchronisée avec le Calendrier Officiel & l'Émargement QR !"
-            : "Activity published and synced with Official Club Calendar & QR Attendance!",
+            ? "Activité publiée et synchronisée avec le Calendrier, les Annonces & l'Émargement QR !"
+            : "Activity published and synced with Official Calendar, Announcements & QR Attendance!",
         });
         fetchWorkspace();
       }
@@ -601,6 +602,14 @@ export function ActivityWorkspaceClient({
                 >
                   <QrCode className="w-3.5 h-3.5" />
                   {isFr ? "Présence QR" : "QR Check-In"}
+                </Link>
+                <Link
+                  href="/announcements"
+                  className="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold flex items-center gap-1.5"
+                >
+                  <Megaphone className="w-3.5 h-3.5" />
+                  {isFr ? "Annonce Publiée" : "Announcement"}
+                  <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
             ) : (

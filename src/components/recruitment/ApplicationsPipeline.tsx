@@ -23,6 +23,7 @@ import {
   Copy,
   Check,
   AlertCircle,
+  KeyRound,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { formatDate } from "@/lib/utils";
@@ -53,6 +54,23 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     stage?: "INTERVIEW" | "ACCEPTED";
   } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Direct Reset Link & Access Generation
+  const [generatingLinkId, setGeneratingLinkId] = useState<string | null>(null);
+  const [generatedAccess, setGeneratedAccess] = useState<{
+    id?: string;
+    name: string;
+    email: string;
+    department: string;
+    actionLink?: string;
+    temporaryPassword?: string;
+    stage?: string;
+  } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [tempPassCopied, setTempPassCopied] = useState(false);
+  const [messageCopied, setMessageCopied] = useState(false);
+  const [editGmail, setEditGmail] = useState("");
+  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -161,6 +179,80 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const handleGenerateAccessLink = async (app: any, overrideEmail?: string) => {
+    try {
+      setGeneratingLinkId(app.id);
+      const res = await fetch(`/api/applications/${app.id}/reset-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(overrideEmail ? { newEmail: overrideEmail } : {}),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGeneratedAccess({
+          id: app.id,
+          name: data.name || app.name,
+          email: data.email || overrideEmail || app.email,
+          department: data.department || app.departmentPreference,
+          actionLink: data.actionLink,
+          temporaryPassword: data.temporaryPassword,
+          stage: data.stage || app.status,
+        });
+        setEditGmail("");
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#11606E", "#60C8D4", "#F59E0B"],
+        });
+        fetchApplications();
+      } else {
+        alert(data.error || "Impossible de générer le lien d'accès.");
+      }
+    } catch (err) {
+      console.error("Error generating reset link:", err);
+      alert("Erreur lors de la génération du lien d'accès.");
+    } finally {
+      setGeneratingLinkId(null);
+    }
+  };
+
+  const handleUpdateToGmail = async () => {
+    if (!generatedAccess?.id || !editGmail.toLowerCase().trim().endsWith("@gmail.com")) {
+      alert("Veuillez saisir une adresse se terminant par @gmail.com");
+      return;
+    }
+    setUpdatingEmail(true);
+    try {
+      await handleGenerateAccessLink(
+        {
+          id: generatedAccess.id,
+          name: generatedAccess.name,
+          departmentPreference: generatedAccess.department,
+          status: generatedAccess.stage,
+        },
+        editGmail.toLowerCase().trim()
+      );
+    } finally {
+      setUpdatingEmail(false);
+    }
+  };
+
+  const handleCopyText = (text: string, type: "link" | "pass" | "message") => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    if (type === "link") {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2500);
+    } else if (type === "pass") {
+      setTempPassCopied(true);
+      setTimeout(() => setTempPassCopied(false), 2500);
+    } else if (type === "message") {
+      setMessageCopied(true);
+      setTimeout(() => setMessageCopied(false), 2500);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-vague-in">
       {/* Top Filter Bar */}
@@ -264,10 +356,16 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                   <div className="space-y-1 mt-1 font-body">
                     <p className="text-xs text-ink-soft flex items-center gap-1.5 flex-wrap">
                       <Mail className="w-3.5 h-3.5 text-ast-primary dark:text-teal-400 shrink-0" />
-                      <span>{app.email}</span>
-                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 bg-teal-50 dark:bg-teal-900/60 text-ast-primary dark:text-teal-300 rounded font-bold">
-                        Gmail
-                      </span>
+                      <span className="font-mono">{app.email}</span>
+                      {app.email.toLowerCase().endsWith("@gmail.com") ? (
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 bg-teal-50 dark:bg-teal-900/60 text-ast-primary dark:text-teal-300 rounded font-bold">
+                          Gmail
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 rounded font-bold border border-amber-300 dark:border-amber-700">
+                          ⚠️ Non-Gmail (ESPRIT)
+                        </span>
+                      )}
                     </p>
                     {(app.studentEmail || app.student_email) && (
                       <p className="text-xs text-ink-soft flex items-center gap-1.5 flex-wrap">
@@ -324,17 +422,44 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
 
               {/* Action Bar */}
               <div className="pt-4 border-t border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs w-full sm:w-auto"
-                  onClick={() => {
-                    setSelectedApp(app);
-                    setReviewerNotes(app.reviewerNotes || "");
-                  }}
-                >
-                  {isFr ? "Examiner Dossier" : "Review Dossier"}
-                </Button>
+                <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs w-full sm:w-auto"
+                    onClick={() => {
+                      setSelectedApp(app);
+                      setReviewerNotes(app.reviewerNotes || "");
+                    }}
+                  >
+                    {isFr ? "Examiner Dossier" : "Review Dossier"}
+                  </Button>
+
+                  {(currentUser?.role === "BOARD" ||
+                    currentUser?.role === "PRESIDENT" ||
+                    currentUser?.role === "VICE_PRESIDENT" ||
+                    currentUser?.role === "HOD") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-teal-500/50 text-teal-900 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/60 font-semibold flex items-center justify-center gap-1.5 w-full sm:w-auto"
+                      disabled={generatingLinkId === app.id}
+                      onClick={() => handleGenerateAccessLink(app)}
+                      title={
+                        isFr
+                          ? "Générer un lien direct de réinitialisation / code d'accès pour ce candidat"
+                          : "Generate direct password reset / access link for this applicant"
+                      }
+                    >
+                      {generatingLinkId === app.id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <KeyRound className="w-3.5 h-3.5 text-ast-accent" />
+                      )}
+                      <span>{isFr ? "Lien d'Accès" : "Access Link"}</span>
+                    </Button>
+                  )}
+                </div>
 
                 {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -433,6 +558,31 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
               )}
 
               <div className="flex items-center gap-2 ml-auto flex-wrap">
+                {(currentUser?.role === "BOARD" ||
+                  currentUser?.role === "PRESIDENT" ||
+                  currentUser?.role === "VICE_PRESIDENT" ||
+                  currentUser?.role === "HOD") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-teal-500/50 text-teal-900 dark:text-teal-300 font-semibold flex items-center gap-1.5"
+                    disabled={generatingLinkId === selectedApp.id}
+                    onClick={() => handleGenerateAccessLink(selectedApp)}
+                    title={
+                      isFr
+                        ? "Générer un lien direct de réinitialisation / code d'accès"
+                        : "Generate direct password reset / access link"
+                    }
+                  >
+                    {generatingLinkId === selectedApp.id ? (
+                      <div className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <KeyRound className="w-3.5 h-3.5 text-ast-accent" />
+                    )}
+                    <span>{isFr ? "Lien d'Accès / Code" : "Access Link / Code"}</span>
+                  </Button>
+                )}
+
                 {(currentUser?.role === "BOARD" || currentUser?.role === "PRESIDENT" || currentUser?.role === "VICE_PRESIDENT") && selectedApp.status === "PENDING" && (
                   <Button
                     variant="accent"
@@ -599,6 +749,182 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
                 onClick={() => setCreatedCredentials(null)}
               >
                 {isFr ? "Terminer" : "Done"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Generated Access Link Modal */}
+      {generatedAccess && (
+        <Modal
+          isOpen={!!generatedAccess}
+          onClose={() => setGeneratedAccess(null)}
+          title={isFr ? "Accès & Réinitialisation Candidat" : "Candidate Access & Reset Link"}
+          maxWidth="lg"
+        >
+          <div className="space-y-4 font-body">
+            <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 flex items-start gap-3">
+              <KeyRound className="w-5 h-5 text-ast-primary dark:text-teal-300 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs">
+                <h5 className="font-bold text-teal-900 dark:text-teal-200 text-sm font-display uppercase tracking-wide">
+                  {isFr ? "Accès Candidat Prêt pour Envoi Manuel" : "Candidate Access Ready for Direct Sharing"}
+                </h5>
+                <p className="text-teal-800/90 dark:text-teal-300/90 leading-relaxed">
+                  {isFr
+                    ? `Les emails institutionnels (@esprit.tn) bloquent les emails automatiques. Vous pouvez transmettre directement ce lien d'activation ou mot de passe à ${generatedAccess.name} par WhatsApp, Discord ou SMS.`
+                    : `Institutional mailboxes (@esprit.tn) block automated emails. You can share this direct link or temporary password with ${generatedAccess.name} via WhatsApp, Discord, or SMS.`}
+                </p>
+              </div>
+            </div>
+
+            {/* If email is NOT a Gmail address, prompt admin to migrate it */}
+            {(!generatedAccess.email.toLowerCase().endsWith("@gmail.com") || generatedAccess.email.toLowerCase().includes("esprit")) && (
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 space-y-2.5">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    {isFr
+                      ? "Adresse ESPRIT détectée — Remplacement par Gmail Requis"
+                      : "ESPRIT Address Detected — Gmail Primary Required"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                  {isFr
+                    ? `Le candidat utilise actuellement "${generatedAccess.email}". Enregistrez son adresse Gmail personnelle comme email principal pour garantir la réception de tous les emails futurs :`
+                    : `The applicant is currently using "${generatedAccess.email}". Save their personal Gmail as primary email so future portal notifications arrive safely:`}
+                </p>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <input
+                    type="email"
+                    placeholder="etudiant.nom@gmail.com"
+                    value={editGmail}
+                    onChange={(e) => setEditGmail(e.target.value)}
+                    className="flex-1 text-xs font-mono p-2 rounded-lg bg-white dark:bg-[#072d33] border border-amber-300 dark:border-amber-700 text-ink dark:text-white focus:outline-none focus:ring-2 focus:ring-ast-primary"
+                  />
+                  <Button
+                    size="sm"
+                    variant="accent"
+                    className="shrink-0 text-xs font-bold"
+                    disabled={!editGmail.toLowerCase().trim().endsWith("@gmail.com") || updatingEmail}
+                    onClick={handleUpdateToGmail}
+                  >
+                    {updatingEmail ? (
+                      <div className="w-3.5 h-3.5 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>{isFr ? "Enregistrer Gmail & Regénérer" : "Save Gmail & Regenerate"}</span>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Direct Reset / Magic Link */}
+            {generatedAccess.actionLink && (
+              <div className="p-3.5 rounded-xl bg-surface-alt border border-line space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink font-display flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    {isFr ? "1. Lien Direct de Définition du Mot de Passe" : "1. Direct Password Reset Link"}
+                  </span>
+                  <span className="text-[10px] text-ink-faint">
+                    {isFr ? "Connexion sécurisée en un clic" : "One-click secure activation"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={generatedAccess.actionLink}
+                    className="w-full text-xs font-mono p-2 rounded-lg bg-surface border border-line text-ink dark:text-white select-all overflow-hidden text-ellipsis"
+                  />
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="shrink-0 flex items-center gap-1 text-xs"
+                    onClick={() => handleCopyText(generatedAccess.actionLink || "", "link")}
+                  >
+                    {linkCopied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{linkCopied ? (isFr ? "Copié !" : "Copied!") : (isFr ? "Copier Lien" : "Copy Link")}</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Temporary Password */}
+            {generatedAccess.temporaryPassword && (
+              <div className="p-3.5 rounded-xl bg-surface-alt border border-line space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-ink font-display block">
+                    {isFr ? "2. Mot de Passe Provisoire Alternatif" : "2. Alternative Temporary Password"}
+                  </span>
+                  <span className="text-[10px] text-ink-faint">
+                    {isFr ? "Connexion directe possible" : "Direct login possible"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 font-mono font-bold text-xs text-white bg-[#0A3A40] px-3 py-2 rounded-lg border border-teal-700 text-center select-all">
+                    {generatedAccess.temporaryPassword}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 flex items-center gap-1 text-xs"
+                    onClick={() => handleCopyText(generatedAccess.temporaryPassword || "", "pass")}
+                  >
+                    {tempPassCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{tempPassCopied ? (isFr ? "Copié" : "Copied") : (isFr ? "Copier PWD" : "Copy PWD")}</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Ready-to-Send Message */}
+            <div className="p-3.5 rounded-xl bg-[#0A3A40] text-white border border-teal-700/60 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-teal-700/50 pb-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-ast-light">
+                  {isFr ? "Message WhatsApp / Discord Tout-en-Un" : "All-in-One Shareable Message"}
+                </span>
+                <span className="text-[10px] font-mono bg-ast-light/20 text-ast-light px-2 py-0.5 rounded-full">
+                  {generatedAccess.email}
+                </span>
+              </div>
+              <p className="text-xs text-teal-100/90 leading-relaxed font-mono whitespace-pre-line bg-black/30 p-2.5 rounded-lg border border-teal-800/50 max-h-36 overflow-y-auto select-all">
+{`Asteria Club Esprit — Vos Accès au Portail
+
+Bonjour ${generatedAccess.name},
+Voici vos accès pour le portail Asteria Club :
+
+🔗 Lien direct pour définir votre mot de passe :
+${generatedAccess.actionLink || "https://asteria-club-esprit.vercel.app/login"}
+
+🔑 Mot de passe provisoire : ${generatedAccess.temporaryPassword}
+📧 Email de connexion : ${generatedAccess.email}
+
+Portail : https://asteria-club-esprit.vercel.app/login`}
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full font-bold flex items-center justify-center gap-2"
+                onClick={() => {
+                  const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://asteria-club-esprit.vercel.app/login";
+                  const text = `Asteria Club Esprit — Vos Accès au Portail\n\nBonjour ${generatedAccess.name},\nVoici vos accès pour le portail Asteria Club :\n\n🔗 Lien direct pour définir votre mot de passe :\n${generatedAccess.actionLink || portalUrl}\n\n🔑 Mot de passe provisoire : ${generatedAccess.temporaryPassword}\n📧 Email de connexion : ${generatedAccess.email}\n\nPortail : ${portalUrl}`;
+                  handleCopyText(text, "message");
+                }}
+              >
+                {messageCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                <span>{messageCopied ? (isFr ? "Message Copié !" : "Message Copied!") : (isFr ? "Copier le Message Complet (WhatsApp / SMS)" : "Copy Full Message")}</span>
+              </Button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setGeneratedAccess(null)}
+              >
+                {isFr ? "Fermer" : "Close"}
               </Button>
             </div>
           </div>

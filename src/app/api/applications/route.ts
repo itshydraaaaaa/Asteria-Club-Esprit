@@ -74,6 +74,16 @@ export async function POST(req: Request) {
     const cleanEmail = email.toLowerCase().trim();
     const cleanStudentEmail = targetStudentEmail ? targetStudentEmail.toLowerCase().trim() : null;
 
+    if (!cleanEmail.endsWith("@gmail.com")) {
+      return NextResponse.json(
+        {
+          error:
+            "Une adresse Gmail (@gmail.com) est requise comme email principal. Les adresses institutionnelles (@esprit.tn) bloquent la réception des emails automatiques.",
+        },
+        { status: 400 }
+      );
+    }
+
     // 1. Check if an application already exists for this Gmail address
     const existingGmail = await getApplicationByEmail(cleanEmail);
     if (existingGmail) {

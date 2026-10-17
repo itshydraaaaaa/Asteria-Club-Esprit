@@ -9,6 +9,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import {
+  createAnnouncement,
+  updateAnnouncementByEventId,
+  getAnnouncements,
+  updateEvent,
+  upsertRSVP,
+} from "@/lib/supabase/queries";
+import {
   ActivityItem,
   ActivityType,
   ActivityTemplate,
@@ -1571,11 +1578,12 @@ export async function getLinkedEventAttendanceStats(eventId?: string | null): Pr
 export async function syncActivityToEventsBridge(activityId: string): Promise<string | null> {
   const admin: any = getAdminClient();
 
-  // Fetch complete activity details
+  // Fetch complete activity details with type and members
   const { data: activity } = await admin
     .from("activities")
     .select(`
       *,
+      type:activity_types (*),
       members:activity_members (profile_id, role)
     `)
     .eq("id", activityId)
@@ -1587,6 +1595,40 @@ export async function syncActivityToEventsBridge(activityId: string): Promise<st
   const checkInCode = `AST-${Math.floor(1000 + Math.random() * 9000)}`;
 
   let eventId = activity.event_id;
+  const audienceScope = activity.department_id ? "DEPARTMENT" : "CLUB";
+  const location = (activity.location || "Campus ESPRIT").trim();
+
+  // Map activity type to event type: 'WORKSHOP', 'MEETING', 'SESSION', 'PODCAST', 'COMPETITION', 'GENERAL', 'HACKATHON'
+  let eventType = "WORKSHOP";
+  const typeName = (activity.type?.name || "").toLowerCase();
+  if (typeName.includes("hackathon") || typeName.includes("compétition")) {
+    eventType = "HACKATHON";
+  } else if (typeName.includes("réunion") || typeName.includes("meeting")) {
+    eventType = "MEETING";
+  } else if (typeName.includes("session")) {
+    eventType = "SESSION";
+  } else if (typeName.includes("podcast")) {
+    eventType = "PODCAST";
+  } else if (typeName.includes("assemblée") || typeName.includes("général")) {
+    eventType = "GENERAL";
+  }
+
+  const start = new Date(activity.starts_at);
+  const formattedDate = !isNaN(start.getTime())
+    ? start.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+  const formattedTime = !isNaN(start.getTime())
+    ? start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    : "";
+
+  const ideaText = activity.idea || `Activité Asteria : ${activity.title}`;
+  const cleanIdea = ideaText.replace(/<!--[\s\S]*?-->/g, "").trim();
+  const descSnippet = cleanIdea ? `> ${cleanIdea.slice(0, 250)}...` : "";
 
   if (!eventId) {
     // 1. Create new events row
@@ -1594,16 +1636,16 @@ export async function syncActivityToEventsBridge(activityId: string): Promise<st
       .from("events")
       .insert({
         title: activity.title,
-        description: activity.idea || `Activité Asteria : ${activity.title}`,
+        description: ideaText,
         start_time: activity.starts_at,
         end_time: activity.ends_at,
-        location: activity.location || "Campus ESPRIT",
+        location: location,
         department_id: activity.department_id || null,
         created_by_id: activity.owner_id,
         host_id: activity.owner_id,
         check_in_code: checkInCode,
-        type: "WORKSHOP",
-        audience_scope: activity.department_id ? "DEPARTMENT" : "CLUB",
+        type: eventType,
+        audience_scope: audienceScope,
         check_in_status: "SCHEDULED",
         attendance_required: true,
       })
@@ -1628,10 +1670,10 @@ export async function syncActivityToEventsBridge(activityId: string): Promise<st
       .from("events")
       .update({
         title: activity.title,
-        description: activity.idea || `Activité Asteria : ${activity.title}`,
+        description: ideaText,
         start_time: activity.starts_at,
         end_time: activity.ends_at,
-        location: activity.location || "Campus ESPRIT",
+        location: location,
         department_id: activity.department_id || null,
         host_id: activity.owner_id,
         updated_at: new Date().toISOString(),
@@ -1639,8 +1681,48 @@ export async function syncActivityToEventsBridge(activityId: string): Promise<st
       .eq("id", eventId);
   }
 
-  // 3. Sync event_hosts for CO_OWNER members so they can run QR code
+  // 3. Sync or create linked announcement
   if (eventId) {
+    try {
+      const existingAnnouncements = await getAnnouncements();
+      const linkedAnn = existingAnnouncements.find((a: any) => a.eventId === eventId);
+
+      if (linkedAnn) {
+        await updateAnnouncementByEventId(eventId, {
+          title: `📅 [Événement] ${activity.title.trim()}`,
+          body: `L'événement **${activity.title.trim()}** (${eventType}) a été mis à jour.\n\n📅 **Date :** ${formattedDate} à ${formattedTime}\n📍 **Lieu :** ${location}\n👥 **Audience :** ${audienceScope}\n\n${descSnippet}\n\nConsultez le Calendrier pour confirmer votre présence et accéder à l'émargement QR !`,
+          scope: audienceScope,
+          department_id: activity.department_id || null,
+        });
+      } else {
+        const announcement = await createAnnouncement({
+          title: `📅 [Événement] ${activity.title.trim()}`,
+          body: `Un nouvel événement **${activity.title.trim()}** (${eventType}) a été programmé.\n\n📅 **Date :** ${formattedDate} à ${formattedTime}\n📍 **Lieu :** ${location}\n👥 **Audience :** ${audienceScope}\n\n${descSnippet}\n\nRetrouvez cet événement dans le Calendrier pour confirmer votre présence et accéder à l'émargement QR !`,
+          scope: audienceScope,
+          department_id: activity.department_id || null,
+          author_id: activity.owner_id,
+          event_id: eventId,
+          is_pinned: false,
+        });
+
+        if (announcement?.id) {
+          await updateEvent(eventId, { linked_announcement_id: announcement.id });
+        }
+      }
+    } catch (annErr) {
+      console.warn("Could not sync linked announcement from activity bridge:", annErr);
+    }
+
+    // 4. Auto RSVP GOING for the owner
+    if (activity.owner_id) {
+      try {
+        await upsertRSVP({ event_id: eventId, user_id: activity.owner_id, status: "GOING" });
+      } catch (rsvpErr) {
+        console.warn("Could not auto-RSVP activity owner:", rsvpErr);
+      }
+    }
+
+    // 5. Sync event_hosts for CO_OWNER and OWNER members so they can run QR code
     const coOwners = (activity.members || []).filter(
       (m: any) => m.role === "CO_OWNER" || m.role === "OWNER"
     );
@@ -1656,6 +1738,12 @@ export async function syncActivityToEventsBridge(activityId: string): Promise<st
           },
           { onConflict: "event_id,user_id" }
         );
+
+      if (host.profile_id !== activity.owner_id) {
+        try {
+          await upsertRSVP({ event_id: eventId, user_id: host.profile_id, status: "GOING" });
+        } catch {}
+      }
     }
   }
 
@@ -1701,9 +1789,27 @@ export async function handleCancelledActivityEvent(activityId: string): Promise<
         updated_at: new Date().toISOString(),
       })
       .eq("id", eventId);
+
+    try {
+      await updateAnnouncementByEventId(eventId, {
+        title: `🚫 [ANNULÉ] ${activity.title.replace(/^\[ANNULÉ\]\s*/, "")}`,
+        body: `L'événement **${activity.title.replace(/^\[ANNULÉ\]\s*/, "")}** a été annulé.\n\nCet événement ne se tiendra pas comme prévu.`,
+      });
+    } catch (annErr) {
+      console.warn("Could not mark linked announcement cancelled:", annErr);
+    }
+
     return "TITLE_MARKED_CANCELLED";
   } else {
     // Delete cleanly
+    try {
+      const announcements = await getAnnouncements();
+      const linked = announcements.find((a: any) => a.eventId === eventId);
+      if (linked) {
+        await admin.from("announcements").delete().eq("id", linked.id);
+      }
+    } catch {}
+
     await admin.from("events").delete().eq("id", eventId);
     await admin.from("activities").update({ event_id: null }).eq("id", activityId);
     return "DELETED";

@@ -102,6 +102,16 @@ export default function ApplyPage() {
       return;
     }
 
+    const cleanEmail = form.email.toLowerCase().trim();
+    if (!cleanEmail.endsWith("@gmail.com")) {
+      setError(
+        isFr
+          ? "Veuillez renseigner une adresse Gmail (@gmail.com) valide comme adresse principale. Les adresses institutionnelles (@esprit.tn) bloquent les emails automatiques. Indiquez votre email @esprit.tn dans le champ 'Email Étudiant ESPRIT'."
+          : "Please provide a valid Gmail address (@gmail.com) as your primary email. University mailboxes (@esprit.tn) block automated messages. Put your @esprit.tn in the ESPRIT Student Email field below."
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
