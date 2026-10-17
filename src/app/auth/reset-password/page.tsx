@@ -19,6 +19,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 
 const AmbientCanvas = dynamic(
@@ -30,14 +31,16 @@ export default function ResetPasswordPage() {
   const { language } = useLanguage();
   const isFr = language === "fr";
 
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-  const [email, setEmail] = useState("");
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [initialEmail, setInitialEmail] = useState("");
+  const [gmail, setGmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [savedEmail, setSavedEmail] = useState("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,23 +48,25 @@ export default function ResetPasswordPage() {
     // Check if session is already present
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        setHasSession(true);
-        if (session.user?.email) {
-          setEmail(session.user.email);
+        setAccessToken(session.access_token);
+        const userEmail = session.user?.email || "";
+        setInitialEmail(userEmail);
+        if (userEmail.toLowerCase().endsWith("@gmail.com")) {
+          setGmail(userEmail);
         }
-      } else {
-        setHasSession(false);
       }
     });
 
-    // Listen to auth state changes (e.g. PASSWORD_RECOVERY event)
+    // Listen to auth state changes (e.g. recovery / invite redirect)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
-        setHasSession(true);
-        if (session?.user?.email) {
-          setEmail(session.user.email);
+      if (session) {
+        setAccessToken(session.access_token);
+        const userEmail = session.user?.email || "";
+        setInitialEmail(userEmail);
+        if (userEmail.toLowerCase().endsWith("@gmail.com") && !gmail) {
+          setGmail(userEmail);
         }
       }
     });
@@ -74,6 +79,16 @@ export default function ResetPasswordPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const cleanGmail = gmail.toLowerCase().trim();
+    if (!cleanGmail.endsWith("@gmail.com")) {
+      setError(
+        isFr
+          ? "Une adresse personnelle Gmail (@gmail.com) est requise comme email principal. Les adresses institutionnelles (@esprit.tn) bloquent les notifications."
+          : "A personal Gmail address (@gmail.com) is required. Institutional mailboxes (@esprit.tn) block notifications."
+      );
+      return;
+    }
 
     if (password.length < 6) {
       setError(
@@ -94,25 +109,34 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
-    const supabase = createClient();
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password,
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          email: cleanGmail,
+          password,
+        }),
       });
 
-      if (updateError) {
-        setError(
-          updateError.message ||
-            (isFr
-              ? "Impossible de mettre à jour le mot de passe. Le lien a peut-être expiré."
-              : "Failed to update password. The link may have expired.")
-        );
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || (isFr ? "Échec de l'activation du compte." : "Account activation failed."));
       } else {
+        setSavedEmail(cleanGmail);
         setSuccess(true);
         confetti({
-          particleCount: 120,
-          spread: 80,
+          particleCount: 140,
+          spread: 85,
           origin: { y: 0.6 },
           colors: ["#11606E", "#60C8D4", "#F59E0B"],
         });
@@ -128,6 +152,11 @@ export default function ResetPasswordPage() {
       setLoading(false);
     }
   };
+
+  const isEspritCurrent =
+    initialEmail &&
+    (initialEmail.toLowerCase().includes("esprit") ||
+      !initialEmail.toLowerCase().endsWith("@gmail.com"));
 
   return (
     <div className="min-h-screen bg-[#F4F8F9] dark:bg-[#062327] text-ink dark:text-white flex flex-col justify-center py-16 sm:py-12 px-4 sm:px-6 lg:px-8 font-body relative overflow-hidden selection:bg-teal-400 selection:text-ink transition-colors duration-300">
@@ -160,8 +189,8 @@ export default function ResetPasswordPage() {
         />
         <p className="font-body text-xs text-ink-soft dark:text-teal-200/80 font-medium">
           {isFr
-            ? "Activation & Réinitialisation du Compte Asteria Club"
-            : "Asteria Club Account Activation & Password Reset"}
+            ? "Activation du Compte & Configuration des Accès"
+            : "Account Activation & Credential Setup"}
         </p>
       </div>
 
@@ -172,22 +201,28 @@ export default function ResetPasswordPage() {
               <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-600 flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <h3 className="text-lg font-bold font-display uppercase tracking-wider text-ink dark:text-white">
-                  {isFr
-                    ? "Mot de Passe Défini !"
-                    : "Password Successfully Set!"}
+                  {isFr ? "Compte Activé avec Succès !" : "Account Successfully Activated!"}
                 </h3>
                 <p className="text-xs text-ink-soft dark:text-teal-200/90 leading-relaxed">
                   {isFr
-                    ? "Votre mot de passe a été configuré avec succès. Vous pouvez maintenant vous connecter à votre espace Asteria Club avec votre adresse Gmail."
-                    : "Your password has been successfully configured. You can now log into your Asteria Club portal with your Gmail address."}
+                    ? "Votre mot de passe et votre adresse Gmail personnelle ont été enregistrés. Vous pouvez désormais vous connecter directement au portail."
+                    : "Your password and personal Gmail have been securely saved. You can now log into your member portal."}
                 </p>
+                <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-xs font-mono text-center mt-2">
+                  <span className="text-ink-soft dark:text-teal-300/80 text-[11px] block">
+                    {isFr ? "Email de connexion principal :" : "Primary Login Email:"}
+                  </span>
+                  <span className="font-bold text-ink dark:text-white text-sm">
+                    {savedEmail}
+                  </span>
+                </div>
               </div>
 
               <Link href="/login" className="block pt-2">
                 <button className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#0A3A40] to-[#11606E] hover:from-[#0B4A55] hover:to-[#17788A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition">
-                  <span>{isFr ? "Accéder au Portail" : "Go to Portal"}</span>
+                  <span>{isFr ? "Se Connecter au Portail" : "Log in to Portal"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </Link>
@@ -198,8 +233,8 @@ export default function ResetPasswordPage() {
                 <KeyRound className="w-4 h-4 text-ast-primary dark:text-teal-300" />
                 <h4 className="text-xs font-display font-bold uppercase tracking-wider text-ink dark:text-teal-200">
                   {isFr
-                    ? "Définir votre Mot de Passe"
-                    : "Set Your New Password"}
+                    ? "Configurer vos Identifiants"
+                    : "Configure Your Access Details"}
                 </h4>
               </div>
 
@@ -210,20 +245,57 @@ export default function ResetPasswordPage() {
                 </div>
               )}
 
-              {hasSession && email && (
-                <div className="p-3 rounded-xl bg-teal-50/70 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60 text-xs">
-                  <span className="text-ink-soft dark:text-teal-300/80 block text-[11px]">
-                    {isFr ? "Compte associé (Gmail) :" : "Connected account (Gmail):"}
-                  </span>
-                  <span className="font-mono font-bold text-ink dark:text-white">
-                    {email}
-                  </span>
+              {/* Informational Banner if candidate registered with esprit */}
+              {isEspritCurrent && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700/60 space-y-1.5 text-xs font-body">
+                  <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>
+                      {isFr
+                        ? "Adresse ESPRIT détectée"
+                        : "ESPRIT Email Detected"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                    {isFr
+                      ? `Votre compte a été initié avec "${initialEmail}". Les boîtes ESPRIT bloquant les emails automatiques, veuillez renseigner ci-dessous votre adresse Gmail personnelle. Votre adresse ESPRIT sera conservée en archive étudiante.`
+                      : `Your account was initiated with "${initialEmail}". Because ESPRIT mailboxes block automated notifications, please enter your personal Gmail address below.`}
+                  </p>
                 </div>
               )}
 
+              {/* 1. Gmail Input (Required) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200">
+                    {isFr ? "Votre Adresse Gmail Personnelle *" : "Your Personal Gmail Address *"}
+                  </label>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/80 text-ast-primary dark:text-teal-300 border border-teal-200 dark:border-teal-700 font-semibold">
+                    @gmail.com
+                  </span>
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint" />
+                  <input
+                    type="email"
+                    required
+                    value={gmail}
+                    onChange={(e) => setGmail(e.target.value)}
+                    placeholder="votre.adresse@gmail.com"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-line dark:border-teal-700/50 bg-white dark:bg-[#072d33] text-ink dark:text-white focus:outline-none focus:ring-2 focus:ring-ast-primary font-mono"
+                  />
+                </div>
+                <p className="text-[10px] text-ink-faint dark:text-teal-300/70 mt-1">
+                  {isFr
+                    ? "Toutes les convocations, notifications et accès de membre vous parviendront sur ce Gmail."
+                    : "All interview invitations, portal notifications, and alerts will be delivered here."}
+                </p>
+              </div>
+
+              {/* 2. New Password */}
               <div>
                 <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
-                  {isFr ? "Nouveau Mot de Passe" : "New Password"}
+                  {isFr ? "Nouveau Mot de Passe *" : "New Password *"}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint" />
@@ -249,11 +321,12 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
+              {/* 3. Confirm Password */}
               <div>
                 <label className="text-xs font-display uppercase tracking-wider font-bold text-ink dark:text-teal-200 block mb-1.5">
                   {isFr
-                    ? "Confirmer le Mot de Passe"
-                    : "Confirm New Password"}
+                    ? "Confirmer le Mot de Passe *"
+                    : "Confirm New Password *"}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint" />
@@ -280,8 +353,8 @@ export default function ResetPasswordPage() {
                     <Sparkles className="w-4 h-4 text-amber-300" />
                     <span>
                       {isFr
-                        ? "Enregistrer le Mot de Passe"
-                        : "Save New Password"}
+                        ? "Activer mon Compte & Enregistrer"
+                        : "Activate Account & Save"}
                     </span>
                   </>
                 )}

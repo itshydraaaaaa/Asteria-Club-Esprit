@@ -69,8 +69,6 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
   const [linkCopied, setLinkCopied] = useState(false);
   const [tempPassCopied, setTempPassCopied] = useState(false);
   const [messageCopied, setMessageCopied] = useState(false);
-  const [editGmail, setEditGmail] = useState("");
-  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -198,7 +196,6 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
           temporaryPassword: data.temporaryPassword,
           stage: data.stage || app.status,
         });
-        setEditGmail("");
         confetti({
           particleCount: 80,
           spread: 70,
@@ -214,27 +211,6 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
       alert("Erreur lors de la génération du lien d'accès.");
     } finally {
       setGeneratingLinkId(null);
-    }
-  };
-
-  const handleUpdateToGmail = async () => {
-    if (!generatedAccess?.id || !editGmail.toLowerCase().trim().endsWith("@gmail.com")) {
-      alert("Veuillez saisir une adresse se terminant par @gmail.com");
-      return;
-    }
-    setUpdatingEmail(true);
-    try {
-      await handleGenerateAccessLink(
-        {
-          id: generatedAccess.id,
-          name: generatedAccess.name,
-          departmentPreference: generatedAccess.department,
-          status: generatedAccess.stage,
-        },
-        editGmail.toLowerCase().trim()
-      );
-    } finally {
-      setUpdatingEmail(false);
     }
   };
 
@@ -778,43 +754,19 @@ export function ApplicationsPipeline({ currentUser }: ApplicationsPipelineProps)
               </div>
             </div>
 
-            {/* If email is NOT a Gmail address, prompt admin to migrate it */}
+            {/* If applicant registered with esprit, remind that applicant will enter their Gmail themselves */}
             {(!generatedAccess.email.toLowerCase().endsWith("@gmail.com") || generatedAccess.email.toLowerCase().includes("esprit")) && (
-              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 space-y-2.5">
-                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
-                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>
-                    {isFr
-                      ? "Adresse ESPRIT détectée — Remplacement par Gmail Requis"
-                      : "ESPRIT Address Detected — Gmail Primary Required"}
+              <div className="p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/60 flex items-start gap-2.5 text-xs font-body">
+                <CheckCircle className="w-4 h-4 text-ast-primary dark:text-teal-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold text-teal-900 dark:text-teal-200 block">
+                    {isFr ? "Ajout du Gmail par le Candidat" : "Gmail Setup by the Applicant"}
                   </span>
-                </div>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                  {isFr
-                    ? `Le candidat utilise actuellement "${generatedAccess.email}". Enregistrez son adresse Gmail personnelle comme email principal pour garantir la réception de tous les emails futurs :`
-                    : `The applicant is currently using "${generatedAccess.email}". Save their personal Gmail as primary email so future portal notifications arrive safely:`}
-                </p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-                  <input
-                    type="email"
-                    placeholder="etudiant.nom@gmail.com"
-                    value={editGmail}
-                    onChange={(e) => setEditGmail(e.target.value)}
-                    className="flex-1 text-xs font-mono p-2 rounded-lg bg-white dark:bg-[#072d33] border border-amber-300 dark:border-amber-700 text-ink dark:text-white focus:outline-none focus:ring-2 focus:ring-ast-primary"
-                  />
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    className="shrink-0 text-xs font-bold"
-                    disabled={!editGmail.toLowerCase().trim().endsWith("@gmail.com") || updatingEmail}
-                    onClick={handleUpdateToGmail}
-                  >
-                    {updatingEmail ? (
-                      <div className="w-3.5 h-3.5 border-2 border-stone-900 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span>{isFr ? "Enregistrer Gmail & Regénérer" : "Save Gmail & Regenerate"}</span>
-                    )}
-                  </Button>
+                  <p className="text-[11px] text-teal-800/90 dark:text-teal-300/90 leading-relaxed">
+                    {isFr
+                      ? `En ouvrant ce lien, ${generatedAccess.name} renseignera lui-même son adresse Gmail personnelle et définira son mot de passe. Son adresse ESPRIT actuelle sera archivée automatiquement.`
+                      : `Upon opening this link, ${generatedAccess.name} will enter their personal Gmail and set their password directly. Their ESPRIT email will be automatically archived.`}
+                  </p>
                 </div>
               </div>
             )}
